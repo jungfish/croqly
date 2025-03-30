@@ -7,7 +7,7 @@ import fetch from 'node-fetch';
 const router = Router();
 const openai = new OpenAI();
 
-// Transcribe video
+// Transcribe NOT USED FOR INSTAGRAM VIDEO CAN REMOVE IF NOT NEEDED
 const transcribeVideo: RequestHandler = async (req, res) => {
 
   try {
@@ -67,7 +67,7 @@ const performOCR: RequestHandler = async (req, res) => {
     const base64Image = fileBuffer.toString('base64');
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4-vision-preview',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'user',
