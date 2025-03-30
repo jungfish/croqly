@@ -4,10 +4,10 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { authMiddleware } from './middleware/auth';
-import dbRoutes from './routes/db';
-import instagramRoutes from './routes/instagram';
-import aiRoutes from './routes/ai';
+import { authMiddleware } from './middleware/auth.js';
+import dbRoutes from './routes/db.js';
+import instagramRoutes from './routes/instagram.js';
+import aiRoutes from './routes/ai.js';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
