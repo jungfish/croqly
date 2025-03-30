@@ -9,27 +9,33 @@ const openai = new OpenAI();
 
 // Transcribe video
 const transcribeVideo: RequestHandler = async (req, res) => {
+
   try {
     const { videoUrl } = req.query;
     if (!videoUrl || typeof videoUrl !== 'string') {
       return res.status(400).json({ error: 'Video URL is required' });
     }
 
+    console.log('Fetching video from URL:', videoUrl);
     const response = await fetch(videoUrl);
     if (!response.ok) {
       return res.status(response.status).json({ error: 'Failed to fetch video' });
     }
 
+    console.log('Video fetched successfully');
+
     const buffer = await response.buffer();
     const tempPath = `/tmp/video-${Date.now()}.mp4`;
     await fs.promises.writeFile(tempPath, buffer);
 
+    console.log('Transcribing video...');
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(tempPath),
       model: 'whisper-1',
     });
 
     await fs.promises.unlink(tempPath);
+    console.log('Transcription completed successfully', transcription.text);
     res.json({ text: transcription.text });
   } catch (error) {
     res.status(500).json({ error: 'Failed to transcribe video' });

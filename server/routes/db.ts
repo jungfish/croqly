@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 
 // Get all recipes
 const getAllRecipes: RequestHandler = async (_req, res) => {
+
   try {
     const recipes = await prisma.recipe.findMany({
       orderBy: { createdAt: 'desc' }

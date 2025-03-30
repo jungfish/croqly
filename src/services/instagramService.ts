@@ -50,10 +50,10 @@ export async function fetchInstagramPost(url: string): Promise<InstagramMedia | 
   try {
     // Get media from our backend API
     const media = await getIGMediaFromURL(url)
-    const videoData = await getVideoFromURL(media["media_id"]);
-
+    const videoData = await getVideoFromURL(media.media_id);
+    
     const mediaData = {
-      id: media["media_id"],
+      id: media.media_id,
       caption: media["title"],
       transcription: videoData?.transcription,
       videoUrl: videoData?.videoUrl,
@@ -75,7 +75,7 @@ async function getVideoFromURL(mediaId: string): Promise<VideoData | null> {
   try {
     // Call our backend API endpoint to get media info
     // const response = await fetch(`/api/instagram/media?url=${url}`);
-    const response = await fetch(`/api/instagram-private/media?mediaId=${mediaId}`);
+    const response = await fetch(`/api/instagram/media?mediaId=${mediaId}`);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -94,5 +94,30 @@ async function getVideoFromURL(mediaId: string): Promise<VideoData | null> {
 
 // Export the function
 export { getVideoFromURL };
+
+
+
+async function getTranscriptionFromURL(videoUrl: string): Promise<string | null> {
+  try {
+    // Call our backend API endpoint to get media info
+    const response = await fetch(`/api/ai/transcribe?videoUrl=${videoUrl}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to transcribe media: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching media from ID:', error);
+    toast.error("Failed to fetch Instagram media");
+    return null;
+  }
+}
+
+// Export the function
+export { getTranscriptionFromURL };
 
 

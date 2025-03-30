@@ -1,8 +1,7 @@
-import * as express from 'express';
-import { Express, Request, Response, NextFunction } from 'express';
-import * as cookieParser from 'cookie-parser';
-import * as cors from 'cors';
-import * as path from 'path';
+import express, { Express, Request, Response, NextFunction } from 'express';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { authMiddleware } from './middleware/auth';

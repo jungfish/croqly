@@ -6,6 +6,7 @@
 [build.environment]
   NODE_VERSION = "18"
   VITE_API_URL = "/.netlify/functions"
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
 
 [functions]
   node_bundler = "esbuild"

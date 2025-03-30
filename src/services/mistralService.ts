@@ -99,3 +99,35 @@ export async function generateRecipeImage(title: string, ingredients: string[]):
     return `https://source.unsplash.com/featured/?${encodeURIComponent(title)},food`;
   }
 } 
+
+/*
+// Add new function for video transcription generation
+export async function generateTransciption(videoUrl: string): Promise<string> {
+  try {
+    console.log('\n=== OPENAI WHISPER ===');
+
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream("videoUrl.m4a"),
+      model: "whisper-1",
+      language: "fr", 
+    });
+
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",  // Changed to wider aspect ratio
+      quality: "hd"
+    });
+
+
+    console.log('Generated image URL:', response.data[0].url);
+    return response.data[0].url ?? `https://source.unsplash.com/featured/?${encodeURIComponent(title)},food`;
+  } catch (error) {
+    console.error('Error generating recipe image with DALL-E:', error);
+    // Fallback to Unsplash if DALL-E fails
+    return `https://source.unsplash.com/featured/?${encodeURIComponent(title)},food`;
+  }
+} 
+
+*/
