@@ -2,19 +2,12 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ParallaxHero from "@/components/ParallaxHero";
+import RecipePreview from "@/components/RecipePreview";
 import { UtensilsCrossed, Search } from "lucide-react";
 import type { Recipe } from "@/types/recipe";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
-
-const categoryColors = {
-  "Dessert": "bg-pink-100",
-  "Soupe": "bg-amber-100",
-  "Plat principal": "bg-emerald-100",
-  "Entrée": "bg-blue-100",
-  "Bébé": "bg-purple-100",
-} as const;
 
 const categories = ["Toutes", "Dessert", "Soupe", "Plat principal", "Entrée", "Bébé"] as const;
 
@@ -81,37 +74,12 @@ const DecouvrirPage = () => {
           ))}
         </div>
 
-        {/* Recipes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Recipes Grid — same card component as the home page's "Fraîchement
+            croquées" feed, so the hover treatment (zoom + gradient overlay)
+            is identical between the two. */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredRecipes.map((recipe) => (
-            <Link
-              key={recipe.id}
-              to={`/recipe/${recipe.id}`}
-              className="group block overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border"
-            >
-              <div className="h-48 overflow-hidden">
-                {recipe.illustration ? (
-                  <img
-                    src={recipe.illustration}
-                    alt={recipe.title}
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className={`h-full w-full flex items-center justify-center ${categoryColors[recipe.category] || 'bg-muted'}`}>
-                    <div className="text-center p-4">
-                      <UtensilsCrossed className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">{recipe.category}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="p-4 bg-card/50 backdrop-blur-sm">
-                <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>
-                <span className="inline-block px-3 py-1 bg-card/70 backdrop-blur-sm rounded-full text-sm text-foreground shadow-sm">
-                  {recipe.category}
-                </span>
-              </div>
-            </Link>
+            <RecipePreview key={recipe.id} recipe={recipe} />
           ))}
         </div>
 
