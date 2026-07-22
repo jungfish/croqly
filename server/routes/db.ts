@@ -22,7 +22,8 @@ const getRecipeById: RequestHandler<{ id: string }> = async (req, res) => {
   try {
     const { id } = req.params;
     const recipe = await prisma.recipe.findUnique({
-      where: { id }
+      where: { id },
+      include: { creator: true },
     });
 
     if (!recipe) {
@@ -30,10 +31,14 @@ const getRecipeById: RequestHandler<{ id: string }> = async (req, res) => {
     }
 
     // Parse JSON strings
+    const { creator, ...rest } = recipe;
     const cleanRecipe = {
-      ...recipe,
+      ...rest,
       ingredients: recipe.ingredients ? JSON.parse(recipe.ingredients) : [],
-      instructions: recipe.instructions ? JSON.parse(recipe.instructions) : []
+      instructions: recipe.instructions ? JSON.parse(recipe.instructions) : [],
+      creator: creator
+        ? { instagramHandle: creator.instagramHandle, displayName: creator.displayName, avatarUrl: creator.avatarUrl }
+        : null,
     };
 
     res.json(cleanRecipe);

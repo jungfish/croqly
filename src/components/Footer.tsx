@@ -8,7 +8,7 @@ const Footer = () => {
         <Heart className="w-4 h-4 text-primary animate-pulse" />
         <span>par Matthieu Jungfer</span>
         <a 
-          href="https://github.com/jungfish/cookify-reel-scribe"
+          href="https://github.com/jungfish/croqly"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-foreground/70 hover:text-foreground transition-colors ml-2"

@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
 import RecipesList from "@/pages/recipes";
 import RecipeView from "@/pages/recipe/[id]";
+import CreatorHub from "@/pages/createur/[handle]";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import NotFound from "./pages/NotFound";
@@ -29,6 +30,7 @@ const App = () => {
                   {/* Public: anyone can try the product and view/share a recipe without an account */}
                   <Route path="/" element={<Index />} />
                   <Route path="/recipe/:id" element={<RecipeView />} />
+                  <Route path="/createurs/:handle" element={<CreatorHub />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   {/* Protected: only "my recipes" needs an identity */}

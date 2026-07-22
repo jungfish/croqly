@@ -1,3 +1,11 @@
+export type Creator = {
+  id?: string;
+  instagramHandle: string;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+};
+
 export type Recipe = {
   id?: string;
   title: string;
@@ -15,4 +23,11 @@ export type Recipe = {
   updatedAt?: Date;
   // True while illustration generation is still running in the background.
   illustrationPending?: boolean;
+  // The Instagram account this recipe was scraped from — null for recipes
+  // with no captured source (e.g. the photo/OCR upload path).
+  creator?: {
+    instagramHandle: string;
+    displayName?: string | null;
+    avatarUrl?: string | null;
+  } | null;
 }; 

@@ -2,13 +2,15 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Recipe } from '@/types/recipe';
-import { UtensilsCrossed, ListOrdered, Clock, Instagram, Share2, Bookmark, BookmarkCheck, ImageIcon } from 'lucide-react';
+import { UtensilsCrossed, ListOrdered, Clock, Instagram, Bookmark, BookmarkCheck, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import ParallaxHero from '@/components/ParallaxHero';
 import { Button } from '@/components/ui/button';
+import ShareButton from '@/components/ShareButton';
 import { useAuth } from '@/hooks/use-auth';
 import { authFetch } from '@/lib/apiClient';
 import { generateIllustrationForRecipe } from '@/services/recipeService';
+import { emojiForIngredient } from '@/lib/ingredientEmoji';
 
 const RecipePage = () => {
   const { id } = useParams<{ id: string }>();
@@ -92,11 +94,6 @@ const RecipePage = () => {
     }
   };
 
-  const handleShare = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    toast.success('Lien copié !');
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
@@ -147,15 +144,31 @@ const RecipePage = () => {
       {/* Main content */}
       <div className="container mx-auto p-4">
         <div className="flex justify-end gap-2 mb-4">
-          <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
-            <Share2 className="w-4 h-4" />
-            Copier le lien
-          </Button>
+          <ShareButton title={recipe.title} text={`La recette "${recipe.title}" sur Croqly`} />
           <Button size="sm" onClick={handleSave} disabled={saved} className="gap-2">
             {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
             {saved ? 'Dans mes recettes' : 'Ajouter à mes recettes'}
           </Button>
         </div>
+
+        {recipe.creator && (
+          <Link
+            to={`/createurs/${recipe.creator.instagramHandle}`}
+            className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg w-fit hover:bg-card/90 transition-colors"
+          >
+            {recipe.creator.avatarUrl && (
+              <img
+                src={recipe.creator.avatarUrl}
+                alt={recipe.creator.displayName || recipe.creator.instagramHandle}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            )}
+            <span className="text-sm text-foreground">
+              Recette de @{recipe.creator.instagramHandle}
+            </span>
+          </Link>
+        )}
+
         <div className={`flex flex-col gap-6 ${recipe.videoUrl ? 'lg:grid lg:grid-cols-3' : ''}`}>
           {/* Video column — full width and first on mobile; becomes a sticky
               sidebar only at lg: and up, where there's room for it beside
@@ -252,9 +265,10 @@ const RecipePage = () => {
                 <UtensilsCrossed className="w-6 h-6 text-foreground" />
                 <h2 className="text-xl font-display font-semibold text-foreground">Ce qu'il te faut</h2>
               </div>
-              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+              <ul className="list-none space-y-2 text-muted-foreground">
                 {recipe.ingredients.map((ingredient, index) => (
-                  <li key={index}>
+                  <li key={index} className="flex items-center gap-2">
+                    <span aria-hidden="true">{emojiForIngredient(ingredient)}</span>
                     {adjustIngredient(ingredient, servingMultiplier)}
                   </li>
                 ))}

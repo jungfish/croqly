@@ -9,11 +9,17 @@ import { requireAuth } from '../middleware/supabaseAuth.js';
 
 const router = Router();
 
-function parseRecipe<T extends { ingredients: string; instructions: string }>(recipe: T) {
+type CreatorRef = { instagramHandle: string; displayName: string | null; avatarUrl: string | null } | null;
+
+function parseRecipe<T extends { ingredients: string; instructions: string; creator?: CreatorRef }>(recipe: T) {
+  const { creator, ...rest } = recipe;
   return {
-    ...recipe,
+    ...rest,
     ingredients: JSON.parse(recipe.ingredients || '[]'),
     instructions: JSON.parse(recipe.instructions || '[]'),
+    creator: creator
+      ? { instagramHandle: creator.instagramHandle, displayName: creator.displayName, avatarUrl: creator.avatarUrl }
+      : null,
   };
 }
 
@@ -34,7 +40,7 @@ const fromUrl: RequestHandler = async (req, res) => {
 
     const normalizedUrl = normalizeInstagramUrl(url);
 
-    let recipe = await prisma.recipe.findUnique({ where: { url: normalizedUrl } });
+    let recipe = await prisma.recipe.findUnique({ where: { url: normalizedUrl }, include: { creator: true } });
     const cached = Boolean(recipe);
 
     if (!recipe) {
@@ -47,6 +53,25 @@ const fromUrl: RequestHandler = async (req, res) => {
       const media = await instagramFetcher.getMediaByUrl(normalizedUrl);
       const transcription = await transcribeVideoFromUrl(media.videoUrl);
       const interpreted = await interpretRecipe(media.caption, transcription ?? '');
+
+      // Not every source has an owner (e.g. a future non-Instagram fetcher) —
+      // skip creator attribution entirely rather than upserting a blank handle.
+      const creator = media.ownerUsername
+        ? await prisma.creator.upsert({
+            where: { instagramHandle: media.ownerUsername },
+            create: {
+              instagramHandle: media.ownerUsername,
+              displayName: media.ownerFullName,
+              avatarUrl: media.ownerProfilePicUrl,
+            },
+            // Keep the cached profile info fresh on every new recipe pulled
+            // from this account, without touching claimed/claimedByUserId.
+            update: {
+              displayName: media.ownerFullName,
+              avatarUrl: media.ownerProfilePicUrl,
+            },
+          })
+        : null;
 
       recipe = await prisma.recipe.create({
         data: {
@@ -62,7 +87,9 @@ const fromUrl: RequestHandler = async (req, res) => {
           cookTime: interpreted.cookTime,
           totalTime: interpreted.totalTime,
           servings: interpreted.servings,
+          creatorId: creator?.id,
         },
+        include: { creator: true },
       });
 
       if (!req.user) await recordAnonymousUsage(req.ip ?? 'unknown');

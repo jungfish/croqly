@@ -4,6 +4,9 @@ export interface InstagramMedia {
   videoUrl: string;
   caption: string;
   thumbnailUrl?: string;
+  ownerUsername?: string;
+  ownerFullName?: string;
+  ownerProfilePicUrl?: string;
 }
 
 // Kept as an interface so the vendor can be swapped (e.g. a different
@@ -37,6 +40,9 @@ class ApifyInstagramFetcher implements InstagramFetcher {
       videoUrl?: string;
       caption?: string;
       displayUrl?: string;
+      ownerUsername?: string;
+      ownerFullName?: string;
+      ownerProfilePicUrl?: string;
     }>;
     const item = items[0];
     if (!item?.videoUrl) {
@@ -47,6 +53,9 @@ class ApifyInstagramFetcher implements InstagramFetcher {
       videoUrl: item.videoUrl,
       caption: item.caption ?? '',
       thumbnailUrl: item.displayUrl,
+      ownerUsername: item.ownerUsername,
+      ownerFullName: item.ownerFullName,
+      ownerProfilePicUrl: item.ownerProfilePicUrl,
     };
   }
 }

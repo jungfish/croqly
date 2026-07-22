@@ -34,6 +34,29 @@ model Recipe {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   savedRecipes        SavedRecipe[]
+  creatorId           String?
+  creator             Creator?      @relation(fields: [creatorId], references: [id])
+
+  @@index([creatorId])
+}
+
+// The Instagram account a recipe was scraped from. Nullable link from Recipe
+// because recipes created via the photo/OCR upload path (see server/routes/ai.ts
+// performOCR) have no Instagram source at all. "claimed" tracks whether the
+// creator has taken ownership of their public hub page — see
+// /createurs/:handle — not whether they consented to being listed at all
+// (that's handled editorially, outside this model, for now).
+model Creator {
+  id              String   @id @default(cuid())
+  instagramHandle String   @unique
+  displayName     String?
+  avatarUrl       String?
+  bio             String?
+  claimed         Boolean  @default(false)
+  claimedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  recipes         Recipe[]
 }
 
 model SavedRecipe {

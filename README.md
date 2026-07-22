@@ -1,4 +1,4 @@
-# Cookify Reel Scribe
+# Croqly
 
 Transform your favorite Instagram cooking videos into detailed, easy-to-follow recipes using AI-powered transcription and processing.
 
@@ -34,8 +34,8 @@ This project was created using [Lovable](https://lovable.dev/projects/b1808364-f
 
 1. Clone the repository
 ```bash
-git clone https://github.com/jungfish/cookify-reel-scribe.git
-cd cookify-reel-scribe
+git clone https://github.com/jungfish/croqly.git
+cd croqly
 ```
 
 2. Install dependencies
@@ -86,7 +86,7 @@ You can edit this project in several ways:
 
 ## Author
 
-Matthieu Jungfer - [GitHub](https://github.com/jungfish/cookify-reel-scribe)
+Matthieu Jungfer - [GitHub](https://github.com/jungfish/croqly)
 
 Made with ❤️ using React, TypeScript, and AI
 

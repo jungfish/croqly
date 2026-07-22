@@ -16,9 +16,13 @@ const RECIPE_SCHEMA = {
     },
     ingredients: { type: 'array', items: { type: 'string' } },
     instructions: { type: 'array', items: { type: 'string' } },
-    prepTime: { type: 'string' },
-    cookTime: { type: 'string' },
-    totalTime: { type: 'string' },
+    // Nullable — these end up in public schema.org Recipe markup, so a
+    // guessed-but-wrong duration is worse than an honestly-missing one.
+    // See the system prompt below: the model is told to return null rather
+    // than invent a plausible-sounding time.
+    prepTime: { type: ['string', 'null'] },
+    cookTime: { type: ['string', 'null'] },
+    totalTime: { type: ['string', 'null'] },
     servings: { type: 'integer', minimum: 1, maximum: 10 },
   },
   required: [
@@ -33,9 +37,9 @@ export interface InterpretedRecipe {
   category: string;
   ingredients: string[];
   instructions: string[];
-  prepTime: string;
-  cookTime: string;
-  totalTime: string;
+  prepTime: string | null;
+  cookTime: string | null;
+  totalTime: string | null;
   servings: number;
 }
 
@@ -54,7 +58,10 @@ export async function interpretRecipe(caption: string, transcription: string): P
         role: 'system',
         content:
           'Analyze an Instagram recipe caption and transcription and extract a structured recipe from it. ' +
-          'Respond only in French. If servings is unspecified, default to 4.',
+          'Respond only in French. If servings is unspecified, default to 4. ' +
+          'For prepTime, cookTime and totalTime: only fill them in if a duration is stated or clearly ' +
+          'implied by the source — never invent a plausible-sounding duration. Return null for any of ' +
+          'the three that aren\'t genuinely supported by the caption or transcription.',
       },
       {
         role: 'user',
