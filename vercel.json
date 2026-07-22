@@ -3,7 +3,10 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" }
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/recipe/:id", "destination": "/api" },
+    { "source": "/createurs/:handle", "destination": "/api" },
+    { "source": "/sitemap.xml", "destination": "/api" }
   ],
   "functions": {
     "api/index.ts": {
