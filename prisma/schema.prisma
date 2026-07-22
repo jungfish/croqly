@@ -54,6 +54,13 @@ model Creator {
   bio             String?
   claimed         Boolean  @default(false)
   claimedByUserId String?
+  // Pending claim state: a code the requesting user must post in their
+  // Instagram bio before `claimed`/`claimedByUserId` above are set. Kept
+  // separate from the confirmed fields so an abandoned/failed attempt never
+  // reads as claimed.
+  claimVerificationCode  String?
+  claimRequestedByUserId String?
+  claimRequestedAt       DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   recipes         Recipe[]

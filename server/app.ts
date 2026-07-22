@@ -138,6 +138,42 @@ app.get('/createurs/:handle', async (req, res, next) => {
   }
 });
 
+// XML sitemap covering every public route: the home page, every recipe, and
+// every creator hub. There's no visibility/privacy flag on Recipe or Creator
+// today, so every row is eligible for indexing.
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const siteUrl = `${req.protocol}://${req.get('host')}`;
+    const [recipes, creators] = await Promise.all([
+      prisma.recipe.findMany({ select: { id: true, updatedAt: true } }),
+      prisma.creator.findMany({ select: { instagramHandle: true, updatedAt: true } }),
+    ]);
+
+    const urls: Array<{ loc: string; lastmod?: Date }> = [
+      { loc: siteUrl },
+      ...recipes.map((recipe) => ({ loc: `${siteUrl}/recipe/${recipe.id}`, lastmod: recipe.updatedAt })),
+      ...creators.map((creator) => ({
+        loc: `${siteUrl}/createurs/${encodeURIComponent(creator.instagramHandle)}`,
+        lastmod: creator.updatedAt,
+      })),
+    ];
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
+      .map(
+        (entry) =>
+          `  <url>\n    <loc>${entry.loc}</loc>${
+            entry.lastmod ? `\n    <lastmod>${entry.lastmod.toISOString()}</lastmod>` : ''
+          }\n  </url>`
+      )
+      .join('\n')}\n</urlset>`;
+
+    res.type('application/xml').send(xml);
+  } catch (error) {
+    console.error('Error generating sitemap:', error);
+    res.status(500).end();
+  }
+});
+
 // SPA fallback — only relevant when serving static files directly (see above).
 app.get('*', (_req, res) => {
   res.sendFile(path.join(distDir, 'index.html'));

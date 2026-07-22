@@ -1,14 +1,116 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Instagram } from 'lucide-react';
 import type { Recipe, Creator } from '@/types/recipe';
 import RecipePreview from '@/components/RecipePreview';
 import ShareButton from '@/components/ShareButton';
+import { useAuth } from '@/hooks/use-auth';
+import { authFetch } from '@/lib/apiClient';
 
 interface CreatorHubResponse {
   creator: Creator;
   recipes: Recipe[];
 }
+
+// Handles the three states of the claim flow: not logged in, logged in with
+// no pending request yet, and logged in with a code waiting to be posted in
+// the Instagram bio. The mailto stays as a low-friction fallback for anyone
+// who can't easily edit their bio.
+const ClaimBanner = ({ creator }: { creator: Creator }) => {
+  const { user } = useAuth();
+  const [code, setCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const requestMutation = useMutation({
+    mutationFn: async () => {
+      const response = await authFetch(`/api/creators/${creator.instagramHandle}/claim/request`, { method: 'POST' });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({})))?.error ?? 'Échec de la demande');
+      return response.json() as Promise<{ code: string }>;
+    },
+    onSuccess: (data) => {
+      setCode(data.code);
+      setError(null);
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await authFetch(`/api/creators/${creator.instagramHandle}/claim/verify`, { method: 'POST' });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({})))?.error ?? 'Échec de la vérification');
+      return response.json() as Promise<{ claimed: boolean }>;
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  if (creator.claimed) {
+    return (
+      <div className="mb-8 p-4 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg text-center">
+        <p className="text-foreground font-medium">✅ Compte revendiqué</p>
+      </div>
+    );
+  }
+
+  if (verifyMutation.isSuccess) {
+    return (
+      <div className="mb-8 p-4 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg text-center">
+        <p className="text-foreground font-medium">🎉 Ta page est bien revendiquée !</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-8 p-4 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg text-center">
+      <p className="text-foreground">
+        C'est toi, {creator.displayName || `@${creator.instagramHandle}`} ? 👋 Cette page est faite pour toi — viens la faire tienne.
+      </p>
+
+      {!user && (
+        <Link to="/login" className="inline-block mt-2 text-sm font-medium text-primary underline underline-offset-4">
+          Je gère ce compte
+        </Link>
+      )}
+
+      {user && !code && (
+        <button
+          type="button"
+          onClick={() => requestMutation.mutate()}
+          disabled={requestMutation.isPending}
+          className="inline-block mt-2 text-sm font-medium text-primary underline underline-offset-4 disabled:opacity-50"
+        >
+          {requestMutation.isPending ? 'Génération du code…' : 'Je gère ce compte'}
+        </button>
+      )}
+
+      {user && code && (
+        <div className="mt-3 flex flex-col items-center gap-2">
+          <p className="text-sm text-muted-foreground">
+            Colle ce code dans ta bio Instagram, puis clique sur "Vérifier" :
+          </p>
+          <code className="px-3 py-1 rounded-md bg-muted text-foreground font-mono text-sm">{code}</code>
+          <button
+            type="button"
+            onClick={() => verifyMutation.mutate()}
+            disabled={verifyMutation.isPending}
+            className="text-sm font-medium text-primary underline underline-offset-4 disabled:opacity-50"
+          >
+            {verifyMutation.isPending ? 'Vérification…' : "J'ai mis à jour ma bio, vérifier"}
+          </button>
+        </div>
+      )}
+
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+
+      <a
+        href={`mailto:hello@croqly.app?subject=${encodeURIComponent(`Je gère ma page — @${creator.instagramHandle}`)}`}
+        className="block mt-3 text-xs text-muted-foreground underline underline-offset-4"
+      >
+        Un souci ? Contacte-nous directement
+      </a>
+    </div>
+  );
+};
 
 const CreatorHubPage = () => {
   const { handle } = useParams<{ handle: string }>();
@@ -77,20 +179,7 @@ const CreatorHubPage = () => {
           <ShareButton title={`Recettes de ${displayName}`} text={`Toutes les recettes de ${displayName} sur Croqly`} />
         </div>
 
-        {/* Claim banner — real OAuth claim flow is a later pass, this just
-            opens the door so a creator who lands here isn't left with only
-            a takedown request as their option (see the de-risking plan). */}
-        <div className="mb-8 p-4 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg text-center">
-          <p className="text-foreground">
-            C'est toi, {displayName} ? 👋 Cette page est faite pour toi — viens la faire tienne.
-          </p>
-          <a
-            href={`mailto:hello@croqly.app?subject=${encodeURIComponent(`Je gère ma page — @${creator.instagramHandle}`)}`}
-            className="inline-block mt-2 text-sm font-medium text-primary underline underline-offset-4"
-          >
-            Je gère ma page
-          </a>
-        </div>
+        <ClaimBanner creator={creator} />
 
         {/* Recipe grid */}
         {recipes.length > 0 ? (

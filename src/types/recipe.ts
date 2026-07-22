@@ -4,6 +4,7 @@ export type Creator = {
   displayName?: string | null;
   avatarUrl?: string | null;
   bio?: string | null;
+  claimed?: boolean;
 };
 
 export type Recipe = {
