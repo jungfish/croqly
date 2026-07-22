@@ -39,7 +39,7 @@ const RecipesPage = () => {
       <ParallaxHero
         imageUrl="https://images.unsplash.com/photo-1495521821757-a1efb6729352"
         title="Mes Recettes"
-        height="h-[250px]"
+        height="h-[200px] sm:h-[240px] lg:h-[300px]"
       />
 
       <div className="container mx-auto p-8 -mt-8 relative z-10">

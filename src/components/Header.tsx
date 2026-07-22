@@ -1,7 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { useIsMobile } from '@/hooks/use-mobile';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,13 +11,40 @@ import {
   SheetClose,
 } from '@/components/ui/sheet';
 
+// Below this scroll offset the hero image is still filling the header's
+// backdrop, so the "light" (white) styling stays legible without a
+// background. Past it, the header sits over plain page content and needs
+// to flip to the normal foreground styling plus an opaque backdrop.
+const HERO_SCROLL_THRESHOLD = 180;
+
 const Header = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const isMobile = useIsMobile();
+  const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const isRecipePage = location.pathname.includes('/recipe/');
   const isRecipeListPage = location.pathname === '/recipes';
-  const shouldBeLight = !isMobile && (isRecipePage || isRecipeListPage);
+  const hasHero = isRecipePage || isRecipeListPage;
+
+  useEffect(() => {
+    if (!hasHero) {
+      setScrolledPastHero(false);
+      return;
+    }
+    let ticking = false;
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setScrolledPastHero(window.scrollY > HERO_SCROLL_THRESHOLD);
+        ticking = false;
+      });
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [hasHero]);
+
+  const shouldBeLight = hasHero && !scrolledPastHero;
   const linkClass = `${shouldBeLight ? 'text-white hover:text-white/80' : 'text-foreground/70 hover:text-foreground'} transition-colors`;
 
   const navLinks = (
@@ -41,7 +68,13 @@ const Header = () => {
   );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 px-4 py-3 transition-colors duration-300 ${
+        hasHero && scrolledPastHero
+          ? 'bg-background/90 backdrop-blur-sm border-b border-border'
+          : ''
+      }`}
+    >
       <nav className="container mx-auto flex items-center justify-between">
         <Link to="/">
           <Logo

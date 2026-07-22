@@ -132,7 +132,7 @@ const RecipePage = () => {
           )}
         </ParallaxHero>
       ) : recipe.illustrationPending ? (
-        <div className="w-full h-[300px] mb-16 flex flex-col items-center justify-center gap-3 bg-muted text-muted-foreground">
+        <div className="w-full h-[220px] sm:h-[280px] lg:h-[360px] mb-16 flex flex-col items-center justify-center gap-3 bg-muted text-muted-foreground">
           <ImageIcon className="w-8 h-8 animate-pulse" />
           <span className="flex items-center gap-2 text-sm">
             <div className="w-3.5 h-3.5 border-2 border-muted-foreground/40 border-t-transparent rounded-full animate-spin" />
@@ -143,7 +143,7 @@ const RecipePage = () => {
 
       {/* Main content */}
       <div className="container mx-auto p-4">
-        <div className="flex justify-end gap-2 mb-4">
+        <div className="sticky top-16 z-30 flex justify-end gap-2 mb-4 py-2 -mx-4 px-4 bg-background/80 backdrop-blur-sm">
           <ShareButton title={recipe.title} text={`La recette "${recipe.title}" sur Croqly`} />
           <Button size="sm" onClick={handleSave} disabled={saved} className="gap-2">
             {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
@@ -207,8 +207,9 @@ const RecipePage = () => {
               <div className={`flex items-center gap-4 ${!recipe.videoUrl ? 'justify-center' : ''}`}>
                 <span className="text-foreground">On cuisine pour combien ?</span>
                 <button
-                  className="px-3 py-1 rounded-lg bg-muted hover:bg-muted/70"
+                  className="w-11 h-11 flex items-center justify-center rounded-lg bg-muted hover:bg-muted/70"
                   onClick={() => setServingMultiplier(prev => Math.max(0.5, prev - 0.5))}
+                  aria-label="Réduire le nombre de portions"
                 >
                   -
                 </button>
@@ -216,8 +217,9 @@ const RecipePage = () => {
                   {Math.round(getServings() * servingMultiplier)}
                 </span>
                 <button
-                  className="px-3 py-1 rounded-lg bg-muted hover:bg-muted/70"
+                  className="w-11 h-11 flex items-center justify-center rounded-lg bg-muted hover:bg-muted/70"
                   onClick={() => setServingMultiplier(prev => prev + 0.5)}
+                  aria-label="Augmenter le nombre de portions"
                 >
                   +
                 </button>
