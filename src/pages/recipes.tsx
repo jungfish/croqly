@@ -190,7 +190,7 @@ const RecipesPage = () => {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-background/95 backdrop-blur-sm border-t border-border flex justify-center">
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-background/95 backdrop-blur-sm border-t border-border flex justify-center">
           <Button onClick={handleAddSelectedToShoppingList} disabled={addingToList} className="gap-2">
             {addingToList
               ? `Ajout de ${selectedIds.size} recette(s)…`

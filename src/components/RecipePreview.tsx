@@ -12,7 +12,10 @@ const categoryColors = {
 
 const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-card shadow-md transition-all hover:shadow-xl">
+    <Link
+      to={`/recipe/${recipe.id}`}
+      className="group relative block overflow-hidden rounded-xl bg-card shadow-md transition-all hover:shadow-xl"
+    >
       <div className="aspect-[4/3] overflow-hidden">
         {recipe.illustration ? (
           <img
@@ -29,23 +32,18 @@ const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
           </div>
         )}
       </div>
-      
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
-        <div className="absolute bottom-0 w-full p-4 text-white">
-          <h3 className="text-lg font-semibold mb-2">{recipe.title}</h3>
-          <div className="flex items-center gap-2 text-sm mb-3">
-            <Clock className="w-4 h-4" />
-            <span>{recipe.totalTime || recipe.prepTime || "Durée non spécifiée"}</span>
-          </div>
-          <Link 
-            to={`/recipe/${recipe.id}`}
-            className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/30 transition-colors"
-          >
-            Voir la recette
-          </Link>
+
+      {/* Title/time bar is always visible — hover-only reveal left touch
+          devices with no way to see it (or the "Voir la recette" link it
+          contained) before tapping. Hover still adds the fuller gradient. */}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pt-8 pb-3 px-4 text-white transition-opacity group-hover:from-black/90">
+        <h3 className="text-base sm:text-lg font-semibold leading-snug line-clamp-2">{recipe.title}</h3>
+        <div className="flex items-center gap-2 text-sm mt-1 text-white/90">
+          <Clock className="w-4 h-4" />
+          <span>{recipe.totalTime || recipe.prepTime || "Durée non spécifiée"}</span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 

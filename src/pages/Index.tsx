@@ -1,5 +1,8 @@
 import URLInput from "@/components/URLInput";
 import RecipePreview from "@/components/RecipePreview";
+import HowItWorks from "@/components/home/HowItWorks";
+import Features from "@/components/home/Features";
+import Faq from "@/components/home/Faq";
 import type { Recipe } from "@/types/recipe";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -17,8 +20,9 @@ const Index = () => {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <div className="flex items-center justify-center p-4 min-h-[70vh]">
+      {/* Hero Section — pt clears the fixed header, which has no backdrop
+          on this route and would otherwise sit on top of the logo/title. */}
+      <div className="flex items-center justify-center px-4 pb-4 pt-24 sm:pt-4 min-h-[70vh]">
         <URLInput />
       </div>
 
@@ -50,6 +54,14 @@ const Index = () => {
           </div>
         </div>
       )}
+
+      <div className="bg-card/40">
+        <HowItWorks />
+      </div>
+      <Features />
+      <div className="bg-card/40">
+        <Faq />
+      </div>
     </main>
   );
 };

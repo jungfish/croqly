@@ -177,15 +177,17 @@ const RecipePage = () => {
           {firstName ? `${firstName}, on la cuisine ensemble ?` : 'On la cuisine ensemble ?'}
         </p>
 
-        <div className="sticky top-16 z-30 flex justify-end gap-2 mb-4 py-2 -mx-4 px-4 bg-background/80 backdrop-blur-sm">
+        <div className="sticky top-16 z-30 flex flex-wrap justify-end gap-2 mb-4 py-2 -mx-4 px-4 bg-background/80 backdrop-blur-sm">
           <ShareButton title={recipe.title} text={`La recette "${recipe.title}" sur Croqly`} />
           <Button size="sm" variant="outline" onClick={handleAddToShoppingList} disabled={addingToList} className="gap-2">
             <ShoppingCart className="w-4 h-4" />
-            {addingToList ? 'Ajout…' : 'Ajouter à la liste de courses'}
+            <span className="hidden sm:inline">{addingToList ? 'Ajout…' : 'Ajouter à la liste de courses'}</span>
+            <span className="sm:hidden">{addingToList ? 'Ajout…' : 'Liste de courses'}</span>
           </Button>
           <Button size="sm" onClick={handleSave} disabled={saved} className="gap-2">
             {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-            {saved ? 'Dans mes recettes' : 'Ajouter à mes recettes'}
+            <span className="hidden sm:inline">{saved ? 'Dans mes recettes' : 'Ajouter à mes recettes'}</span>
+            <span className="sm:hidden">{saved ? 'Sauvegardée' : 'Sauvegarder'}</span>
           </Button>
         </div>
 

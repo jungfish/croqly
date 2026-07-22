@@ -2,7 +2,7 @@ import { Heart, Github } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="w-full py-6 px-4 border-t border-border bg-card/50 backdrop-blur-sm">
+    <footer className="w-full pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] px-4 border-t border-border bg-card/50 backdrop-blur-sm">
       <div className="container mx-auto flex items-center justify-center gap-2 text-sm text-muted-foreground">
         <span>Fait avec</span>
         <Heart className="w-4 h-4 text-primary animate-pulse" />

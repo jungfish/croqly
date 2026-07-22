@@ -76,7 +76,7 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 px-4 py-3 transition-colors duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 transition-colors duration-300 ${
         hasHero && scrolledPastHero
           ? 'bg-background/90 backdrop-blur-sm border-b border-border'
           : ''
@@ -105,7 +105,7 @@ const Header = () => {
               <Menu className="w-6 h-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="flex flex-col gap-6 pt-12">
+          <SheetContent side="right" className="flex flex-col gap-6 pt-[max(3rem,env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)]">
             <SheetClose asChild>
               <Link to="/" className="text-lg text-foreground/80 hover:text-foreground">
                 Accueil
