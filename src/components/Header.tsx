@@ -22,7 +22,7 @@ const Header = () => {
   const { user, signOut } = useAuth();
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const isRecipePage = location.pathname.includes('/recipe/');
-  const isRecipeListPage = location.pathname === '/recipes';
+  const isRecipeListPage = location.pathname === '/recipes' || location.pathname === '/decouvrir';
   const isShoppingListPage = location.pathname === '/shopping-list';
   const hasHero = isRecipePage || isRecipeListPage || isShoppingListPage;
 
@@ -52,6 +52,9 @@ const Header = () => {
     <>
       <Link to="/" className={linkClass}>
         Accueil
+      </Link>
+      <Link to="/decouvrir" className={linkClass}>
+        Découvrir
       </Link>
       <Link to="/recipes" className={linkClass}>
         Mes Recettes
@@ -106,6 +109,11 @@ const Header = () => {
             <SheetClose asChild>
               <Link to="/" className="text-lg text-foreground/80 hover:text-foreground">
                 Accueil
+              </Link>
+            </SheetClose>
+            <SheetClose asChild>
+              <Link to="/decouvrir" className="text-lg text-foreground/80 hover:text-foreground">
+                Découvrir
               </Link>
             </SheetClose>
             <SheetClose asChild>

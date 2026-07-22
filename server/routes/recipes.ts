@@ -1,7 +1,9 @@
 import { Router, RequestHandler } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { normalizeInstagramUrl } from '../lib/normalizeInstagramUrl.js';
+import { normalizeTiktokUrl } from '../lib/normalizeTiktokUrl.js';
 import { instagramFetcher } from '../lib/instagramFetcher.js';
+import { tiktokFetcher } from '../lib/tiktokFetcher.js';
 import { transcribeVideoFromUrl } from '../lib/transcription.js';
 import { interpretRecipe, generateIllustration } from '../lib/aiInterpretation.js';
 import { isAnonymousLimitExceeded, recordAnonymousUsage } from '../lib/rateLimit.js';
@@ -23,6 +25,15 @@ function parseRecipe<T extends { ingredients: string; instructions: string; crea
   };
 }
 
+// Routes a raw URL to the right normalizer by hostname. Instagram and TikTok
+// are the only supported sources for now.
+function normalizeSourceUrl(rawUrl: string): { normalizedUrl: string; platform: 'instagram' | 'tiktok' } {
+  const host = new URL(rawUrl).hostname.replace(/^www\./, '');
+  if (host === 'instagram.com') return { normalizedUrl: normalizeInstagramUrl(rawUrl), platform: 'instagram' };
+  if (host.endsWith('tiktok.com')) return { normalizedUrl: normalizeTiktokUrl(rawUrl), platform: 'tiktok' };
+  throw new Error('Lien non supporté — colle un lien Instagram ou TikTok.');
+}
+
 // The cache gate: a URL that's already been processed by anyone skips the
 // scrape + AI pipeline entirely (step 5). Rate limiting only applies to the
 // expensive branch (a cache miss) for anonymous callers.
@@ -38,7 +49,13 @@ const fromUrl: RequestHandler = async (req, res) => {
     const { url } = req.body as { url?: string };
     if (!url) return res.status(400).json({ error: 'url is required' });
 
-    const normalizedUrl = normalizeInstagramUrl(url);
+    let normalizedUrl: string;
+    let platform: 'instagram' | 'tiktok';
+    try {
+      ({ normalizedUrl, platform } = normalizeSourceUrl(url));
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid URL' });
+    }
 
     let recipe = await prisma.recipe.findUnique({ where: { url: normalizedUrl }, include: { creator: true } });
     const cached = Boolean(recipe);
@@ -50,13 +67,16 @@ const fromUrl: RequestHandler = async (req, res) => {
         });
       }
 
-      const media = await instagramFetcher.getMediaByUrl(normalizedUrl);
+      const media = platform === 'tiktok'
+        ? await tiktokFetcher.getMediaByUrl(normalizedUrl)
+        : await instagramFetcher.getMediaByUrl(normalizedUrl);
       const transcription = await transcribeVideoFromUrl(media.videoUrl);
       const interpreted = await interpretRecipe(media.caption, transcription ?? '');
 
-      // Not every source has an owner (e.g. a future non-Instagram fetcher) —
-      // skip creator attribution entirely rather than upserting a blank handle.
-      const creator = media.ownerUsername
+      // Creator is an Instagram-specific concept (the model's only handle
+      // field is instagramHandle — see schema.prisma) — skip attribution
+      // entirely for TikTok rather than upserting a TikTok handle into it.
+      const creator = platform === 'instagram' && media.ownerUsername
         ? await prisma.creator.upsert({
             where: { instagramHandle: media.ownerUsername },
             create: {

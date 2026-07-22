@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { toFriendlyAuthError } from '@/lib/authErrors';
 import { authFetch } from '@/lib/apiClient';
+import { clearAnonRecipeIds } from '@/lib/anonRecipes';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +15,10 @@ const Signup = () => {
   const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as { from?: string; pendingSaveRecipeId?: string } | null;
+  const state = location.state as { from?: string; pendingSaveRecipeIds?: string[] } | null;
   const from = state?.from ?? '/recipes';
 
+  const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -24,7 +26,7 @@ const Signup = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, firstName.trim());
     setSubmitting(false);
     if (error) {
       toast.error(toFriendlyAuthError(error));
@@ -32,8 +34,19 @@ const Signup = () => {
     }
     // No email-confirmation wall — the session is usable right away. Never
     // make the visitor redo the action that sent them here.
-    if (state?.pendingSaveRecipeId) {
-      await authFetch(`/api/recipes/${state.pendingSaveRecipeId}/save`, { method: 'POST' }).catch(() => {});
+    const pendingIds = state?.pendingSaveRecipeIds ?? [];
+    if (pendingIds.length > 0) {
+      await Promise.all(
+        pendingIds.map((id) => authFetch(`/api/recipes/${id}/save`, { method: 'POST' }).catch(() => {}))
+      );
+      clearAnonRecipeIds();
+      // Confirm the conversion moment explicitly — this is the action that
+      // most correlates with retention, so it shouldn't happen silently.
+      toast.success(
+        pendingIds.length > 1
+          ? `Compte créé — tes ${pendingIds.length} recettes sont sauvegardées.`
+          : 'Compte créé — ta recette est sauvegardée.'
+      );
     }
     navigate(from, { replace: true });
   };
@@ -47,6 +60,17 @@ const Signup = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">Prénom</Label>
+              <Input
+                id="firstName"
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                autoComplete="given-name"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

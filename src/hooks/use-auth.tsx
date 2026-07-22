@@ -7,7 +7,7 @@ interface AuthContextValue {
   session: Session | null;
   loading: boolean;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, firstName?: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -39,10 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       return { error: error?.message ?? null };
     },
-    signUp: async (email, password) => {
+    signUp: async (email, password, firstName) => {
       // No emailRedirectTo confirmation gate — the session is usable
       // immediately after signup, matching the low-friction onboarding flow.
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: firstName ? { data: { first_name: firstName } } : undefined,
+      });
       return { error: error?.message ?? null };
     },
     signInWithGoogle: async () => {

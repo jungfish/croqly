@@ -31,4 +31,7 @@ export type Recipe = {
     displayName?: string | null;
     avatarUrl?: string | null;
   } | null;
+  // Whether the current caller already has this recipe in "Mes recettes" —
+  // only meaningful when the request carried an auth token.
+  savedByMe?: boolean;
 }; 

@@ -12,12 +12,14 @@ import { authFetch } from '@/lib/apiClient';
 import { generateIllustrationForRecipe } from '@/services/recipeService';
 import { addRecipeToShoppingList } from '@/services/shoppingListService';
 import { emojiForIngredient } from '@/lib/ingredientEmoji';
+import { getFirstName } from '@/lib/getFirstName';
 
 const RecipePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const firstName = getFirstName(user);
   const queryClient = useQueryClient();
   const [servingMultiplier, setServingMultiplier] = useState(1);
   const [saved, setSaved] = useState(false);
@@ -28,13 +30,22 @@ const RecipePage = () => {
     // this same key (see URLInput.tsx), so this page never refetches it.
     queryKey: ['recipe', id],
     queryFn: async () => {
-      const response = await fetch(`/api/db/${id}`);
+      // authFetch (not plain fetch) so a logged-in visitor's token reaches
+      // the backend — that's what lets it report savedByMe accurately below.
+      const response = await authFetch(`/api/db/${id}`);
       if (!response.ok) throw new Error('Failed to fetch recipe');
       return response.json();
     },
     enabled: Boolean(id),
   });
   const error = isError ? 'Failed to fetch recipe' : null;
+
+  // Reflect the real "already saved" state once it's known, instead of
+  // always defaulting to false — otherwise a returning visitor (or one who
+  // just signed up via the pending-save flow) sees an inaccurate button.
+  useEffect(() => {
+    if (recipe?.savedByMe) setSaved(true);
+  }, [recipe?.savedByMe]);
 
   // A freshly-imported recipe arrives with its illustration still pending
   // (see server/routes/recipes.ts) — fetch the real one in the background
@@ -82,7 +93,7 @@ const RecipePage = () => {
       // recipe id so it's saved automatically once signed in (never make
       // the visitor redo the action that triggered signup).
       navigate('/login', {
-        state: { from: location.pathname, pendingSaveRecipeId: recipe.id },
+        state: { from: location.pathname, pendingSaveRecipeIds: [recipe.id] },
       });
       return;
     }
@@ -162,6 +173,10 @@ const RecipePage = () => {
 
       {/* Main content */}
       <div className="container mx-auto p-4">
+        <p className="text-center text-muted-foreground mb-4">
+          {firstName ? `${firstName}, on la cuisine ensemble ?` : 'On la cuisine ensemble ?'}
+        </p>
+
         <div className="sticky top-16 z-30 flex justify-end gap-2 mb-4 py-2 -mx-4 px-4 bg-background/80 backdrop-blur-sm">
           <ShareButton title={recipe.title} text={`La recette "${recipe.title}" sur Croqly`} />
           <Button size="sm" variant="outline" onClick={handleAddToShoppingList} disabled={addingToList} className="gap-2">

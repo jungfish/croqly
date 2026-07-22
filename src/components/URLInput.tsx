@@ -1,18 +1,29 @@
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent, DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, Instagram } from "lucide-react";
+import { Upload, ImageDown, Instagram } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { processRecipeFromInstagram, processRecipeFromUrl } from "@/services/recipeService";
+import { useAuth } from "@/hooks/use-auth";
+import { recordAnonRecipeView, getAnonRecipeIds } from "@/lib/anonRecipes";
 
-const INSTAGRAM_URL_REGEX = /^https?:\/\/(www\.)?instagram\.com\/(reel|p)\//;
+// lucide-react has no TikTok mark — inlined from Simple Icons (CC0).
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
+  </svg>
+);
+
+const SOCIAL_URL_REGEX = /^https?:\/\/(www\.)?(instagram\.com\/(reel|p)\/|(vm\.|vt\.|m\.)?tiktok\.com\/)/;
 
 const URLInput = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<string>('');
+  const [isDragging, setIsDragging] = useState(false);
 
   const processingSteps = {
     EXTRACT: "Extraction du texte...",
@@ -24,8 +35,8 @@ const URLInput = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!INSTAGRAM_URL_REGEX.test(url)) {
-      toast.error("Ce lien ne vient pas d'Instagram. Colle un lien de reel ou de post Instagram.");
+    if (!SOCIAL_URL_REGEX.test(url)) {
+      toast.error("Colle un lien de reel/post Instagram ou de vidéo TikTok.");
       return;
     }
 
@@ -40,6 +51,11 @@ const URLInput = () => {
         toast.success("Cette recette a déjà été extraite — résultat instantané.");
       }
 
+      // Anonymous visitors can hit the daily import limit before ever
+      // clicking "Save" on a given recipe — track the id client-side so it
+      // can still be recovered (see the 429 branch below and Signup/Login).
+      if (!user && recipe.id) recordAnonRecipeView(recipe.id);
+
       // Pre-populate the detail page's query so it doesn't refetch something
       // that was just created/looked up. A client-side navigate (not a full
       // page reload) is what makes this pre-population actually useful.
@@ -50,9 +66,15 @@ const URLInput = () => {
     } catch (error) {
       console.error('Error processing URL:', error);
       if (error instanceof Error && error.message.includes('limit')) {
-        toast.error("Limite quotidienne atteinte — crée un compte pour continuer.");
+        const pendingSaveRecipeIds = getAnonRecipeIds();
+        toast.error("Limite quotidienne atteinte — crée un compte pour continuer.", {
+          action: {
+            label: 'Créer un compte',
+            onClick: () => navigate('/signup', { state: { pendingSaveRecipeIds } }),
+          },
+        });
       } else {
-        toast.error("Pas de recette repérable dans ce lien. Réessaie avec un reel de cuisine.");
+        toast.error("Pas de recette repérable dans ce lien. Réessaie avec un reel de cuisine, ou importe des photos de la recette ci-dessous.");
       }
     } finally {
       setLoading(false);
@@ -60,13 +82,14 @@ const URLInput = () => {
     }
   };
 
-  const handleImageUpload = async (files: FileList) => {
+  const handleImageUpload = async (files: File[]) => {
+    if (!files.length) return;
     setLoading(true);
     try {
       setCurrentStep(processingSteps.EXTRACT);
 
       const formData = new FormData();
-      Array.from(files).forEach((file) => {
+      files.forEach((file) => {
         formData.append('image', file);
       });
 
@@ -85,6 +108,8 @@ const URLInput = () => {
       setCurrentStep(processingSteps.ANALYZE);
       const recipe = await processRecipeFromInstagram('', data.text);
 
+      if (!user && recipe.id) recordAnonRecipeView(recipe.id);
+
       queryClient.setQueryData(['recipe', recipe.id], recipe);
 
       setCurrentStep(processingSteps.SAVE);
@@ -96,6 +121,44 @@ const URLInput = () => {
       setLoading(false);
       setCurrentStep('');
     }
+  };
+
+  // Global listener so a copied screenshot can be pasted anywhere on the
+  // page, not just while a specific input is focused.
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (loading) return;
+      const imageFiles = Array.from(e.clipboardData?.items ?? [])
+        .filter((item) => item.type.startsWith('image/'))
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file !== null);
+
+      if (imageFiles.length) {
+        e.preventDefault();
+        handleImageUpload(imageFiles);
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [loading, handleImageUpload]);
+
+  const handleDragOver = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    if (!loading) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (loading) return;
+    const imageFiles = Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith('image/'));
+    if (imageFiles.length) handleImageUpload(imageFiles);
   };
 
   return (
@@ -113,10 +176,13 @@ const URLInput = () => {
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Colle le lien de ta recette Instagram ici…"
+              placeholder="Colle le lien de ta recette Instagram ou TikTok ici…"
               className="w-full px-12 py-4 rounded-xl bg-card/90 border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            <Instagram className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center gap-1.5 text-muted-foreground">
+              <Instagram className="w-5 h-5" />
+              <TikTokIcon className="w-4 h-4" />
+            </div>
           </div>
           <button
             type="submit"
@@ -129,18 +195,25 @@ const URLInput = () => {
 
         <div className="mt-4 text-muted-foreground font-medium">ou</div>
 
-        <label className="mt-4 block w-full px-12 py-4 rounded-xl border-2 border-dashed border-border bg-muted cursor-pointer hover:bg-accent/20 transition-colors">
+        <label
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`mt-4 block w-full px-12 py-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
+            isDragging ? "border-primary bg-accent/20" : "border-border bg-muted hover:bg-accent/20"
+          }`}
+        >
           <input
             type="file"
             multiple
             accept="image/*"
             className="hidden"
-            onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+            onChange={(e) => e.target.files && handleImageUpload(Array.from(e.target.files))}
             disabled={loading}
           />
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            <Upload className="w-5 h-5" />
-            <span>Importe tes photos de recette</span>
+          <div className={`flex items-center justify-center gap-2 ${isDragging ? "text-primary" : "text-muted-foreground"}`}>
+            {isDragging ? <ImageDown className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
+            <span>{isDragging ? "Lâche l'image ici" : "Importe, colle (Ctrl+V) ou glisse tes photos de recette ici"}</span>
           </div>
         </label>
 

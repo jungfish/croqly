@@ -30,10 +30,21 @@ const getRecipeById: RequestHandler<{ id: string }> = async (req, res) => {
       return res.status(404).json({ error: 'Recipe not found' });
     }
 
+    // Only meaningful for an authenticated caller — lets the client show an
+    // accurate "already saved" state instead of always defaulting to false.
+    const savedByMe = req.user
+      ? Boolean(
+          await prisma.savedRecipe.findUnique({
+            where: { userId_recipeId: { userId: req.user.id, recipeId: recipe.id } },
+          })
+        )
+      : false;
+
     // Parse JSON strings
     const { creator, ...rest } = recipe;
     const cleanRecipe = {
       ...rest,
+      savedByMe,
       ingredients: recipe.ingredients ? JSON.parse(recipe.ingredients) : [],
       instructions: recipe.instructions ? JSON.parse(recipe.instructions) : [],
       creator: creator

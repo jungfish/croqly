@@ -153,6 +153,7 @@ app.get('/sitemap.xml', async (req, res) => {
 
     const urls: Array<{ loc: string; lastmod?: Date }> = [
       { loc: siteUrl },
+      { loc: `${siteUrl}/decouvrir` },
       ...recipes.map((recipe) => ({ loc: `${siteUrl}/recipe/${recipe.id}`, lastmod: recipe.updatedAt })),
       ...creators.map((creator) => ({
         loc: `${siteUrl}/createurs/${encodeURIComponent(creator.instagramHandle)}`,

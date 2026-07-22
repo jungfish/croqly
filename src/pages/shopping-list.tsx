@@ -12,8 +12,13 @@ import {
   clearCheckedItems,
   type ShoppingListItem,
 } from '@/services/shoppingListService';
+import { useAuth } from '@/hooks/use-auth';
+import { getFirstName } from '@/lib/getFirstName';
+import { emojiForIngredient } from '@/lib/ingredientEmoji';
 
 const ShoppingListPage = () => {
+  const { user } = useAuth();
+  const firstName = getFirstName(user);
   const queryClient = useQueryClient();
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
@@ -81,6 +86,10 @@ const ShoppingListPage = () => {
       />
 
       <div className="container mx-auto p-8 -mt-8 relative z-10 max-w-2xl">
+        <p className="text-center text-muted-foreground mb-8">
+          {firstName ? `${firstName}, voici` : 'Voici'} tout ce qu'il te faut pour tes prochaines recettes !
+        </p>
+
         {hasChecked && (
           <div className="mb-4 flex justify-end">
             <Button variant="outline" size="sm" onClick={handleClearChecked}>
@@ -114,7 +123,8 @@ const ShoppingListPage = () => {
                   className="w-5 h-5 rounded border-input accent-primary shrink-0"
                   aria-label={`Cocher ${item.label}`}
                 />
-                <span className={`flex-1 ${item.checked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                <span className={`flex-1 flex items-center gap-2 ${item.checked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                  <span aria-hidden="true">{emojiForIngredient(item.name)}</span>
                   {item.label}
                 </span>
                 <button

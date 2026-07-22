@@ -37,11 +37,15 @@ const Index = () => {
           </div>
 
           <div className="text-center mt-8">
+            {/* This feed is everyone's recent recipes, not the visitor's own —
+                so "more of this" points to the public /decouvrir catalog,
+                not the auth-gated /recipes, which would bounce anonymous
+                visitors to login. */}
             <Link
-              to="/recipes"
+              to="/decouvrir"
               className="inline-block px-6 py-3 bg-card rounded-xl shadow-md hover:shadow-lg transition-all text-foreground font-medium"
             >
-              Voir toutes mes recettes
+              Découvrir toutes les recettes
             </Link>
           </div>
         </div>

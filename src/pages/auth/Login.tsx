@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { toFriendlyAuthError } from '@/lib/authErrors';
 import { authFetch } from '@/lib/apiClient';
+import { clearAnonRecipeIds } from '@/lib/anonRecipes';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,7 @@ const Login = () => {
   const { signInWithPassword, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as { from?: string; pendingSaveRecipeId?: string } | null;
+  const state = location.state as { from?: string; pendingSaveRecipeIds?: string[] } | null;
   const from = state?.from ?? '/recipes';
 
   const [email, setEmail] = useState('');
@@ -31,8 +32,17 @@ const Login = () => {
       return;
     }
     // Never make the visitor redo the action that sent them here.
-    if (state?.pendingSaveRecipeId) {
-      await authFetch(`/api/recipes/${state.pendingSaveRecipeId}/save`, { method: 'POST' }).catch(() => {});
+    const pendingIds = state?.pendingSaveRecipeIds ?? [];
+    if (pendingIds.length > 0) {
+      await Promise.all(
+        pendingIds.map((id) => authFetch(`/api/recipes/${id}/save`, { method: 'POST' }).catch(() => {}))
+      );
+      clearAnonRecipeIds();
+      toast.success(
+        pendingIds.length > 1
+          ? `${pendingIds.length} recettes sauvegardées dans "Mes recettes".`
+          : 'Recette sauvegardée dans "Mes recettes".'
+      );
     }
     navigate(from, { replace: true });
   };
