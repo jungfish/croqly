@@ -177,11 +177,11 @@ const URLInput = () => {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Colle le lien de ta recette Instagram ou TikTok ici…"
-              className="w-full px-12 py-4 rounded-xl bg-card/90 border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full pl-20 pr-12 py-4 rounded-xl bg-card/90 border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center gap-1.5 text-muted-foreground">
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2 text-muted-foreground">
               <Instagram className="w-5 h-5" />
-              <TikTokIcon className="w-4 h-4" />
+              <TikTokIcon className="w-5 h-5" />
             </div>
           </div>
           <button
