@@ -5,4 +5,4 @@ Disallow: /recipes
 Disallow: /login
 Disallow: /signup
 
-Sitemap: https://croqly.app/sitemap.xml
+Sitemap: https://getcroqly.vercel.app/sitemap.xml
