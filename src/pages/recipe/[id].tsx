@@ -1,45 +1,55 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Recipe } from '@/types/recipe';
-import { UtensilsCrossed, ListOrdered,  Clock, Instagram } from 'lucide-react';
+import { UtensilsCrossed, ListOrdered, Clock, Instagram, Share2, Bookmark, BookmarkCheck, ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import ParallaxHero from '@/components/ParallaxHero';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { authFetch } from '@/lib/apiClient';
+import { generateIllustrationForRecipe } from '@/services/recipeService';
 
 const RecipePage = () => {
   const { id } = useParams<{ id: string }>();
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [servingMultiplier, setServingMultiplier] = useState(1);
+  const [saved, setSaved] = useState(false);
 
+  const { data: recipe, isLoading: loading, isError } = useQuery<Recipe>({
+    // A recipe just created via processRecipeFromUrl is pre-populated under
+    // this same key (see URLInput.tsx), so this page never refetches it.
+    queryKey: ['recipe', id],
+    queryFn: async () => {
+      const response = await fetch(`/api/db/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch recipe');
+      return response.json();
+    },
+    enabled: Boolean(id),
+  });
+  const error = isError ? 'Failed to fetch recipe' : null;
+
+  // A freshly-imported recipe arrives with its illustration still pending
+  // (see server/routes/recipes.ts) — fetch the real one in the background
+  // and swap it in once it's ready, instead of blocking the import on it.
   useEffect(() => {
-    async function fetchRecipe() {
-      try {
-        setLoading(true);
-        if (!id) throw new Error('Recipe ID is required');
-        
-        const response = await fetch(`/api/db/${id}`);
-        const text = await response.text(); // Get raw response text
-        console.log('Raw response:', text);
-        
-        try {
-          const data = JSON.parse(text);
-          console.log('Recipe data:', data);
-          console.log('Servings value:', data.servings);
-          setRecipe(data);
-        } catch (parseError) {
-          console.error('Parse error:', parseError);
-          setError('Failed to parse recipe data');
-        }
-      } catch (error) {
-        console.error('Fetch error:', error);
-        setError(error instanceof Error ? error.message : 'Failed to fetch recipe');
-      } finally {
-        setLoading(false);
-      }
-    }
+    if (!recipe?.id || !recipe.illustrationPending) return;
+    let cancelled = false;
 
-    fetchRecipe();
-  }, [id]);
+    generateIllustrationForRecipe(recipe.id).then((illustration) => {
+      if (cancelled) return;
+      queryClient.setQueryData<Recipe>(['recipe', recipe.id], (current) =>
+        current && { ...current, illustration: illustration ?? current.illustration, illustrationPending: false }
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recipe?.id, recipe?.illustrationPending, queryClient]);
 
   // Function to adjust ingredient quantities
   const adjustIngredient = (ingredient: string, multiplier: number) => {
@@ -61,31 +71,130 @@ const RecipePage = () => {
     return isNaN(servings) ? 4 : servings;
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!recipe) return <div>Recipe not found</div>;
+  const handleSave = async () => {
+    if (!recipe) return;
+    if (!user) {
+      // Anonymous "Save" click: route through auth, carrying the pending
+      // recipe id so it's saved automatically once signed in (never make
+      // the visitor redo the action that triggered signup).
+      navigate('/login', {
+        state: { from: location.pathname, pendingSaveRecipeId: recipe.id },
+      });
+      return;
+    }
+    try {
+      const response = await authFetch(`/api/recipes/${recipe.id}/save`, { method: 'POST' });
+      if (!response.ok) throw new Error('save failed');
+      setSaved(true);
+      toast.success('Ajoutée à tes recettes.');
+    } catch {
+      toast.error("Impossible d'ajouter cette recette. Réessaie dans un instant.");
+    }
+  };
+
+  const handleShare = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    toast.success('Lien copié !');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
+        Chargement de la recette…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
+        Impossible de charger cette recette. Réessaie dans un instant.
+      </div>
+    );
+  }
+  if (!recipe) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background text-muted-foreground">
+        <p>Cette recette n'existe pas ou plus.</p>
+        <Link to="/recipes" className="text-primary underline underline-offset-4">
+          Retour aux recettes
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#faf7f2]">
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      {recipe.illustration && (
-        <ParallaxHero
-          imageUrl={recipe.illustration}
-          title={recipe.title}
-        />
-      )}
+      {recipe.illustration ? (
+        <ParallaxHero imageUrl={recipe.illustration} title={recipe.title}>
+          {recipe.illustrationPending && (
+            <div className="mt-3 flex items-center gap-2 rounded-full bg-black/40 backdrop-blur-sm px-4 py-1.5 text-sm text-white">
+              <div className="w-3.5 h-3.5 border-2 border-white/50 border-t-transparent rounded-full animate-spin" />
+              Génération de l'illustration…
+            </div>
+          )}
+        </ParallaxHero>
+      ) : recipe.illustrationPending ? (
+        <div className="w-full h-[300px] mb-16 flex flex-col items-center justify-center gap-3 bg-muted text-muted-foreground">
+          <ImageIcon className="w-8 h-8 animate-pulse" />
+          <span className="flex items-center gap-2 text-sm">
+            <div className="w-3.5 h-3.5 border-2 border-muted-foreground/40 border-t-transparent rounded-full animate-spin" />
+            Génération de l'illustration…
+          </span>
+        </div>
+      ) : null}
 
       {/* Main content */}
       <div className="container mx-auto p-4">
-        <div className={`grid ${recipe.videoUrl ? 'grid-cols-3 gap-6' : 'grid-cols-1'}`}>
+        <div className="flex justify-end gap-2 mb-4">
+          <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
+            <Share2 className="w-4 h-4" />
+            Copier le lien
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={saved} className="gap-2">
+            {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+            {saved ? 'Dans mes recettes' : 'Ajouter à mes recettes'}
+          </Button>
+        </div>
+        <div className={`flex flex-col gap-6 ${recipe.videoUrl ? 'lg:grid lg:grid-cols-3' : ''}`}>
+          {/* Video column — full width and first on mobile; becomes a sticky
+              sidebar only at lg: and up, where there's room for it beside
+              the content instead of squeezing a 3-column layout on a phone. */}
+          {recipe.videoUrl && (
+            <div className="order-first lg:order-last lg:col-span-1">
+              <div className="lg:sticky lg:top-24">
+                <div className="aspect-[9/16] w-full max-w-xs mx-auto max-h-[70vh] bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
+                  <video
+                    controls
+                    className="w-full h-full rounded-lg"
+                    src={recipe.videoUrl}
+                    playsInline
+                  />
+                </div>
+
+                {recipe.url && (
+                  <a
+                    href={recipe.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full max-w-xs mx-auto flex items-center gap-2 p-3 bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border text-foreground hover:bg-card/90 transition-colors"
+                  >
+                    <Instagram className="w-5 h-5 text-foreground" />
+                    <span>Revoir le reel original</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Left/Main column */}
-          <div className={recipe.videoUrl ? 'col-span-2' : 'col-span-1'}>
+          <div className={recipe.videoUrl ? 'lg:col-span-2' : ''}>
             {/* Serving size adjuster */}
-            <div className="mb-4 p-4 rounded-xl bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg">
+            <div className="mb-4 p-4 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg">
               <div className={`flex items-center gap-4 ${!recipe.videoUrl ? 'justify-center' : ''}`}>
-                <span className="text-gray-700">Nombre de personnes:</span>
-                <button 
-                  className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300"
+                <span className="text-foreground">On cuisine pour combien ?</span>
+                <button
+                  className="px-3 py-1 rounded-lg bg-muted hover:bg-muted/70"
                   onClick={() => setServingMultiplier(prev => Math.max(0.5, prev - 0.5))}
                 >
                   -
@@ -93,8 +202,8 @@ const RecipePage = () => {
                 <span className="w-12 text-center">
                   {Math.round(getServings() * servingMultiplier)}
                 </span>
-                <button 
-                  className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300"
+                <button
+                  className="px-3 py-1 rounded-lg bg-muted hover:bg-muted/70"
                   onClick={() => setServingMultiplier(prev => prev + 0.5)}
                 >
                   +
@@ -104,31 +213,31 @@ const RecipePage = () => {
 
             {/* Timing information - only show if we have any timing data */}
             {(recipe.prepTime || recipe.cookTime || recipe.totalTime) && (
-              <div className="mb-4 p-4 rounded-xl bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg">
-                <div className="grid grid-cols-3 gap-4">
+              <div className="mb-4 p-4 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {recipe.prepTime && (
                     <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-gray-600" />
+                      <Clock className="w-5 h-5 text-muted-foreground" />
                       <div>
-                        <div className="text-sm text-gray-500">Préparation</div>
+                        <div className="text-sm text-muted-foreground">Préparation</div>
                         <div className="font-medium">{recipe.prepTime}</div>
                       </div>
                     </div>
                   )}
                   {recipe.cookTime && (
                     <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-gray-600" />
+                      <Clock className="w-5 h-5 text-muted-foreground" />
                       <div>
-                        <div className="text-sm text-gray-500">Cuisson</div>
+                        <div className="text-sm text-muted-foreground">Cuisson</div>
                         <div className="font-medium">{recipe.cookTime}</div>
                       </div>
                     </div>
                   )}
                   {recipe.totalTime && (
                     <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-gray-600" />
+                      <Clock className="w-5 h-5 text-muted-foreground" />
                       <div>
-                        <div className="text-sm text-gray-500">Temps total</div>
+                        <div className="text-sm text-muted-foreground">Temps total</div>
                         <div className="font-medium">{recipe.totalTime}</div>
                       </div>
                     </div>
@@ -138,12 +247,12 @@ const RecipePage = () => {
             )}
 
             {/* Ingredients section with adjusted quantities */}
-            <div className="mb-8 p-6 rounded-xl bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg">
+            <div className="mb-8 p-6 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg">
               <div className="flex items-center gap-2 mb-4">
-                <UtensilsCrossed className="w-6 h-6 text-gray-700" />
-                <h2 className="text-xl font-semibold text-gray-700">Ingredients</h2>
+                <UtensilsCrossed className="w-6 h-6 text-foreground" />
+                <h2 className="text-xl font-display font-semibold text-foreground">Ce qu'il te faut</h2>
               </div>
-              <ul className="list-disc pl-5 space-y-2 text-gray-600">
+              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 {recipe.ingredients.map((ingredient, index) => (
                   <li key={index}>
                     {adjustIngredient(ingredient, servingMultiplier)}
@@ -152,46 +261,18 @@ const RecipePage = () => {
               </ul>
             </div>
 
-            <div className="mb-8 p-6 rounded-xl bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg">
+            <div className="mb-8 p-6 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg">
               <div className="flex items-center gap-2 mb-4">
-                <ListOrdered className="w-6 h-6 text-gray-700" />
-                <h2 className="text-xl font-semibold text-gray-700">Instructions</h2>
+                <ListOrdered className="w-6 h-6 text-foreground" />
+                <h2 className="text-xl font-display font-semibold text-foreground">Comment tu fais</h2>
               </div>
-              <ol className="list-decimal pl-5 space-y-3 text-gray-600">
+              <ol className="list-decimal pl-5 space-y-3 text-muted-foreground">
                 {recipe.instructions.map((step, index) => (
                   <li key={index} className="leading-relaxed">{step}</li>
                 ))}
               </ol>
             </div>
           </div>
-
-          {/* Right column - only render if there's a video */}
-          {recipe.videoUrl && (
-            <div className="col-span-1">
-              <div className="sticky top-24 pt-4">
-                <div className="aspect-[9/16] w-full max-w-[240px] mx-auto bg-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-3 mb-4">
-                  <video
-                    controls
-                    className="w-full h-full rounded-lg"
-                    src={recipe.videoUrl}
-                    playsInline
-                  />
-                </div>
-                
-                {recipe.url && (
-                  <a 
-                    href={recipe.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full max-w-[240px] mx-auto flex items-center gap-2 p-3 bg-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 text-gray-700 hover:bg-white/80 transition-colors"
-                  >
-                    <Instagram className="w-5 h-5 text-gray-800" />
-                    <span>Voir la recette originale</span>
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

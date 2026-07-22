@@ -12,6 +12,6 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["server/**/*"],
+  "include": ["server/**/*", "api/**/*"],
   "exclude": ["node_modules"]
 } 

@@ -1,22 +1,22 @@
-import { useEffect, useState } from "react";
 import URLInput from "@/components/URLInput";
 import RecipePreview from "@/components/RecipePreview";
 import type { Recipe } from "@/types/recipe";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 const Index = () => {
-  const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
-
-  useEffect(() => {
-    // Fetch 4 most recent recipes
-    fetch('/api/db')
-      .then(res => res.json())
-      .then(recipes => setRecentRecipes(recipes.slice(0, 4)))
-      .catch(console.error);
-  }, []);
+  const { data: recentRecipes = [] } = useQuery<Recipe[]>({
+    queryKey: ['recipes', 'recent'],
+    queryFn: async () => {
+      const res = await fetch('/api/db');
+      if (!res.ok) throw new Error('Failed to fetch recipes');
+      const all: Recipe[] = await res.json();
+      return all.slice(0, 4);
+    },
+  });
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-orange-100">
+    <main className="min-h-screen bg-background">
       {/* Hero Section */}
       <div className="flex items-center justify-center p-4 min-h-[70vh]">
         <URLInput />
@@ -26,10 +26,10 @@ const Index = () => {
       {recentRecipes.length > 0 && (
         <div className="container mx-auto px-4 pb-16">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Dernières recettes</h2>
-            <p className="text-gray-600">Découvrez les dernières recettes ajoutées</p>
+            <h2 className="text-2xl font-display font-semibold text-foreground mb-2">Fraîchement croquées</h2>
+            <p className="text-muted-foreground">Les derniers reels transformés en recettes.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {recentRecipes.map((recipe) => (
               <RecipePreview key={recipe.id} recipe={recipe} />
@@ -37,11 +37,11 @@ const Index = () => {
           </div>
 
           <div className="text-center mt-8">
-            <Link 
-              to="/recipes" 
-              className="inline-block px-6 py-3 bg-white rounded-xl shadow-md hover:shadow-lg transition-all text-gray-800 font-medium"
+            <Link
+              to="/recipes"
+              className="inline-block px-6 py-3 bg-card rounded-xl shadow-md hover:shadow-lg transition-all text-foreground font-medium"
             >
-              Voir toutes les recettes
+              Voir toutes mes recettes
             </Link>
           </div>
         </div>

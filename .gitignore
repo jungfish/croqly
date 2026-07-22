@@ -29,3 +29,17 @@ dist-ssr
 .env.development
 .env.test
 .env.production
+
+# Prisma (Postgres now lives in Supabase, never commit a local db file)
+prisma/*.db
+prisma/*.db-journal
+.vercel
+.env*
+
+# Local agent/tool state (ruflo / claude-flow) — not app code
+.agents
+.claude-flow
+.claude
+.swarm
+ruvector.db
+*.tsbuildinfo

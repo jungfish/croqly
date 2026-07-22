@@ -1,5 +1,6 @@
 
 import type { Config } from "tailwindcss"
+import tailwindcssAnimate from "tailwindcss-animate"
 
 export default {
   darkMode: ["class"],
@@ -14,10 +15,17 @@ export default {
     },
     extend: {
       fontFamily: {
-        serif: ["Playfair Display", "serif"],
-        sans: ["Inter", "sans-serif"],
+        display: ["Fredoka", "sans-serif"],
+        sans: ["Karla", "sans-serif"],
       },
       colors: {
+        // Raw brand hex values, for one-off accents that don't map to a
+        // semantic slot below. Prefer bg-primary/bg-accent/etc. by default.
+        crunch: { DEFAULT: "#FF4B3E", deep: "#DD3527" },
+        basil: { DEFAULT: "#1F9D55", deep: "#167A42" },
+        yolk: { DEFAULT: "#FFC93C", deep: "#E8A800" },
+        paper: "#FFFAF1",
+        ink: "#241A2C",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -73,6 +81,6 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config
 

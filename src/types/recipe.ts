@@ -13,4 +13,6 @@ export type Recipe = {
   totalTime?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  // True while illustration generation is still running in the background.
+  illustrationPending?: boolean;
 }; 

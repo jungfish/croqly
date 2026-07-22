@@ -12,19 +12,19 @@ const categoryColors = {
 
 const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-white shadow-md transition-all hover:shadow-xl">
+    <div className="group relative overflow-hidden rounded-xl bg-card shadow-md transition-all hover:shadow-xl">
       <div className="aspect-[4/3] overflow-hidden">
         {recipe.illustration ? (
-          <img 
-            src={recipe.illustration} 
+          <img
+            src={recipe.illustration}
             alt={recipe.title}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
           />
         ) : (
-          <div className={`h-full w-full flex items-center justify-center ${categoryColors[recipe.category] || 'bg-gray-100'}`}>
+          <div className={`h-full w-full flex items-center justify-center ${categoryColors[recipe.category] || 'bg-muted'}`}>
             <div className="text-center p-4">
-              <UtensilsCrossed className="w-12 h-12 mx-auto mb-2 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">{recipe.category}</span>
+              <UtensilsCrossed className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">{recipe.category}</span>
             </div>
           </div>
         )}

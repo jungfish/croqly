@@ -1,8 +1,7 @@
 import { Router, RequestHandler } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Get all recipes
 const getAllRecipes: RequestHandler = async (_req, res) => {

@@ -37,8 +37,8 @@ export async function getAllRecipes() {
       throw new Error(`Failed to fetch recipes: ${response.statusText}`);
     }
     
-    const recipes = await response.json();
-    return recipes.map((recipe: any) => ({
+    const recipes: Array<Record<string, unknown>> = await response.json();
+    return recipes.map((recipe) => ({
       ...recipe,
       ingredients: typeof recipe.ingredients === 'string' 
         ? JSON.parse(recipe.ingredients || '[]')
@@ -88,7 +88,7 @@ export async function getRecipeById(id: string) {
 }
 
 // Helper function to safely parse JSON
-function parseJSONSafely(value: any, defaultValue: any = []) {
+function parseJSONSafely(value: unknown, defaultValue: unknown[] = []) {
   if (Array.isArray(value)) return value;
   if (!value) return defaultValue;
   try {

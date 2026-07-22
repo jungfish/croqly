@@ -6,23 +6,53 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (port 6543) — used at runtime
+  directUrl = env("DIRECT_URL") // direct (port 5432) — used by `prisma migrate` only
 }
 
+// Shared/global cache row: one per unique Instagram Reel, regardless of how
+// many users have saved it. See SavedRecipe for per-user ownership.
 model Recipe {
-  id           String   @id @default(cuid())
-  title        String
-  category     String
-  ingredients  String   // Will store JSON string
-  instructions String   // Will store JSON string
-  illustration String?
-  url          String? @unique
-  videoUrl     String?
-  prepTime     String?
-  cookTime     String?
-  totalTime    String?
-  servings     Int     @default(4)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  String        @id @default(cuid())
+  title               String
+  category            String
+  ingredients         String // Will store JSON string
+  instructions        String // Will store JSON string
+  illustration        String?
+  // True while illustration generation is still running in the background
+  // (see server/routes/recipes.ts) — persisted so a page reload or a
+  // different route into this recipe still knows to retry/poll for it,
+  // instead of leaving it stuck on the Instagram thumbnail forever.
+  illustrationPending Boolean       @default(false)
+  url                 String?       @unique
+  videoUrl            String?
+  prepTime            String?
+  cookTime            String?
+  totalTime           String?
+  servings            Int           @default(4)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  savedRecipes        SavedRecipe[]
+}
+
+model SavedRecipe {
+  id       String   @id @default(cuid())
+  userId   String
+  recipeId String
+  recipe   Recipe   @relation(fields: [recipeId], references: [id])
+  savedAt  DateTime @default(now())
+
+  @@unique([userId, recipeId])
+  @@index([userId])
+}
+
+// Throttles the expensive path (Instagram fetch + AI) for anonymous callers
+// only — cache hits and authenticated users are never rate-limited here.
+model AnonymousProcessingLog {
+  id        String   @id @default(cuid())
+  ip        String
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
 }

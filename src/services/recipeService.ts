@@ -1,6 +1,35 @@
-import { interpretRecipe, generateRecipeImage } from './mistralService';
+import { interpretRecipe, generateRecipeImage } from './aiService';
 import type { Recipe } from "@/types/recipe";
 import { saveRecipe } from './databaseService';
+import { authFetch } from '@/lib/apiClient';
+
+// URL flow: one server call does the cache lookup, scrape, transcription,
+// interpretation, and SavedRecipe bookkeeping (step 5) — no client-side
+// orchestration, unlike the photo/OCR flow below. Illustration generation is
+// deliberately left out of this call (see generateIllustrationForRecipe).
+export async function processRecipeFromUrl(url: string): Promise<Recipe & { cached: boolean }> {
+  const response = await authFetch('/api/recipes/from-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Failed to process recipe: ${response.status}`);
+  }
+  return response.json();
+}
+
+// Kicks off illustration generation for a just-created recipe, out of band
+// from processRecipeFromUrl so the initial import doesn't have to wait on
+// the slowest AI step. Called after the user is already looking at the
+// recipe page, which shows a loader over the placeholder thumbnail meanwhile.
+export async function generateIllustrationForRecipe(recipeId: string): Promise<string | null> {
+  const response = await authFetch(`/api/recipes/${recipeId}/illustration`, { method: 'POST' });
+  if (!response.ok) return null;
+  const { illustration } = await response.json();
+  return illustration ?? null;
+}
 
 export async function processRecipeFromInstagram(
   caption?: string, 
@@ -10,10 +39,7 @@ export async function processRecipeFromInstagram(
   postUrl?: string
 ): Promise<Recipe> {
   try {
-    // Get recipe interpretation from Mistral
     const recipe = await interpretRecipe(caption || '', transcription || '');
-    console.log('RECIPE', recipe);
-    debugger;
     // Generate custom illustration if no thumbnail provided
     const illustration = await generateRecipeImage(recipe.title, recipe.ingredients) || thumbnailUrl;
     
