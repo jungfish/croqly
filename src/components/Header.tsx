@@ -23,7 +23,8 @@ const Header = () => {
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const isRecipePage = location.pathname.includes('/recipe/');
   const isRecipeListPage = location.pathname === '/recipes';
-  const hasHero = isRecipePage || isRecipeListPage;
+  const isShoppingListPage = location.pathname === '/shopping-list';
+  const hasHero = isRecipePage || isRecipeListPage || isShoppingListPage;
 
   useEffect(() => {
     if (!hasHero) {
@@ -54,6 +55,9 @@ const Header = () => {
       </Link>
       <Link to="/recipes" className={linkClass}>
         Mes Recettes
+      </Link>
+      <Link to="/shopping-list" className={linkClass}>
+        Liste de courses
       </Link>
       {user ? (
         <button onClick={() => signOut()} className={linkClass}>
@@ -107,6 +111,11 @@ const Header = () => {
             <SheetClose asChild>
               <Link to="/recipes" className="text-lg text-foreground/80 hover:text-foreground">
                 Mes Recettes
+              </Link>
+            </SheetClose>
+            <SheetClose asChild>
+              <Link to="/shopping-list" className="text-lg text-foreground/80 hover:text-foreground">
+                Liste de courses
               </Link>
             </SheetClose>
             {user ? (

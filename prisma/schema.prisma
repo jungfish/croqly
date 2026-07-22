@@ -86,3 +86,25 @@ model AnonymousProcessingLog {
 
   @@index([ip, createdAt])
 }
+
+// Per-user merged shopping list line. Rows are keyed by (userId, name, unit) so
+// that adding "200 g de farine" from one recipe and "1 kg de farine" from
+// another merges into a single row with a stable id — checked state survives
+// further merges. unit is never null: Postgres treats two NULLs as distinct in
+// a unique constraint, so an absent/incompatible unit is normalized to ''
+// instead (see server/lib/unitConversion.ts).
+model ShoppingListItem {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  unit            String
+  quantity        Float?
+  label           String
+  checked         Boolean  @default(false)
+  sourceRecipeIds String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, name, unit])
+  @@index([userId])
+}

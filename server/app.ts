@@ -9,6 +9,7 @@ import instagramRoutes from './routes/instagram.js';
 import aiRoutes from './routes/ai.js';
 import recipesRoutes from './routes/recipes.js';
 import creatorsRoutes from './routes/creators.js';
+import shoppingListRoutes from './routes/shoppingList.js';
 import { prisma } from './lib/prisma.js';
 import { renderSeoHtml } from './lib/renderSeoHtml.js';
 import { buildRecipeJsonLd, buildCreatorHubJsonLd } from './lib/schemaOrg.js';
@@ -45,6 +46,7 @@ app.use('/api/instagram', instagramRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/recipes', recipesRoutes);
 app.use('/api/creators', creatorsRoutes);
+app.use('/api/shopping-list', shoppingListRoutes);
 
 app.get('/api/test', (_req, res) => {
   res.json({ message: 'API is working!' });

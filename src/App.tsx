@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
 import RecipesList from "@/pages/recipes";
 import RecipeView from "@/pages/recipe/[id]";
+import ShoppingListPage from "@/pages/shopping-list";
 import CreatorHub from "@/pages/createur/[handle]";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
@@ -36,6 +37,7 @@ const App = () => {
                   {/* Protected: only "my recipes" needs an identity */}
                   <Route element={<RequireAuth />}>
                     <Route path="/recipes" element={<RecipesList />} />
+                    <Route path="/shopping-list" element={<ShoppingListPage />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>

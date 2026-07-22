@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import ParallaxHero from "@/components/ParallaxHero";
-import { UtensilsCrossed, Search } from "lucide-react";
+import { UtensilsCrossed, Search, Check } from "lucide-react";
 import type { Recipe } from "@/types/recipe";
 import { authFetch } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { addRecipesToShoppingList } from "@/services/shoppingListService";
 
 const categoryColors = {
   "Dessert": "bg-pink-100",
@@ -20,6 +23,9 @@ const categories = ["Toutes", "Dessert", "Soupe", "Plat principal", "Entrée", "
 const RecipesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("Toutes");
   const [search, setSearch] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [addingToList, setAddingToList] = useState(false);
 
   const { data: recipes = [] } = useQuery<Recipe[]>({
     queryKey: ['recipes', 'mine'],
@@ -34,6 +40,34 @@ const RecipesPage = () => {
     .filter((recipe) => selectedCategory === "Toutes" || recipe.category === selectedCategory)
     .filter((recipe) => recipe.title.toLowerCase().includes(search.toLowerCase()));
 
+  const toggleSelectMode = () => {
+    setSelectMode((prev) => !prev);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleAddSelectedToShoppingList = async () => {
+    setAddingToList(true);
+    try {
+      await addRecipesToShoppingList(Array.from(selectedIds));
+      toast.success('Ingrédients ajoutés à ta liste de courses.');
+      setSelectMode(false);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("Impossible d'ajouter ces ingrédients. Réessaie dans un instant.");
+    } finally {
+      setAddingToList(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <ParallaxHero
@@ -44,14 +78,21 @@ const RecipesPage = () => {
 
       <div className="container mx-auto p-8 -mt-8 relative z-10">
         {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Chercher une recette…"
-            className="pl-9 bg-card"
-          />
+        <div className="mb-4 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Chercher une recette…"
+              className="pl-9 bg-card"
+            />
+          </div>
+          {recipes.length > 0 && (
+            <Button variant="outline" className="bg-card shrink-0" onClick={toggleSelectMode}>
+              {selectMode ? 'Annuler' : 'Sélectionner'}
+            </Button>
+          )}
         </div>
 
         {/* Category Filter — horizontal scroll on mobile, wraps on larger screens */}
@@ -76,8 +117,24 @@ const RecipesPage = () => {
             <Link
               key={recipe.id}
               to={`/recipe/${recipe.id}`}
-              className="group block overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border"
+              onClick={(e) => {
+                if (!selectMode || !recipe.id) return;
+                e.preventDefault();
+                toggleSelected(recipe.id);
+              }}
+              className="group relative block overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border"
             >
+              {selectMode && (
+                <div
+                  className={`absolute top-3 right-3 z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                    recipe.id && selectedIds.has(recipe.id)
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : 'bg-white/80 border-white'
+                  }`}
+                >
+                  {recipe.id && selectedIds.has(recipe.id) && <Check className="w-4 h-4" />}
+                </div>
+              )}
               <div className="h-48 overflow-hidden">
                 {recipe.illustration ? (
                   <img
@@ -123,6 +180,16 @@ const RecipesPage = () => {
           </div>
         )}
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-background/95 backdrop-blur-sm border-t border-border flex justify-center">
+          <Button onClick={handleAddSelectedToShoppingList} disabled={addingToList} className="gap-2">
+            {addingToList
+              ? `Ajout de ${selectedIds.size} recette(s)…`
+              : `Ajouter ${selectedIds.size} recette(s) à la liste`}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Recipe } from '@/types/recipe';
-import { UtensilsCrossed, ListOrdered, Clock, Instagram, Bookmark, BookmarkCheck, ImageIcon } from 'lucide-react';
+import { UtensilsCrossed, ListOrdered, Clock, Instagram, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import ParallaxHero from '@/components/ParallaxHero';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import ShareButton from '@/components/ShareButton';
 import { useAuth } from '@/hooks/use-auth';
 import { authFetch } from '@/lib/apiClient';
 import { generateIllustrationForRecipe } from '@/services/recipeService';
+import { addRecipeToShoppingList } from '@/services/shoppingListService';
 import { emojiForIngredient } from '@/lib/ingredientEmoji';
 
 const RecipePage = () => {
@@ -20,6 +21,7 @@ const RecipePage = () => {
   const queryClient = useQueryClient();
   const [servingMultiplier, setServingMultiplier] = useState(1);
   const [saved, setSaved] = useState(false);
+  const [addingToList, setAddingToList] = useState(false);
 
   const { data: recipe, isLoading: loading, isError } = useQuery<Recipe>({
     // A recipe just created via processRecipeFromUrl is pre-populated under
@@ -94,6 +96,23 @@ const RecipePage = () => {
     }
   };
 
+  const handleAddToShoppingList = async () => {
+    if (!recipe) return;
+    if (!user) {
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+    setAddingToList(true);
+    try {
+      await addRecipeToShoppingList(recipe.id!);
+      toast.success('Ingrédients ajoutés à ta liste de courses.');
+    } catch {
+      toast.error("Impossible d'ajouter ces ingrédients. Réessaie dans un instant.");
+    } finally {
+      setAddingToList(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
@@ -145,6 +164,10 @@ const RecipePage = () => {
       <div className="container mx-auto p-4">
         <div className="sticky top-16 z-30 flex justify-end gap-2 mb-4 py-2 -mx-4 px-4 bg-background/80 backdrop-blur-sm">
           <ShareButton title={recipe.title} text={`La recette "${recipe.title}" sur Croqly`} />
+          <Button size="sm" variant="outline" onClick={handleAddToShoppingList} disabled={addingToList} className="gap-2">
+            <ShoppingCart className="w-4 h-4" />
+            {addingToList ? 'Ajout…' : 'Ajouter à la liste de courses'}
+          </Button>
           <Button size="sm" onClick={handleSave} disabled={saved} className="gap-2">
             {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
             {saved ? 'Dans mes recettes' : 'Ajouter à mes recettes'}
