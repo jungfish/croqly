@@ -38,10 +38,12 @@ const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
           contained) before tapping. Hover still adds the fuller gradient. */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pt-8 pb-3 px-4 text-white transition-opacity group-hover:from-black/90">
         <h3 className="text-base sm:text-lg font-semibold leading-snug line-clamp-2">{recipe.title}</h3>
-        <div className="flex items-center gap-2 text-sm mt-1 text-white/90">
-          <Clock className="w-4 h-4" />
-          <span>{recipe.totalTime || recipe.prepTime || "Durée non spécifiée"}</span>
-        </div>
+        {(recipe.totalTime || recipe.prepTime) && (
+          <div className="flex items-center gap-2 text-sm mt-1 text-white/90">
+            <Clock className="w-4 h-4" />
+            <span>{recipe.totalTime || recipe.prepTime}</span>
+          </div>
+        )}
       </div>
     </Link>
   );
