@@ -179,6 +179,39 @@ const RecipePage = () => {
     );
   }
 
+  const creatorAndReelLinks = (recipe.creator || recipe.url) && (
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      {recipe.creator && (
+        <Link
+          to={`/createurs/${recipe.creator.instagramHandle}`}
+          className="flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg hover:bg-card/90 transition-colors"
+        >
+          {recipe.creator.avatarUrl && (
+            <img
+              src={recipe.creator.avatarUrl}
+              alt={recipe.creator.displayName || recipe.creator.instagramHandle}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          )}
+          <span className="text-sm text-foreground">
+            Recette de @{recipe.creator.instagramHandle}
+          </span>
+        </Link>
+      )}
+      {recipe.url && (
+        <a
+          href={recipe.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg text-foreground hover:bg-card/90 transition-colors"
+        >
+          <Instagram className="w-5 h-5" />
+          <span className="text-sm">Revoir le reel original</span>
+        </a>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -245,40 +278,10 @@ const RecipePage = () => {
         </div>
 
         {/* Creator credit and "see the original reel" live together — they're
-            both just "where this recipe came from" and used to be scattered
-            (one above the layout, one buried in the video sidebar). */}
-        {(recipe.creator || recipe.url) && (
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            {recipe.creator && (
-              <Link
-                to={`/createurs/${recipe.creator.instagramHandle}`}
-                className="flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg hover:bg-card/90 transition-colors"
-              >
-                {recipe.creator.avatarUrl && (
-                  <img
-                    src={recipe.creator.avatarUrl}
-                    alt={recipe.creator.displayName || recipe.creator.instagramHandle}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                )}
-                <span className="text-sm text-foreground">
-                  Recette de @{recipe.creator.instagramHandle}
-                </span>
-              </Link>
-            )}
-            {recipe.url && (
-              <a
-                href={recipe.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg text-foreground hover:bg-card/90 transition-colors"
-              >
-                <Instagram className="w-5 h-5" />
-                <span className="text-sm">Revoir le reel original</span>
-              </a>
-            )}
-          </div>
-        )}
+            both just "where this recipe came from". Rendered right under the
+            video when there is one (mobile and desktop alike); otherwise
+            shown up here since there's no video to anchor them to. */}
+        {!recipe.videoUrl && creatorAndReelLinks}
 
         <div className={`flex flex-col gap-6 ${recipe.videoUrl ? 'lg:grid lg:grid-cols-3' : ''}`}>
           {/* Video column — full width and first on mobile; becomes a sticky
@@ -295,6 +298,7 @@ const RecipePage = () => {
                     playsInline
                   />
                 </div>
+                <div className="max-w-xs mx-auto">{creatorAndReelLinks}</div>
               </div>
             </div>
           )}
