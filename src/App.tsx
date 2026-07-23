@@ -16,6 +16,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RequireAuth from '@/components/RequireAuth';
 import { AuthProvider } from '@/hooks/use-auth';
+import { HeroProvider } from '@/hooks/use-hero';
 
 const queryClient = new QueryClient();
 
@@ -25,29 +26,31 @@ const App = () => {
       <AuthProvider>
         <TooltipProvider>
           <Router>
-            <div className="min-h-screen flex flex-col bg-background">
-              <Header />
-              <main className="flex-1">
-                <Routes>
-                  {/* Public: anyone can try the product and view/share a recipe without an account */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/decouvrir" element={<DecouvrirPage />} />
-                  <Route path="/recipe/:id" element={<RecipeView />} />
-                  <Route path="/createurs/:handle" element={<CreatorHub />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  {/* Protected: only "my recipes" needs an identity */}
-                  <Route element={<RequireAuth />}>
-                    <Route path="/recipes" element={<RecipesList />} />
-                    <Route path="/shopping-list" element={<ShoppingListPage />} />
-                  </Route>
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-              <Toaster />
-              <Sonner />
-            </div>
+            <HeroProvider>
+              <div className="min-h-screen flex flex-col bg-background">
+                <Header />
+                <main className="flex-1">
+                  <Routes>
+                    {/* Public: anyone can try the product and view/share a recipe without an account */}
+                    <Route path="/" element={<Index />} />
+                    <Route path="/decouvrir" element={<DecouvrirPage />} />
+                    <Route path="/recipe/:id" element={<RecipeView />} />
+                    <Route path="/createurs/:handle" element={<CreatorHub />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    {/* Protected: only "my recipes" needs an identity */}
+                    <Route element={<RequireAuth />}>
+                      <Route path="/recipes" element={<RecipesList />} />
+                      <Route path="/shopping-list" element={<ShoppingListPage />} />
+                    </Route>
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+                <Footer />
+                <Toaster />
+                <Sonner />
+              </div>
+            </HeroProvider>
           </Router>
         </TooltipProvider>
       </AuthProvider>

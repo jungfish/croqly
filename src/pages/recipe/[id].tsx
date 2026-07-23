@@ -1,10 +1,11 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Recipe } from '@/types/recipe';
+import type { Recipe, Creator } from '@/types/recipe';
 import { UtensilsCrossed, ListOrdered, Clock, Instagram, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import ParallaxHero from '@/components/ParallaxHero';
+import RecipePreview from '@/components/RecipePreview';
 import { Button } from '@/components/ui/button';
 import ShareButton from '@/components/ShareButton';
 import { useAuth } from '@/hooks/use-auth';
@@ -39,6 +40,35 @@ const RecipePage = () => {
     enabled: Boolean(id),
   });
   const error = isError ? 'Failed to fetch recipe' : null;
+
+  // Internal linking for SEO and discovery: recipes in the same category
+  // (shares the ['recipes', 'all'] cache key with /decouvrir, so visiting
+  // one after the other doesn't refetch), plus the rest of this creator's
+  // catalogue when the recipe has one.
+  const { data: allRecipes = [] } = useQuery<Recipe[]>({
+    queryKey: ['recipes', 'all'],
+    queryFn: async () => {
+      const res = await fetch('/api/db');
+      if (!res.ok) throw new Error('Failed to fetch recipes');
+      return res.json();
+    },
+    enabled: Boolean(recipe),
+  });
+  const relatedRecipes = allRecipes
+    .filter((r) => r.id !== recipe?.id && r.category === recipe?.category)
+    .slice(0, 4);
+
+  const creatorHandle = recipe?.creator?.instagramHandle;
+  const { data: creatorHub } = useQuery<{ creator: Creator; recipes: Recipe[] }>({
+    queryKey: ['creator', creatorHandle],
+    queryFn: async () => {
+      const res = await fetch(`/api/creators/${creatorHandle}`);
+      if (!res.ok) throw new Error('Failed to fetch creator');
+      return res.json();
+    },
+    enabled: Boolean(creatorHandle),
+  });
+  const creatorRecipes = (creatorHub?.recipes ?? []).filter((r) => r.id !== recipe?.id).slice(0, 4);
 
   // Reflect the real "already saved" state once it's known, instead of
   // always defaulting to false — otherwise a returning visitor (or one who
@@ -171,42 +201,83 @@ const RecipePage = () => {
         </div>
       ) : null}
 
-      {/* Main content */}
-      <div className="container mx-auto p-4">
+      {/* Main content — when neither hero branch above rendered (no
+          illustration, none pending), nothing pushes content below the
+          fixed header, so it would otherwise sit right under it. */}
+      <div className={`container mx-auto px-4 pb-4 ${recipe.illustration || recipe.illustrationPending ? 'pt-4' : 'pt-24'}`}>
         <p className="text-center text-muted-foreground mb-4">
           {firstName ? `${firstName}, on la cuisine ensemble ?` : 'On la cuisine ensemble ?'}
         </p>
 
-        <div className="sticky top-16 z-30 flex flex-wrap justify-end gap-2 mb-4 py-2 -mx-4 px-4 bg-background/80 backdrop-blur-sm">
-          <ShareButton title={recipe.title} text={`La recette "${recipe.title}" sur Croqly`} />
-          <Button size="sm" variant="outline" onClick={handleAddToShoppingList} disabled={addingToList} className="gap-2">
-            <ShoppingCart className="w-4 h-4" />
-            <span className="hidden sm:inline">{addingToList ? 'Ajout…' : 'Ajouter à la liste de courses'}</span>
-            <span className="sm:hidden">{addingToList ? 'Ajout…' : 'Liste de courses'}</span>
+        <div className="sticky top-16 z-30 flex flex-nowrap items-center justify-end gap-2 mb-4 py-2 -mx-4 px-4 bg-background/80 backdrop-blur-sm overflow-x-auto">
+          <ShareButton title={recipe.title} text={`La recette "${recipe.title}" sur Croqly`} className="shrink-0" />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleAddToShoppingList}
+            disabled={addingToList}
+            aria-label="Ajouter à la liste de courses"
+            className="gap-2 shrink-0"
+          >
+            <ShoppingCart className="w-4 h-4 shrink-0" />
+            {/* Both labels are always laid out (stacked in the same grid
+                cell) so the button's width is fixed to the widest one and
+                never shrinks/grows when the label swaps on click — that
+                shift was pushing the other buttons in this row around. */}
+            <span className="hidden sm:grid">
+              <span className={`col-start-1 row-start-1 ${addingToList ? 'invisible' : ''}`}>Ajouter à la liste de courses</span>
+              <span className={`col-start-1 row-start-1 ${addingToList ? '' : 'invisible'}`}>Ajout…</span>
+            </span>
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saved} className="gap-2">
-            {saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-            <span className="hidden sm:inline">{saved ? 'Dans mes recettes' : 'Ajouter à mes recettes'}</span>
-            <span className="sm:hidden">{saved ? 'Sauvegardée' : 'Sauvegarder'}</span>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={saved}
+            aria-label={saved ? 'Dans mes recettes' : 'Ajouter à mes recettes'}
+            className="gap-2 shrink-0"
+          >
+            {saved ? <BookmarkCheck className="w-4 h-4 shrink-0" /> : <Bookmark className="w-4 h-4 shrink-0" />}
+            <span className="hidden sm:grid">
+              <span className={`col-start-1 row-start-1 ${saved ? 'invisible' : ''}`}>Ajouter à mes recettes</span>
+              <span className={`col-start-1 row-start-1 ${saved ? '' : 'invisible'}`}>Dans mes recettes</span>
+            </span>
           </Button>
         </div>
 
-        {recipe.creator && (
-          <Link
-            to={`/createurs/${recipe.creator.instagramHandle}`}
-            className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg w-fit hover:bg-card/90 transition-colors"
-          >
-            {recipe.creator.avatarUrl && (
-              <img
-                src={recipe.creator.avatarUrl}
-                alt={recipe.creator.displayName || recipe.creator.instagramHandle}
-                className="w-8 h-8 rounded-full object-cover"
-              />
+        {/* Creator credit and "see the original reel" live together — they're
+            both just "where this recipe came from" and used to be scattered
+            (one above the layout, one buried in the video sidebar). */}
+        {(recipe.creator || recipe.url) && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {recipe.creator && (
+              <Link
+                to={`/createurs/${recipe.creator.instagramHandle}`}
+                className="flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg hover:bg-card/90 transition-colors"
+              >
+                {recipe.creator.avatarUrl && (
+                  <img
+                    src={recipe.creator.avatarUrl}
+                    alt={recipe.creator.displayName || recipe.creator.instagramHandle}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                )}
+                <span className="text-sm text-foreground">
+                  Recette de @{recipe.creator.instagramHandle}
+                </span>
+              </Link>
             )}
-            <span className="text-sm text-foreground">
-              Recette de @{recipe.creator.instagramHandle}
-            </span>
-          </Link>
+            {recipe.url && (
+              <a
+                href={recipe.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg text-foreground hover:bg-card/90 transition-colors"
+              >
+                <Instagram className="w-5 h-5" />
+                <span className="text-sm">Revoir le reel original</span>
+              </a>
+            )}
+          </div>
         )}
 
         <div className={`flex flex-col gap-6 ${recipe.videoUrl ? 'lg:grid lg:grid-cols-3' : ''}`}>
@@ -224,18 +295,6 @@ const RecipePage = () => {
                     playsInline
                   />
                 </div>
-
-                {recipe.url && (
-                  <a
-                    href={recipe.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full max-w-xs mx-auto flex items-center gap-2 p-3 bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border text-foreground hover:bg-card/90 transition-colors"
-                  >
-                    <Instagram className="w-5 h-5 text-foreground" />
-                    <span>Revoir le reel original</span>
-                  </a>
-                )}
               </div>
             </div>
           )}
@@ -330,9 +389,75 @@ const RecipePage = () => {
             </div>
           </div>
         </div>
+
+        {/* SEO content + internal mesh: a single ingredients/steps card gives
+            search engines and readers almost nothing to link through to —
+            this adds real text about the recipe plus a way back to the home
+            import flow and onward to related/same-creator recipes. */}
+        <div className="mt-4 p-6 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg">
+          <h2 className="text-xl font-display font-semibold text-foreground mb-3">
+            À propos de "{recipe.title}"
+          </h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Cette recette de {recipe.category.toLowerCase()}
+            {recipe.creator && (
+              <>
+                {' '}vient du compte Instagram{' '}
+                <Link
+                  to={`/createurs/${recipe.creator.instagramHandle}`}
+                  className="text-primary underline underline-offset-4"
+                >
+                  @{recipe.creator.instagramHandle}
+                </Link>
+              </>
+            )}
+            {recipe.totalTime && ` et se prépare en ${recipe.totalTime}`}, pour {getServings()} personne{getServings() > 1 ? 's' : ''}.
+            {' '}Ajuste les portions ci-dessus, ajoute les ingrédients à ta liste de courses en un clic, et retrouve-la à tout moment dans « Mes recettes ».
+          </p>
+          <Link
+            to="/"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium shadow-lg hover:bg-primary/90 transition-colors"
+          >
+            Colle un lien Instagram pour croquer une nouvelle recette
+          </Link>
+        </div>
+
+        {relatedRecipes.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-xl font-display font-semibold text-foreground mb-4">
+              D'autres recettes qui pourraient te plaire
+            </h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {relatedRecipes.map((r) => (
+                <RecipePreview key={r.id} recipe={r} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {recipe.creator && creatorRecipes.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <h2 className="text-xl font-display font-semibold text-foreground">
+                D'autres recettes de @{recipe.creator.instagramHandle}
+              </h2>
+              <Link
+                to={`/createurs/${recipe.creator.instagramHandle}`}
+                className="text-sm text-primary hover:underline underline-offset-4 shrink-0"
+              >
+                Voir tout
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {creatorRecipes.map((r) => (
+                <RecipePreview key={r.id} recipe={r} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default RecipePage; 
+export default RecipePage;

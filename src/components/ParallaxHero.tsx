@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useHero } from '@/hooks/use-hero';
 
 interface ParallaxHeroProps {
   imageUrl: string;
@@ -16,6 +17,12 @@ const ParallaxHero = ({
   overlay = true
 }: ParallaxHeroProps) => {
   const [scrollPosition, setScrollPosition] = useState(0);
+  const { setHasHero } = useHero();
+
+  useEffect(() => {
+    setHasHero(true);
+    return () => setHasHero(false);
+  }, [setHasHero]);
 
   useEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

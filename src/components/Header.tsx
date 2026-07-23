@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useHero } from '@/hooks/use-hero';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,13 +19,9 @@ import {
 const HERO_SCROLL_THRESHOLD = 180;
 
 const Header = () => {
-  const location = useLocation();
   const { user, signOut } = useAuth();
+  const { hasHero } = useHero();
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
-  const isRecipePage = location.pathname.includes('/recipe/');
-  const isRecipeListPage = location.pathname === '/recipes' || location.pathname === '/decouvrir';
-  const isShoppingListPage = location.pathname === '/shopping-list';
-  const hasHero = isRecipePage || isRecipeListPage || isShoppingListPage;
 
   useEffect(() => {
     if (!hasHero) {
