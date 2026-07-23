@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import { Menu, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { useHero } from '@/hooks/use-hero';
+import { usePwaInstall } from '@/hooks/use-pwa-install';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +23,19 @@ const HERO_SCROLL_THRESHOLD = 180;
 const Header = () => {
   const { user, signOut } = useAuth();
   const { hasHero } = useHero();
+  const { canInstall, isIOS, isStandalone, promptInstall } = usePwaInstall();
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
+
+  const showInstall = !isStandalone && (canInstall || isIOS);
+  const handleInstallClick = () => {
+    if (isIOS) {
+      toast("Installer Croqly", {
+        description: "Appuyez sur Partager puis « Sur l'écran d'accueil ».",
+      });
+      return;
+    }
+    promptInstall();
+  };
 
   useEffect(() => {
     if (!hasHero) {
@@ -88,7 +102,20 @@ const Header = () => {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-6">{navLinks}</div>
+        <div className="hidden md:flex items-center gap-6">
+          {navLinks}
+          {showInstall && (
+            <Button
+              variant={shouldBeLight ? 'outline' : 'default'}
+              size="sm"
+              onClick={handleInstallClick}
+              className={shouldBeLight ? 'border-white/40 text-white hover:bg-white/10 hover:text-white' : ''}
+            >
+              <Download className="w-4 h-4" />
+              Installer l'app
+            </Button>
+          )}
+        </div>
 
         {/* Mobile nav — a real drawer instead of squeezing links into the bar */}
         <Sheet>
@@ -135,6 +162,12 @@ const Header = () => {
                   Connexion
                 </Link>
               </SheetClose>
+            )}
+            {showInstall && (
+              <Button onClick={handleInstallClick} className="mt-2">
+                <Download className="w-4 h-4" />
+                Installer l'app
+              </Button>
             )}
           </SheetContent>
         </Sheet>

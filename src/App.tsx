@@ -14,9 +14,11 @@ import Signup from "@/pages/auth/Signup";
 import NotFound from "./pages/NotFound";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import InstallPwaBanner from '@/components/InstallPwaBanner';
 import RequireAuth from '@/components/RequireAuth';
 import { AuthProvider } from '@/hooks/use-auth';
 import { HeroProvider } from '@/hooks/use-hero';
+import { PwaInstallProvider } from '@/hooks/use-pwa-install';
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,7 @@ const App = () => {
         <TooltipProvider>
           <Router>
             <HeroProvider>
+            <PwaInstallProvider>
               <div className="min-h-screen flex flex-col bg-background">
                 <Header />
                 <main className="flex-1">
@@ -49,7 +52,9 @@ const App = () => {
                 <Footer />
                 <Toaster />
                 <Sonner />
+                <InstallPwaBanner />
               </div>
+            </PwaInstallProvider>
             </HeroProvider>
           </Router>
         </TooltipProvider>
