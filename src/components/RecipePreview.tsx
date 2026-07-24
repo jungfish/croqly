@@ -51,6 +51,20 @@ const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
           </div>
         )}
         <h3 className="text-base sm:text-lg font-semibold leading-snug line-clamp-2">{recipe.title}</h3>
+        {recipe.creator && (
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-white/80">
+            {recipe.creator.avatarUrl && (
+              <img
+                src={recipe.creator.avatarUrl}
+                alt={recipe.creator.displayName || recipe.creator.handle}
+                loading="lazy"
+                decoding="async"
+                className="w-5 h-5 rounded-full object-cover"
+              />
+            )}
+            <span>par @{recipe.creator.handle}</span>
+          </div>
+        )}
       </div>
     </Link>
   );
