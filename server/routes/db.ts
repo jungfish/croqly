@@ -8,9 +8,16 @@ const getAllRecipes: RequestHandler = async (_req, res) => {
 
   try {
     const recipes = await prisma.recipe.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: { creator: true },
     });
-    res.json(recipes);
+    const cleanRecipes = recipes.map(({ creator, ...rest }) => ({
+      ...rest,
+      creator: creator
+        ? { platform: creator.platform, handle: creator.handle, displayName: creator.displayName, avatarUrl: creator.avatarUrl }
+        : null,
+    }));
+    res.json(cleanRecipes);
   } catch (error) {
     console.error('Database error:', error);
     res.status(500).json({ error: 'Failed to fetch recipes' });
