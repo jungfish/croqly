@@ -8,6 +8,7 @@ import type { Recipe } from "@/types/recipe";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 const categories = ["Toutes", "Dessert", "Soupe", "Plat principal", "Entrée", "Bébé"] as const;
 
@@ -20,19 +21,20 @@ const DecouvrirPage = () => {
   const firstName = getFirstName(user);
   const [selectedCategory, setSelectedCategory] = useState<string>("Toutes");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+  const hasActiveFilter = selectedCategory !== "Toutes" || debouncedSearch.trim().length > 0;
 
   const { data: recipes = [] } = useQuery<Recipe[]>({
-    queryKey: ['recipes', 'all'],
+    queryKey: ['recipes', 'all', debouncedSearch, selectedCategory],
     queryFn: async () => {
-      const res = await fetch('/api/db');
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+      if (selectedCategory !== "Toutes") params.set('category', selectedCategory);
+      const res = await fetch(`/api/db?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch recipes');
       return res.json();
     },
   });
-
-  const filteredRecipes = recipes
-    .filter((recipe) => selectedCategory === "Toutes" || recipe.category === selectedCategory)
-    .filter((recipe) => recipe.title.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="min-h-screen bg-background">
@@ -78,12 +80,12 @@ const DecouvrirPage = () => {
             croquées" feed, so the hover treatment (zoom + gradient overlay)
             is identical between the two. */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredRecipes.map((recipe) => (
+          {recipes.map((recipe) => (
             <RecipePreview key={recipe.id} recipe={recipe} />
           ))}
         </div>
 
-        {recipes.length === 0 && (
+        {recipes.length === 0 && !hasActiveFilter && (
           <div className="flex flex-col items-center gap-4 text-center py-16 text-muted-foreground">
             <UtensilsCrossed className="w-10 h-10" />
             <p>Aucune recette n'a encore été croquée.</p>
@@ -96,7 +98,7 @@ const DecouvrirPage = () => {
           </div>
         )}
 
-        {recipes.length > 0 && filteredRecipes.length === 0 && (
+        {recipes.length === 0 && hasActiveFilter && (
           <div className="text-center py-12 text-muted-foreground">
             Rien ne correspond à cette recherche — essaie une autre catégorie ou un autre mot-clé.
           </div>

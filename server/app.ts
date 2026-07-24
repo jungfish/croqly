@@ -12,6 +12,7 @@ import creatorsRoutes from './routes/creators.js';
 import shoppingListRoutes from './routes/shoppingList.js';
 import chatRoutes from './routes/chat.js';
 import { prisma } from './lib/prisma.js';
+import { logError } from './lib/logger.js';
 import { renderSeoHtml } from './lib/renderSeoHtml.js';
 import { buildRecipeJsonLd, buildCreatorHubJsonLd } from './lib/schemaOrg.js';
 
@@ -107,7 +108,7 @@ app.get('/recipe/:id', async (req, res, next) => {
     });
     res.send(html);
   } catch (error) {
-    console.error('Error rendering recipe SEO page:', error);
+    logError('Error rendering recipe SEO page', error);
     next();
   }
 });
@@ -140,7 +141,7 @@ app.get('/createurs/:platform/:handle', async (req, res, next) => {
     });
     res.send(html);
   } catch (error) {
-    console.error('Error rendering creator hub SEO page:', error);
+    logError('Error rendering creator hub SEO page', error);
     next();
   }
 });
@@ -177,7 +178,7 @@ app.get('/sitemap.xml', async (req, res) => {
 
     res.type('application/xml').send(xml);
   } catch (error) {
-    console.error('Error generating sitemap:', error);
+    logError('Error generating sitemap', error);
     res.status(500).end();
   }
 });

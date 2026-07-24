@@ -3,6 +3,7 @@ import { Router, RequestHandler } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { instagramFetcher } from '../lib/instagramFetcher.js';
 import { tiktokFetcher } from '../lib/tiktokFetcher.js';
+import { logError } from '../lib/logger.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
 
 const router = Router();
@@ -50,7 +51,7 @@ const getCreatorByHandle: RequestHandler<PlatformParam> = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Error fetching creator:', error);
+    logError('Error fetching creator', error);
     res.status(500).json({ error: 'Failed to fetch creator' });
   }
 };
@@ -84,7 +85,7 @@ const requestClaim: RequestHandler<PlatformParam> = async (req, res) => {
 
     res.json({ code });
   } catch (error) {
-    console.error('Error requesting creator claim:', error);
+    logError('Error requesting creator claim', error);
     res.status(500).json({ error: 'Failed to request claim' });
   }
 };
@@ -124,7 +125,7 @@ const verifyClaim: RequestHandler<PlatformParam> = async (req, res) => {
 
     res.json({ claimed: true });
   } catch (error) {
-    console.error('Error verifying creator claim:', error);
+    logError('Error verifying creator claim', error);
     res.status(500).json({ error: 'Failed to verify claim' });
   }
 };

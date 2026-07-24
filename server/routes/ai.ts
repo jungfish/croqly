@@ -3,6 +3,7 @@ import { IncomingForm } from 'formidable';
 import * as fs from 'fs';
 import { getOpenAI } from '../lib/openaiClient.js';
 import { interpretRecipe, generateIllustration } from '../lib/aiInterpretation.js';
+import { logError } from '../lib/logger.js';
 
 const router = Router();
 
@@ -14,7 +15,7 @@ const interpretHandler: RequestHandler = async (req, res) => {
     const { caption, transcription } = req.body as { caption?: string; transcription?: string };
     res.json(await interpretRecipe(caption ?? '', transcription ?? ''));
   } catch (error) {
-    console.error('Error interpreting recipe:', error);
+    logError('Error interpreting recipe', error);
     res.status(500).json({ error: 'Failed to interpret recipe' });
   }
 };
@@ -26,7 +27,7 @@ const illustrateHandler: RequestHandler = async (req, res) => {
     const illustrationUrl = await generateIllustration(title, ingredients ?? []);
     res.json({ illustrationUrl });
   } catch (error) {
-    console.error('Error generating recipe illustration:', error);
+    logError('Error generating recipe illustration', error);
     res.status(500).json({ error: 'Failed to generate illustration' });
   }
 };
@@ -62,7 +63,7 @@ const performOCR: RequestHandler = async (req, res) => {
     await fs.promises.unlink(file.filepath);
     res.json({ text: completion.choices[0]?.message?.content || '' });
   } catch (error) {
-    console.error('Error in OCR processing:', error);
+    logError('Error in OCR processing', error);
     res.status(500).json({ error: 'Failed to process image' });
   }
 };

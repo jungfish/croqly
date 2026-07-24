@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { getOpenAI } from './openaiClient.js';
+import { logError } from './logger.js';
 
 ffmpeg.setFfmpegPath(ffmpegPath.path);
 
@@ -54,7 +55,7 @@ export async function transcribeVideoFromUrl(videoUrl: string): Promise<string |
 
     return transcription.text;
   } catch (error) {
-    console.error('Error transcribing video:', error);
+    logError('Error transcribing video', error);
     return null;
   } finally {
     await fs.promises.unlink(videoPath).catch(() => {});

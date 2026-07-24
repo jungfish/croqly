@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { addRecipesToShoppingList } from "@/services/shoppingListService";
 import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 const categoryColors = {
   "Dessert": "bg-pink-100",
@@ -27,22 +28,23 @@ const RecipesPage = () => {
   const firstName = getFirstName(user);
   const [selectedCategory, setSelectedCategory] = useState<string>("Toutes");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+  const hasActiveFilter = selectedCategory !== "Toutes" || debouncedSearch.trim().length > 0;
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [addingToList, setAddingToList] = useState(false);
 
   const { data: recipes = [] } = useQuery<Recipe[]>({
-    queryKey: ['recipes', 'mine'],
+    queryKey: ['recipes', 'mine', debouncedSearch, selectedCategory],
     queryFn: async () => {
-      const res = await authFetch('/api/recipes/mine');
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+      if (selectedCategory !== "Toutes") params.set('category', selectedCategory);
+      const res = await authFetch(`/api/recipes/mine?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch recipes');
       return res.json();
     },
   });
-
-  const filteredRecipes = recipes
-    .filter((recipe) => selectedCategory === "Toutes" || recipe.category === selectedCategory)
-    .filter((recipe) => recipe.title.toLowerCase().includes(search.toLowerCase()));
 
   const toggleSelectMode = () => {
     setSelectMode((prev) => !prev);
@@ -121,7 +123,7 @@ const RecipesPage = () => {
 
         {/* Recipes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRecipes.map((recipe) => (
+          {recipes.map((recipe) => (
             <Link
               key={recipe.id}
               to={`/recipe/${recipe.id}`}
@@ -171,7 +173,7 @@ const RecipesPage = () => {
           ))}
         </div>
 
-        {recipes.length === 0 && (
+        {recipes.length === 0 && !hasActiveFilter && (
           <div className="flex flex-col items-center gap-4 text-center py-16 text-muted-foreground">
             <UtensilsCrossed className="w-10 h-10" />
             <p>Tu n'as encore sauvegardé aucune recette.</p>
@@ -184,7 +186,7 @@ const RecipesPage = () => {
           </div>
         )}
 
-        {recipes.length > 0 && filteredRecipes.length === 0 && (
+        {recipes.length === 0 && hasActiveFilter && (
           <div className="text-center py-12 text-muted-foreground">
             Rien ne correspond à cette recherche — essaie une autre catégorie ou un autre mot-clé.
           </div>

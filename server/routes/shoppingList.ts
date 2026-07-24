@@ -5,6 +5,7 @@ import { parseIngredientLine, canonicalizeName } from '../lib/ingredientParsing.
 import { toBaseUnit, formatLabel } from '../lib/unitConversion.js';
 import { isPantryStaple } from '../lib/pantryStaples.js';
 import { categorizeIngredient, IngredientCategory } from '../lib/ingredientCategory.js';
+import { logError } from '../lib/logger.js';
 
 const router = Router();
 
@@ -85,7 +86,7 @@ const getList: RequestHandler = async (req, res) => {
   try {
     res.json(await fetchList(req.user!.id));
   } catch (error) {
-    console.error('Error fetching shopping list:', error);
+    logError('Error fetching shopping list', error);
     res.status(500).json({ error: 'Failed to fetch shopping list' });
   }
 };
@@ -98,7 +99,7 @@ const addFromRecipe: RequestHandler<{ id: string }> = async (req, res) => {
     await mergeLines(req.user!.id, linesFromRecipe(recipe.id, recipe.ingredients));
     res.json(await fetchList(req.user!.id));
   } catch (error) {
-    console.error('Error adding recipe to shopping list:', error);
+    logError('Error adding recipe to shopping list', error);
     res.status(500).json({ error: 'Failed to add recipe to shopping list' });
   }
 };
@@ -113,7 +114,7 @@ const addFromRecipes: RequestHandler = async (req, res) => {
     await mergeLines(req.user!.id, lines);
     res.json(await fetchList(req.user!.id));
   } catch (error) {
-    console.error('Error adding recipes to shopping list:', error);
+    logError('Error adding recipes to shopping list', error);
     res.status(500).json({ error: 'Failed to add recipes to shopping list' });
   }
 };
@@ -142,7 +143,7 @@ const updateItem: RequestHandler<{ id: string }> = async (req, res) => {
 
     res.json({ updated: true });
   } catch (error) {
-    console.error('Error updating shopping list item:', error);
+    logError('Error updating shopping list item', error);
     res.status(500).json({ error: 'Failed to update item' });
   }
 };
@@ -153,7 +154,7 @@ const deleteItem: RequestHandler<{ id: string }> = async (req, res) => {
     if (result.count === 0) return res.status(404).json({ error: 'Item not found' });
     res.json({ deleted: true });
   } catch (error) {
-    console.error('Error deleting shopping list item:', error);
+    logError('Error deleting shopping list item', error);
     res.status(500).json({ error: 'Failed to delete item' });
   }
 };
@@ -163,7 +164,7 @@ const clearChecked: RequestHandler = async (req, res) => {
     await prisma.shoppingListItem.deleteMany({ where: { userId: req.user!.id, checked: true } });
     res.json({ cleared: true });
   } catch (error) {
-    console.error('Error clearing checked items:', error);
+    logError('Error clearing checked items', error);
     res.status(500).json({ error: 'Failed to clear checked items' });
   }
 };
@@ -173,7 +174,7 @@ const clearAll: RequestHandler = async (req, res) => {
     await prisma.shoppingListItem.deleteMany({ where: { userId: req.user!.id } });
     res.json({ cleared: true });
   } catch (error) {
-    console.error('Error clearing shopping list:', error);
+    logError('Error clearing shopping list', error);
     res.status(500).json({ error: 'Failed to clear shopping list' });
   }
 };

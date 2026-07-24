@@ -2,6 +2,7 @@ import { Router, RequestHandler } from 'express';
 import { instagramFetcher } from '../lib/instagramFetcher.js';
 import { transcribeVideoFromUrl } from '../lib/transcription.js';
 import { normalizeInstagramUrl } from '../lib/normalizeInstagramUrl.js';
+import { logError } from '../lib/logger.js';
 
 const router = Router();
 
@@ -24,7 +25,7 @@ const fetchInstagramMedia: RequestHandler = async (req, res) => {
       postUrl: normalizedUrl,
     });
   } catch (error) {
-    console.error('Error fetching Instagram media:', error);
+    logError('Error fetching Instagram media', error);
     res.status(500).json({ error: 'Failed to fetch Instagram content' });
   }
 };

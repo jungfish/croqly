@@ -78,14 +78,14 @@ export async function interpretRecipe(caption: string, transcription: string): P
 // Illustration generation only — gpt-image-2 is never used to read/interpret
 // images, only to generate them.
 export async function generateIllustration(title: string, ingredients: string[]): Promise<IllustrationUrls> {
-  const prompt = `A bold, minimalist illustration of ${title}, in a warm and playful style inspired by modern recipe cards — clean shapes and confident brushstrokes rather than photorealistic detail. The main ingredients are the following: ${ingredients.slice(0, 8).join(', ')}. They are arranged appetizingly in a bowl or on a plate, with steam subtly rising. Color palette: a warm cream background (like parchment paper), with vivid, appetizing accents on the food itself — tomato red, fresh basil green, and egg-yolk yellow. Bright, even lighting, no harsh shadows. Clean and modern aesthetic. No text included. Composition should be wide and horizontal to fit as a banner image.`;
+  const prompt = `A retro riso-print style illustration of ${title}, inspired by risograph printing — flat shapes with a soft halftone/grain texture, NO black outlines, 3 layered spot colors only (warm red-orange, fresh green, golden yellow) plus a cream paper background, slight color misregistration for a handmade printed poster feel. Main ingredients visible: ${ingredients.slice(0, 8).join(', ')}, arranged simply in a bowl, centered. Muted, slightly desaturated, textured — like a limited-edition print, not a cartoon. No text. Wide horizontal composition for a banner.`;
 
   const response = await getOpenAI().images.generate({
     model: 'gpt-image-2',
     prompt,
     n: 1,
     size: '1536x1024',
-    quality: 'medium', // not "high" — a stylized illustration doesn't need it, ~3-5x cheaper
+    quality: 'low', // a stylized illustration doesn't need "medium"/"high" — ~8x cheaper than medium
   });
 
   const b64 = response.data?.[0]?.b64_json;

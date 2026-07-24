@@ -7,7 +7,9 @@ import { tiktokFetcher } from '../lib/tiktokFetcher.js';
 import { transcribeVideoFromUrl } from '../lib/transcription.js';
 import { interpretRecipe, generateIllustration } from '../lib/aiInterpretation.js';
 import { buildEmbeddingInput, embed, storeRecipeEmbedding } from '../lib/embeddings.js';
+import { buildRecipeSearchWhere } from '../lib/recipeSearch.js';
 import { isAnonymousLimitExceeded, recordAnonymousUsage } from '../lib/rateLimit.js';
+import { logError } from '../lib/logger.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
 
 const router = Router();
@@ -126,7 +128,7 @@ const fromUrl: RequestHandler = async (req, res) => {
         });
         await storeRecipeEmbedding(recipe.id, await embed(input));
       } catch (error) {
-        console.error('Error embedding recipe:', error);
+        logError('Error embedding recipe', error);
       }
 
       if (!req.user) await recordAnonymousUsage(req.ip ?? 'unknown');
@@ -142,7 +144,7 @@ const fromUrl: RequestHandler = async (req, res) => {
 
     res.json({ ...parseRecipe(recipe), cached });
   } catch (error) {
-    console.error('Error processing recipe from URL:', error);
+    logError('Error processing recipe from URL', error);
     res.status(500).json({ error: 'Failed to process recipe' });
   }
 };
@@ -150,35 +152,59 @@ const fromUrl: RequestHandler = async (req, res) => {
 // Generates the AI illustration for a recipe and persists it. Called by the
 // client right after a fresh (non-cached) recipe is created, out of band
 // from the from-url request — see the comment above fromUrl.
+//
+// Nothing stops a client (or an abusive caller) from hitting this endpoint
+// repeatedly for the same recipe, and it's unauthenticated — so it doubles
+// as the only cost guard on the gpt-image-2 call. `illustrationPending` is
+// used as an atomic claim: the conditional update only succeeds for the
+// caller that flips true -> false, so concurrent/duplicate calls fall
+// through to the cached result instead of each triggering their own
+// generation.
 const generateRecipeIllustration: RequestHandler<{ id: string }> = async (req, res) => {
   try {
     const recipe = await prisma.recipe.findUnique({ where: { id: req.params.id } });
     if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
 
-    const { full, thumb } = await generateIllustration(recipe.title, JSON.parse(recipe.ingredients || '[]'));
-    await prisma.recipe.update({
-      where: { id: recipe.id },
-      data: { illustration: full, illustrationThumb: thumb, illustrationPending: false },
+    const { count } = await prisma.recipe.updateMany({
+      where: { id: recipe.id, illustrationPending: true },
+      data: { illustrationPending: false },
     });
+    if (count === 0) {
+      return res.json({ illustration: recipe.illustration, illustrationThumb: recipe.illustrationThumb });
+    }
 
-    res.json({ illustration: full, illustrationThumb: thumb });
+    try {
+      const { full, thumb } = await generateIllustration(recipe.title, JSON.parse(recipe.ingredients || '[]'));
+      await prisma.recipe.update({
+        where: { id: recipe.id },
+        data: { illustration: full, illustrationThumb: thumb },
+      });
+      res.json({ illustration: full, illustrationThumb: thumb });
+    } catch (error) {
+      // Generation failed after we claimed the job — release the claim so a
+      // later retry isn't silently skipped as "already done".
+      await prisma.recipe.update({ where: { id: recipe.id }, data: { illustrationPending: true } });
+      throw error;
+    }
   } catch (error) {
-    console.error('Error generating recipe illustration:', error);
+    logError('Error generating recipe illustration', error);
     res.status(500).json({ error: 'Failed to generate illustration' });
   }
 };
 
 // "Mes recettes" — the per-user saved list, joined through SavedRecipe.
+// Same ?search=/?category= narrowing as GET /api/db (server/lib/recipeSearch.ts).
 const getMine: RequestHandler = async (req, res) => {
   try {
+    const { search, category } = req.query as { search?: string; category?: string };
     const saved = await prisma.savedRecipe.findMany({
-      where: { userId: req.user!.id },
+      where: { userId: req.user!.id, recipe: buildRecipeSearchWhere({ search, category }) },
       include: { recipe: { include: { creator: true } } },
       orderBy: { savedAt: 'desc' },
     });
     res.json(saved.map((s) => parseRecipe(s.recipe)));
   } catch (error) {
-    console.error('Error fetching saved recipes:', error);
+    logError('Error fetching saved recipes', error);
     res.status(500).json({ error: 'Failed to fetch recipes' });
   }
 };
@@ -198,7 +224,7 @@ const saveExisting: RequestHandler<{ id: string }> = async (req, res) => {
     });
     res.json({ saved: true });
   } catch (error) {
-    console.error('Error saving recipe:', error);
+    logError('Error saving recipe', error);
     res.status(500).json({ error: 'Failed to save recipe' });
   }
 };

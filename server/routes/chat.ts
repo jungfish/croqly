@@ -1,6 +1,7 @@
 import { Router, RequestHandler } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { getOpenAI } from '../lib/openaiClient.js';
+import { logError } from '../lib/logger.js';
 import { embed } from '../lib/embeddings.js';
 import { isAnonymousLimitExceeded, recordAnonymousUsage } from '../lib/rateLimit.js';
 
@@ -104,7 +105,7 @@ const recommend: RequestHandler = async (req, res) => {
 
     res.json({ reply, recipes: ranked.map(parseRecipe) });
   } catch (error) {
-    console.error('Error in chat recommendation:', error);
+    logError('Error in chat recommendation', error);
     res.status(500).json({ error: 'Failed to get recipe recommendation' });
   }
 };

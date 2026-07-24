@@ -1,14 +1,19 @@
 import { Router, RequestHandler } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { buildEmbeddingInput, embed, storeRecipeEmbedding } from '../lib/embeddings.js';
+import { buildRecipeSearchWhere } from '../lib/recipeSearch.js';
+import { logError } from '../lib/logger.js';
 
 const router = Router();
 
-// Get all recipes
-const getAllRecipes: RequestHandler = async (_req, res) => {
-
+// Get all recipes — optionally narrowed by ?search= and/or ?category=
+// (see server/lib/recipeSearch.ts), backing /decouvrir's search box and
+// category tabs server-side instead of the old full-fetch-then-filter.
+const getAllRecipes: RequestHandler = async (req, res) => {
   try {
+    const { search, category } = req.query as { search?: string; category?: string };
     const recipes = await prisma.recipe.findMany({
+      where: buildRecipeSearchWhere({ search, category }),
       orderBy: { createdAt: 'desc' },
       include: { creator: true },
     });
@@ -20,7 +25,7 @@ const getAllRecipes: RequestHandler = async (_req, res) => {
     }));
     res.json(cleanRecipes);
   } catch (error) {
-    console.error('Database error:', error);
+    logError('Database error', error);
     res.status(500).json({ error: 'Failed to fetch recipes' });
   }
 };
@@ -62,7 +67,7 @@ const getRecipeById: RequestHandler<{ id: string }> = async (req, res) => {
 
     res.json(cleanRecipe);
   } catch (error) {
-    console.error('Error fetching recipe:', error);
+    logError('Error fetching recipe', error);
     res.status(500).json({ error: 'Failed to fetch recipe' });
   }
 };
@@ -124,12 +129,12 @@ const createOrUpdateRecipe: RequestHandler = async (req, res) => {
       });
       await storeRecipeEmbedding(savedRecipe.id, await embed(input));
     } catch (error) {
-      console.error('Error embedding recipe:', error);
+      logError('Error embedding recipe', error);
     }
 
     res.json(savedRecipe);
   } catch (error) {
-    console.error('Error saving recipe:', error);
+    logError('Error saving recipe', error);
     res.status(500).json({ error: 'Failed to save recipe' });
   }
 };
@@ -143,7 +148,7 @@ router.put('/:id', async (req, res) => {
     });
     res.json(updatedRecipe);
   } catch (error) {
-    console.error('Error updating recipe:', error);
+    logError('Error updating recipe', error);
     res.status(500).json({ error: 'Failed to update recipe' });
   }
 });
