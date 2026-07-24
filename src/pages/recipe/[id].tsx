@@ -328,7 +328,7 @@ const RecipePage = () => {
                   // container. At max-w-xs (320px minus this padding), the
                   // widget was wider than its box and overflow: hidden clipped
                   // the right edge instead of just the bottom.
-                  <div className="instagram-embed-crop relative w-full max-w-sm mx-auto bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
+                  <div className="instagram-embed-crop relative w-full max-w-sm mx-auto bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 pb-6 mb-4">
                     <InstagramEmbed url={recipe.url} />
                     <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent rounded-b-xl pointer-events-none" />
                   </div>
