@@ -10,11 +10,13 @@ import {
   toggleShoppingListItem,
   deleteShoppingListItem,
   clearCheckedItems,
+  clearAllItems,
   type ShoppingListItem,
 } from '@/services/shoppingListService';
 import { useAuth } from '@/hooks/use-auth';
 import { getFirstName } from '@/lib/getFirstName';
 import { emojiForIngredient } from '@/lib/ingredientEmoji';
+import { iconForCategory, sortByCategory } from '@/lib/shoppingListCategories';
 
 const ShoppingListPage = () => {
   const { user } = useAuth();
@@ -75,7 +77,18 @@ const ShoppingListPage = () => {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!window.confirm('Supprimer toute la liste de courses ?')) return;
+    try {
+      await clearAllItems();
+      queryClient.setQueryData<ShoppingListItem[]>(['shopping-list'], []);
+    } catch {
+      toast.error('Impossible de vider la liste de courses.');
+    }
+  };
+
   const hasChecked = items.some((item) => item.checked);
+  const groupedItems = sortByCategory(items);
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,10 +103,15 @@ const ShoppingListPage = () => {
           {firstName ? `${firstName}, voici` : 'Voici'} tout ce qu'il te faut pour tes prochaines recettes !
         </p>
 
-        {hasChecked && (
-          <div className="mb-4 flex justify-end">
-            <Button variant="outline" size="sm" onClick={handleClearChecked}>
-              Vider les articles cochés
+        {items.length > 0 && (
+          <div className="mb-4 flex justify-end gap-2">
+            {hasChecked && (
+              <Button variant="outline" size="sm" onClick={handleClearChecked}>
+                Vider les articles cochés
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={handleClearAll}>
+              Tout supprimer
             </Button>
           </div>
         )}
@@ -110,34 +128,44 @@ const ShoppingListPage = () => {
             </Link>
           </div>
         ) : (
-          <ul className="space-y-2">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-3 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={item.checked}
-                  onChange={() => handleToggle(item)}
-                  className="w-5 h-5 rounded border-input accent-primary shrink-0"
-                  aria-label={`Cocher ${item.label}`}
-                />
-                <span className={`flex-1 flex items-center gap-2 ${item.checked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                  <span aria-hidden="true">{emojiForIngredient(item.name)}</span>
-                  {item.label}
-                </span>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  disabled={pendingIds.has(item.id)}
-                  aria-label={`Supprimer ${item.label}`}
-                  className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </li>
+          <div className="space-y-6">
+            {groupedItems.map(([category, categoryItems]) => (
+              <div key={category}>
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                  <span aria-hidden="true">{iconForCategory(category)}</span>
+                  {category}
+                </h2>
+                <ul className="space-y-2">
+                  {categoryItems.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={item.checked}
+                        onChange={() => handleToggle(item)}
+                        className="w-5 h-5 rounded border-input accent-primary shrink-0"
+                        aria-label={`Cocher ${item.label}`}
+                      />
+                      <span className={`flex-1 flex items-center gap-2 ${item.checked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                        <span aria-hidden="true">{emojiForIngredient(item.name)}</span>
+                        {item.label}
+                      </span>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        disabled={pendingIds.has(item.id)}
+                        aria-label={`Supprimer ${item.label}`}
+                        className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>

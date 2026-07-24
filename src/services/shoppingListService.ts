@@ -6,6 +6,7 @@ export interface ShoppingListItem {
   unit: string;
   quantity: number | null;
   label: string;
+  category: string;
   checked: boolean;
 }
 
@@ -50,4 +51,9 @@ export async function deleteShoppingListItem(id: string): Promise<void> {
 export async function clearCheckedItems(): Promise<void> {
   const response = await authFetch('/api/shopping-list/checked', { method: 'DELETE' });
   if (!response.ok) throw new Error('Failed to clear checked items');
+}
+
+export async function clearAllItems(): Promise<void> {
+  const response = await authFetch('/api/shopping-list', { method: 'DELETE' });
+  if (!response.ok) throw new Error('Failed to clear shopping list');
 }

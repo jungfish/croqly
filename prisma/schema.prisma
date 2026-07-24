@@ -115,6 +115,10 @@ model ShoppingListItem {
   unit            String
   quantity        Float?
   label           String
+  // Supermarket aisle (see server/lib/ingredientCategory.ts), derived from
+  // name at merge time and stored so the list can group/order by it without
+  // recomputing on every read.
+  category        String   @default("Autre")
   checked         Boolean  @default(false)
   sourceRecipeIds String[]
   createdAt       DateTime @default(now())

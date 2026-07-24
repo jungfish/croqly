@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/supabaseAuth.js';
 import { parseIngredientLine, canonicalizeName } from '../lib/ingredientParsing.js';
 import { toBaseUnit, formatLabel } from '../lib/unitConversion.js';
 import { isPantryStaple } from '../lib/pantryStaples.js';
+import { categorizeIngredient, IngredientCategory } from '../lib/ingredientCategory.js';
 
 const router = Router();
 
@@ -11,6 +12,7 @@ interface MergeLine {
   name: string;
   unit: string;
   quantity: number | null;
+  category: IngredientCategory;
   recipeId: string;
 }
 
@@ -25,7 +27,7 @@ function linesFromRecipe(recipeId: string, ingredients: string): MergeLine[] {
       const name = canonicalizeName(parsed.name);
       if (!name || isPantryStaple(name)) return null;
       const { quantity, unit } = toBaseUnit(parsed.quantity, parsed.unit);
-      return { name, unit, quantity, recipeId };
+      return { name, unit, quantity, category: categorizeIngredient(name), recipeId };
     })
     .filter((line): line is MergeLine => line !== null);
 }
@@ -51,6 +53,7 @@ async function mergeLines(userId: string, lines: MergeLine[]) {
           data: {
             quantity,
             label: formatLabel(line.name, quantity, line.unit),
+            category: line.category,
             sourceRecipeIds: Array.from(new Set([...existing.sourceRecipeIds, line.recipeId])),
           },
         });
@@ -62,6 +65,7 @@ async function mergeLines(userId: string, lines: MergeLine[]) {
             unit: line.unit,
             quantity: line.quantity,
             label: formatLabel(line.name, line.quantity, line.unit),
+            category: line.category,
             sourceRecipeIds: [line.recipeId],
           },
         });
@@ -164,12 +168,24 @@ const clearChecked: RequestHandler = async (req, res) => {
   }
 };
 
+const clearAll: RequestHandler = async (req, res) => {
+  try {
+    await prisma.shoppingListItem.deleteMany({ where: { userId: req.user!.id } });
+    res.json({ cleared: true });
+  } catch (error) {
+    console.error('Error clearing shopping list:', error);
+    res.status(500).json({ error: 'Failed to clear shopping list' });
+  }
+};
+
 router.get('/', requireAuth, getList);
 router.post('/from-recipe/:id', requireAuth, addFromRecipe);
 router.post('/from-recipes', requireAuth, addFromRecipes);
-// Registered before the '/:id' routes below — otherwise "checked" would be
-// captured as an :id param and this handler would never be reached.
+// Registered before the '/:id' routes below — otherwise "checked" (or no
+// segment at all, for the bare DELETE '/') would be captured as an :id param
+// and these handlers would never be reached.
 router.delete('/checked', requireAuth, clearChecked);
+router.delete('/', requireAuth, clearAll);
 router.patch('/:id', requireAuth, updateItem);
 router.delete('/:id', requireAuth, deleteItem);
 
