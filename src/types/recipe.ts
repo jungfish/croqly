@@ -1,6 +1,9 @@
+export type Platform = "instagram" | "tiktok";
+
 export type Creator = {
   id?: string;
-  instagramHandle: string;
+  platform: Platform;
+  handle: string;
   displayName?: string | null;
   avatarUrl?: string | null;
   bio?: string | null;
@@ -14,6 +17,9 @@ export type Recipe = {
   ingredients: string[];
   instructions: string[];
   illustration?: string;
+  // The platform this recipe was imported from — undefined for recipes with
+  // no captured source (e.g. the photo/OCR upload path).
+  platform?: Platform;
   url?: string;
   videoUrl?: string;
   servings: number;
@@ -24,10 +30,11 @@ export type Recipe = {
   updatedAt?: Date;
   // True while illustration generation is still running in the background.
   illustrationPending?: boolean;
-  // The Instagram account this recipe was scraped from — null for recipes
-  // with no captured source (e.g. the photo/OCR upload path).
+  // The Instagram/TikTok account this recipe was scraped from — null for
+  // recipes with no captured source (e.g. the photo/OCR upload path).
   creator?: {
-    instagramHandle: string;
+    platform: Platform;
+    handle: string;
     displayName?: string | null;
     avatarUrl?: string | null;
   } | null;

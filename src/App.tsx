@@ -38,7 +38,7 @@ const App = () => {
                     <Route path="/" element={<Index />} />
                     <Route path="/decouvrir" element={<DecouvrirPage />} />
                     <Route path="/recipe/:id" element={<RecipeView />} />
-                    <Route path="/createurs/:handle" element={<CreatorHub />} />
+                    <Route path="/createurs/:platform/:handle" element={<CreatorHub />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     {/* Protected: only "my recipes" needs an identity */}

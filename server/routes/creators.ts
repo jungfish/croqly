@@ -2,17 +2,27 @@ import crypto from 'crypto';
 import { Router, RequestHandler } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { instagramFetcher } from '../lib/instagramFetcher.js';
+import { tiktokFetcher } from '../lib/tiktokFetcher.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
 
 const router = Router();
 
-// Public hub data for /createurs/:handle — no auth, mirrors the shape
-// server/routes/db.ts already returns for a single recipe (parsed
+type PlatformParam = { platform: string; handle: string };
+
+function parsePlatform(raw: string): 'instagram' | 'tiktok' | null {
+  return raw === 'instagram' || raw === 'tiktok' ? raw : null;
+}
+
+// Public hub data for /createurs/:platform/:handle — no auth, mirrors the
+// shape server/routes/db.ts already returns for a single recipe (parsed
 // ingredients/instructions, minimal creator projection).
-const getCreatorByHandle: RequestHandler<{ handle: string }> = async (req, res) => {
+const getCreatorByHandle: RequestHandler<PlatformParam> = async (req, res) => {
   try {
+    const platform = parsePlatform(req.params.platform);
+    if (!platform) return res.status(400).json({ error: 'Unknown platform' });
+
     const creator = await prisma.creator.findUnique({
-      where: { instagramHandle: req.params.handle },
+      where: { platform_handle: { platform, handle: req.params.handle } },
       include: { recipes: { orderBy: { createdAt: 'desc' } } },
     });
 
@@ -26,7 +36,8 @@ const getCreatorByHandle: RequestHandler<{ handle: string }> = async (req, res) 
     res.json({
       creator: {
         id: creator.id,
-        instagramHandle: creator.instagramHandle,
+        platform: creator.platform,
+        handle: creator.handle,
         displayName: creator.displayName,
         avatarUrl: creator.avatarUrl,
         bio: creator.bio,
@@ -45,12 +56,15 @@ const getCreatorByHandle: RequestHandler<{ handle: string }> = async (req, res) 
 };
 
 // Step 1 of the claim flow: generates a short code the logged-in user must
-// post in their Instagram bio to prove ownership of the handle. Stored as
-// "pending" state, separate from claimed/claimedByUserId, so an abandoned
-// request never reads as claimed.
-const requestClaim: RequestHandler<{ handle: string }> = async (req, res) => {
+// post in their Instagram/TikTok bio to prove ownership of the handle.
+// Stored as "pending" state, separate from claimed/claimedByUserId, so an
+// abandoned request never reads as claimed.
+const requestClaim: RequestHandler<PlatformParam> = async (req, res) => {
   try {
-    const creator = await prisma.creator.findUnique({ where: { instagramHandle: req.params.handle } });
+    const platform = parsePlatform(req.params.platform);
+    if (!platform) return res.status(400).json({ error: 'Unknown platform' });
+
+    const creator = await prisma.creator.findUnique({ where: { platform_handle: { platform, handle: req.params.handle } } });
     if (!creator) {
       return res.status(404).json({ error: 'Creator not found' });
     }
@@ -75,12 +89,15 @@ const requestClaim: RequestHandler<{ handle: string }> = async (req, res) => {
   }
 };
 
-// Step 2: re-fetches the live Instagram bio and checks the pending code is
-// present — if it matches (and the requester is the same user who asked for
-// the code), the claim becomes confirmed.
-const verifyClaim: RequestHandler<{ handle: string }> = async (req, res) => {
+// Step 2: re-fetches the live Instagram/TikTok bio and checks the pending
+// code is present — if it matches (and the requester is the same user who
+// asked for the code), the claim becomes confirmed.
+const verifyClaim: RequestHandler<PlatformParam> = async (req, res) => {
   try {
-    const creator = await prisma.creator.findUnique({ where: { instagramHandle: req.params.handle } });
+    const platform = parsePlatform(req.params.platform);
+    if (!platform) return res.status(400).json({ error: 'Unknown platform' });
+
+    const creator = await prisma.creator.findUnique({ where: { platform_handle: { platform, handle: req.params.handle } } });
     if (!creator) {
       return res.status(404).json({ error: 'Creator not found' });
     }
@@ -88,9 +105,10 @@ const verifyClaim: RequestHandler<{ handle: string }> = async (req, res) => {
       return res.status(400).json({ error: 'No pending claim request for this user' });
     }
 
-    const profile = await instagramFetcher.getProfileByHandle(creator.instagramHandle);
+    const fetcher = platform === 'instagram' ? instagramFetcher : tiktokFetcher;
+    const profile = await fetcher.getProfileByHandle(creator.handle);
     if (!profile.biography?.includes(creator.claimVerificationCode)) {
-      return res.status(400).json({ error: 'Verification code not found in the Instagram bio yet' });
+      return res.status(400).json({ error: `Verification code not found in the ${platform} bio yet` });
     }
 
     await prisma.creator.update({
@@ -111,8 +129,8 @@ const verifyClaim: RequestHandler<{ handle: string }> = async (req, res) => {
   }
 };
 
-router.get('/:handle', getCreatorByHandle);
-router.post('/:handle/claim/request', requireAuth, requestClaim);
-router.post('/:handle/claim/verify', requireAuth, verifyClaim);
+router.get('/:platform/:handle', getCreatorByHandle);
+router.post('/:platform/:handle/claim/request', requireAuth, requestClaim);
+router.post('/:platform/:handle/claim/verify', requireAuth, verifyClaim);
 
 export default router;

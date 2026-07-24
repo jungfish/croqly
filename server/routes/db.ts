@@ -48,7 +48,7 @@ const getRecipeById: RequestHandler<{ id: string }> = async (req, res) => {
       ingredients: recipe.ingredients ? JSON.parse(recipe.ingredients) : [],
       instructions: recipe.instructions ? JSON.parse(recipe.instructions) : [],
       creator: creator
-        ? { instagramHandle: creator.instagramHandle, displayName: creator.displayName, avatarUrl: creator.avatarUrl }
+        ? { platform: creator.platform, handle: creator.handle, displayName: creator.displayName, avatarUrl: creator.avatarUrl }
         : null,
     };
 

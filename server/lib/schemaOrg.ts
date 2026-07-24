@@ -1,7 +1,10 @@
 import { toIsoDuration } from './isoDuration.js';
 
+type Platform = 'instagram' | 'tiktok';
+
 type CreatorLike = {
-  instagramHandle: string;
+  platform: Platform;
+  handle: string;
   displayName?: string | null;
   avatarUrl?: string | null;
 } | null | undefined;
@@ -19,19 +22,25 @@ type RecipeLike = {
   creator?: CreatorLike;
 };
 
-function creatorHubUrl(siteUrl: string, handle: string) {
-  return `${siteUrl}/createurs/${encodeURIComponent(handle)}`;
+function creatorHubUrl(siteUrl: string, platform: Platform, handle: string) {
+  return `${siteUrl}/createurs/${platform}/${encodeURIComponent(handle)}`;
+}
+
+function creatorProfileUrl(platform: Platform, handle: string) {
+  return platform === 'instagram'
+    ? `https://www.instagram.com/${handle}/`
+    : `https://www.tiktok.com/@${handle}`;
 }
 
 // Never invent an author — only attach one when we actually captured a
-// source Instagram account for this recipe (see server/routes/recipes.ts).
+// source Instagram/TikTok account for this recipe (see server/routes/recipes.ts).
 function buildAuthor(siteUrl: string, creator: CreatorLike) {
   if (!creator) return undefined;
   return {
     '@type': 'Person',
-    name: creator.displayName || `@${creator.instagramHandle}`,
-    url: creatorHubUrl(siteUrl, creator.instagramHandle),
-    sameAs: [`https://www.instagram.com/${creator.instagramHandle}/`],
+    name: creator.displayName || `@${creator.handle}`,
+    url: creatorHubUrl(siteUrl, creator.platform, creator.handle),
+    sameAs: [creatorProfileUrl(creator.platform, creator.handle)],
   };
 }
 
@@ -64,8 +73,8 @@ export function buildRecipeJsonLd(siteUrl: string, recipeUrl: string, recipe: Re
     breadcrumbItems.push({
       '@type': 'ListItem',
       position: 2,
-      name: recipe.creator.displayName || `@${recipe.creator.instagramHandle}`,
-      item: creatorHubUrl(siteUrl, recipe.creator.instagramHandle),
+      name: recipe.creator.displayName || `@${recipe.creator.handle}`,
+      item: creatorHubUrl(siteUrl, recipe.creator.platform, recipe.creator.handle),
     });
   }
   breadcrumbItems.push({ '@type': 'ListItem', position: breadcrumbItems.length + 1, name: recipe.title, item: recipeUrl });
@@ -82,17 +91,17 @@ export function buildRecipeJsonLd(siteUrl: string, recipeUrl: string, recipe: Re
 export function buildCreatorHubJsonLd(
   siteUrl: string,
   hubUrl: string,
-  creator: { instagramHandle: string; displayName?: string | null; avatarUrl?: string | null },
+  creator: { platform: Platform; handle: string; displayName?: string | null; avatarUrl?: string | null },
   recipes: Array<{ id: string; title: string }>
 ) {
-  const displayName = creator.displayName || `@${creator.instagramHandle}`;
+  const displayName = creator.displayName || `@${creator.handle}`;
 
   const personJsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Person',
     name: displayName,
     url: hubUrl,
-    sameAs: [`https://www.instagram.com/${creator.instagramHandle}/`],
+    sameAs: [creatorProfileUrl(creator.platform, creator.handle)],
   };
   if (creator.avatarUrl) personJsonLd.image = creator.avatarUrl;
 

@@ -9,10 +9,15 @@ export interface TiktokMedia {
   ownerProfilePicUrl?: string;
 }
 
+export interface TiktokProfile {
+  biography?: string;
+}
+
 // Kept as an interface so the vendor can be swapped, same reasoning as
 // InstagramFetcher (see instagramFetcher.ts).
 export interface TiktokFetcher {
   getMediaByUrl(url: string): Promise<TiktokMedia>;
+  getProfileByHandle(handle: string): Promise<TiktokProfile>;
 }
 
 class ApifyTiktokFetcher implements TiktokFetcher {
@@ -58,6 +63,33 @@ class ApifyTiktokFetcher implements TiktokFetcher {
       ownerFullName: item?.authorMeta?.nickName,
       ownerProfilePicUrl: item?.authorMeta?.avatar,
     };
+  }
+
+  // Used by the creator claim flow to check for a verification code posted
+  // in the bio — a profile-level actor (clockworks~tiktok-profile-scraper),
+  // not the video-level one used by getMediaByUrl, since we only have a
+  // handle here, not a post URL.
+  async getProfileByHandle(handle: string): Promise<TiktokProfile> {
+    const token = process.env.APIFY_API_TOKEN;
+    if (!token) {
+      throw new Error('APIFY_API_TOKEN is not set — add it to .env to fetch TikTok content.');
+    }
+
+    const response = await fetch(
+      `https://api.apify.com/v2/acts/clockworks~tiktok-profile-scraper/run-sync-get-dataset-items?token=${token}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profiles: [handle], resultsPerPage: 1 }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Apify request failed: ${response.status} ${await response.text()}`);
+    }
+
+    const items = (await response.json()) as Array<{ authorMeta?: { signature?: string } }>;
+    return { biography: items[0]?.authorMeta?.signature };
   }
 }
 

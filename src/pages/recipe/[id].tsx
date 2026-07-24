@@ -2,9 +2,10 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Recipe, Creator } from '@/types/recipe';
-import { UtensilsCrossed, ListOrdered, Clock, Instagram, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart } from 'lucide-react';
+import { UtensilsCrossed, ListOrdered, Clock, Instagram, Music2, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import ParallaxHero from '@/components/ParallaxHero';
+import InstagramEmbed from '@/components/InstagramEmbed';
 import RecipePreview from '@/components/RecipePreview';
 import { Button } from '@/components/ui/button';
 import ShareButton from '@/components/ShareButton';
@@ -58,15 +59,16 @@ const RecipePage = () => {
     .filter((r) => r.id !== recipe?.id && r.category === recipe?.category)
     .slice(0, 4);
 
-  const creatorHandle = recipe?.creator?.instagramHandle;
+  const creatorPlatform = recipe?.creator?.platform;
+  const creatorHandle = recipe?.creator?.handle;
   const { data: creatorHub } = useQuery<{ creator: Creator; recipes: Recipe[] }>({
-    queryKey: ['creator', creatorHandle],
+    queryKey: ['creator', creatorPlatform, creatorHandle],
     queryFn: async () => {
-      const res = await fetch(`/api/creators/${creatorHandle}`);
+      const res = await fetch(`/api/creators/${creatorPlatform}/${creatorHandle}`);
       if (!res.ok) throw new Error('Failed to fetch creator');
       return res.json();
     },
-    enabled: Boolean(creatorHandle),
+    enabled: Boolean(creatorPlatform && creatorHandle),
   });
   const creatorRecipes = (creatorHub?.recipes ?? []).filter((r) => r.id !== recipe?.id).slice(0, 4);
 
@@ -179,22 +181,28 @@ const RecipePage = () => {
     );
   }
 
+  // Falls back to recipe.platform (always set for an imported recipe) since
+  // recipe.creator can be null even for a valid Instagram/TikTok recipe —
+  // e.g. when the scraper didn't return an owner username.
+  const sourcePlatform = recipe.creator?.platform ?? recipe.platform;
+  const SourceIcon = sourcePlatform === 'tiktok' ? Music2 : Instagram;
+
   const creatorAndReelLinks = (recipe.creator || recipe.url) && (
     <div className="mb-4 flex flex-wrap items-center gap-2">
       {recipe.creator && (
         <Link
-          to={`/createurs/${recipe.creator.instagramHandle}`}
+          to={`/createurs/${recipe.creator.platform}/${recipe.creator.handle}`}
           className="flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg hover:bg-card/90 transition-colors"
         >
           {recipe.creator.avatarUrl && (
             <img
               src={recipe.creator.avatarUrl}
-              alt={recipe.creator.displayName || recipe.creator.instagramHandle}
+              alt={recipe.creator.displayName || recipe.creator.handle}
               className="w-8 h-8 rounded-full object-cover"
             />
           )}
           <span className="text-sm text-foreground">
-            Recette de @{recipe.creator.instagramHandle}
+            Recette de @{recipe.creator.handle}
           </span>
         </Link>
       )}
@@ -205,8 +213,10 @@ const RecipePage = () => {
           rel="noopener noreferrer"
           className="flex items-center gap-2 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg text-foreground hover:bg-card/90 transition-colors"
         >
-          <Instagram className="w-5 h-5" />
-          <span className="text-sm">Revoir le reel original</span>
+          <SourceIcon className="w-5 h-5" />
+          <span className="text-sm">
+            {sourcePlatform === 'tiktok' ? 'Revoir la vidéo TikTok originale' : 'Revoir le reel original'}
+          </span>
         </a>
       )}
     </div>
@@ -290,14 +300,22 @@ const RecipePage = () => {
           {recipe.videoUrl && (
             <div className="order-first lg:order-last lg:col-span-1">
               <div className="lg:sticky lg:top-24">
-                <div className="aspect-[9/16] w-full max-w-xs mx-auto max-h-[70vh] bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
-                  <video
-                    controls
-                    className="w-full h-full rounded-lg"
-                    src={recipe.videoUrl}
-                    playsInline
-                  />
-                </div>
+                {sourcePlatform === 'instagram' && recipe.url ? (
+                  // Instagram's official embed widget — see InstagramEmbed for
+                  // why this replaces playing our own downloaded copy of the Reel.
+                  <div className="w-full max-w-xs mx-auto mb-4">
+                    <InstagramEmbed url={recipe.url} />
+                  </div>
+                ) : (
+                  <div className="aspect-[9/16] w-full max-w-xs mx-auto max-h-[70vh] bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
+                    <video
+                      controls
+                      className="w-full h-full rounded-lg"
+                      src={recipe.videoUrl}
+                      playsInline
+                    />
+                  </div>
+                )}
                 <div className="max-w-xs mx-auto">{creatorAndReelLinks}</div>
               </div>
             </div>
@@ -406,12 +424,12 @@ const RecipePage = () => {
             Cette recette de {recipe.category.toLowerCase()}
             {recipe.creator && (
               <>
-                {' '}vient du compte Instagram{' '}
+                {' '}vient du compte {recipe.creator.platform === 'tiktok' ? 'TikTok' : 'Instagram'}{' '}
                 <Link
-                  to={`/createurs/${recipe.creator.instagramHandle}`}
+                  to={`/createurs/${recipe.creator.platform}/${recipe.creator.handle}`}
                   className="text-primary underline underline-offset-4"
                 >
-                  @{recipe.creator.instagramHandle}
+                  @{recipe.creator.handle}
                 </Link>
               </>
             )}
@@ -443,10 +461,10 @@ const RecipePage = () => {
           <div className="mt-8">
             <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="text-xl font-display font-semibold text-foreground">
-                D'autres recettes de @{recipe.creator.instagramHandle}
+                D'autres recettes de @{recipe.creator.handle}
               </h2>
               <Link
-                to={`/createurs/${recipe.creator.instagramHandle}`}
+                to={`/createurs/${recipe.creator.platform}/${recipe.creator.handle}`}
                 className="text-sm text-primary hover:underline underline-offset-4 shrink-0"
               >
                 Voir tout

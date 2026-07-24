@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Instagram } from 'lucide-react';
+import { Instagram, Music2 } from 'lucide-react';
 import type { Recipe, Creator } from '@/types/recipe';
 import RecipePreview from '@/components/RecipePreview';
 import ShareButton from '@/components/ShareButton';
@@ -13,10 +13,14 @@ interface CreatorHubResponse {
   recipes: Recipe[];
 }
 
+const platformLabel = (platform: Creator['platform']) => (platform === 'tiktok' ? 'TikTok' : 'Instagram');
+const platformProfileUrl = (creator: Creator) =>
+  creator.platform === 'tiktok' ? `https://www.tiktok.com/@${creator.handle}` : `https://www.instagram.com/${creator.handle}/`;
+
 // Handles the three states of the claim flow: not logged in, logged in with
 // no pending request yet, and logged in with a code waiting to be posted in
-// the Instagram bio. The mailto stays as a low-friction fallback for anyone
-// who can't easily edit their bio.
+// the bio. The mailto stays as a low-friction fallback for anyone who can't
+// easily edit their bio.
 const ClaimBanner = ({ creator }: { creator: Creator }) => {
   const { user } = useAuth();
   const [code, setCode] = useState<string | null>(null);
@@ -24,7 +28,7 @@ const ClaimBanner = ({ creator }: { creator: Creator }) => {
 
   const requestMutation = useMutation({
     mutationFn: async () => {
-      const response = await authFetch(`/api/creators/${creator.instagramHandle}/claim/request`, { method: 'POST' });
+      const response = await authFetch(`/api/creators/${creator.platform}/${creator.handle}/claim/request`, { method: 'POST' });
       if (!response.ok) throw new Error((await response.json().catch(() => ({})))?.error ?? 'Échec de la demande');
       return response.json() as Promise<{ code: string }>;
     },
@@ -37,7 +41,7 @@ const ClaimBanner = ({ creator }: { creator: Creator }) => {
 
   const verifyMutation = useMutation({
     mutationFn: async () => {
-      const response = await authFetch(`/api/creators/${creator.instagramHandle}/claim/verify`, { method: 'POST' });
+      const response = await authFetch(`/api/creators/${creator.platform}/${creator.handle}/claim/verify`, { method: 'POST' });
       if (!response.ok) throw new Error((await response.json().catch(() => ({})))?.error ?? 'Échec de la vérification');
       return response.json() as Promise<{ claimed: boolean }>;
     },
@@ -63,7 +67,7 @@ const ClaimBanner = ({ creator }: { creator: Creator }) => {
   return (
     <div className="mb-8 p-4 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg text-center">
       <p className="text-foreground">
-        C'est toi, {creator.displayName || `@${creator.instagramHandle}`} ? 👋 Cette page est faite pour toi — viens la faire tienne.
+        C'est toi, {creator.displayName || `@${creator.handle}`} ? 👋 Cette page est faite pour toi — viens la faire tienne.
       </p>
 
       {!user && (
@@ -86,7 +90,7 @@ const ClaimBanner = ({ creator }: { creator: Creator }) => {
       {user && code && (
         <div className="mt-3 flex flex-col items-center gap-2">
           <p className="text-sm text-muted-foreground">
-            Colle ce code dans ta bio Instagram, puis clique sur "Vérifier" :
+            Colle ce code dans ta bio {platformLabel(creator.platform)}, puis clique sur "Vérifier" :
           </p>
           <code className="px-3 py-1 rounded-md bg-muted text-foreground font-mono text-sm">{code}</code>
           <button
@@ -103,7 +107,7 @@ const ClaimBanner = ({ creator }: { creator: Creator }) => {
       {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
 
       <a
-        href={`mailto:hello@croqly.app?subject=${encodeURIComponent(`Je gère ma page — @${creator.instagramHandle}`)}`}
+        href={`mailto:hello@croqly.app?subject=${encodeURIComponent(`Je gère ma page — @${creator.handle}`)}`}
         className="block mt-3 text-xs text-muted-foreground underline underline-offset-4"
       >
         Un souci ? Contacte-nous directement
@@ -113,16 +117,16 @@ const ClaimBanner = ({ creator }: { creator: Creator }) => {
 };
 
 const CreatorHubPage = () => {
-  const { handle } = useParams<{ handle: string }>();
+  const { platform, handle } = useParams<{ platform: string; handle: string }>();
 
   const { data, isLoading, isError } = useQuery<CreatorHubResponse>({
-    queryKey: ['creator', handle],
+    queryKey: ['creator', platform, handle],
     queryFn: async () => {
-      const response = await fetch(`/api/creators/${handle}`);
+      const response = await fetch(`/api/creators/${platform}/${handle}`);
       if (!response.ok) throw new Error('Failed to fetch creator');
       return response.json();
     },
-    enabled: Boolean(handle),
+    enabled: Boolean(platform && handle),
   });
 
   if (isLoading) {
@@ -145,7 +149,8 @@ const CreatorHubPage = () => {
   }
 
   const { creator, recipes } = data;
-  const displayName = creator.displayName || `@${creator.instagramHandle}`;
+  const displayName = creator.displayName || `@${creator.handle}`;
+  const PlatformIcon = creator.platform === 'tiktok' ? Music2 : Instagram;
 
   return (
     <div className="min-h-screen bg-background">
@@ -166,12 +171,12 @@ const CreatorHubPage = () => {
             <p className="text-muted-foreground">
               On a croqué {recipes.length} recette{recipes.length > 1 ? 's' : ''} du compte{' '}
               <a
-                href={`https://www.instagram.com/${creator.instagramHandle}/`}
+                href={platformProfileUrl(creator)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-foreground hover:underline"
               >
-                <Instagram className="w-4 h-4" />@{creator.instagramHandle}
+                <PlatformIcon className="w-4 h-4" />@{creator.handle}
               </a>
               , prêtes à cuisiner.
             </p>

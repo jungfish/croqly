@@ -75,7 +75,7 @@ app.get('/recipe/:id', async (req, res, next) => {
     const siteUrl = `${req.protocol}://${req.get('host')}`;
     const recipeUrl = `${siteUrl}/recipe/${recipe.id}`;
     const creator = recipe.creator
-      ? { instagramHandle: recipe.creator.instagramHandle, displayName: recipe.creator.displayName, avatarUrl: recipe.creator.avatarUrl }
+      ? { platform: recipe.creator.platform, handle: recipe.creator.handle, displayName: recipe.creator.displayName, avatarUrl: recipe.creator.avatarUrl }
       : null;
 
     const jsonLd = buildRecipeJsonLd(siteUrl, recipeUrl, {
@@ -92,7 +92,7 @@ app.get('/recipe/:id', async (req, res, next) => {
     });
 
     const description = creator
-      ? `Recette "${recipe.title}" de @${creator.instagramHandle}, croquée depuis Instagram et prête à cuisiner.`
+      ? `Recette "${recipe.title}" de @${creator.handle}, croquée depuis ${creator.platform === 'instagram' ? 'Instagram' : 'TikTok'} et prête à cuisiner.`
       : `Recette "${recipe.title}", prête à cuisiner.`;
 
     const html = renderSeoHtml({
@@ -110,20 +110,23 @@ app.get('/recipe/:id', async (req, res, next) => {
   }
 });
 
-app.get('/createurs/:handle', async (req, res, next) => {
+app.get('/createurs/:platform/:handle', async (req, res, next) => {
   try {
+    const platform = req.params.platform === 'instagram' || req.params.platform === 'tiktok' ? req.params.platform : null;
+    if (!platform) return next();
+
     const creator = await prisma.creator.findUnique({
-      where: { instagramHandle: req.params.handle },
+      where: { platform_handle: { platform, handle: req.params.handle } },
       include: { recipes: { orderBy: { createdAt: 'desc' } } },
     });
     if (!creator) return next();
 
     const siteUrl = `${req.protocol}://${req.get('host')}`;
-    const hubUrl = `${siteUrl}/createurs/${encodeURIComponent(creator.instagramHandle)}`;
-    const displayName = creator.displayName || `@${creator.instagramHandle}`;
+    const hubUrl = `${siteUrl}/createurs/${creator.platform}/${encodeURIComponent(creator.handle)}`;
+    const displayName = creator.displayName || `@${creator.handle}`;
 
     const jsonLd = buildCreatorHubJsonLd(siteUrl, hubUrl, creator, creator.recipes);
-    const description = `On a croqué ${creator.recipes.length} recette${creator.recipes.length > 1 ? 's' : ''} du compte @${creator.instagramHandle}, prêtes à cuisiner.`;
+    const description = `On a croqué ${creator.recipes.length} recette${creator.recipes.length > 1 ? 's' : ''} du compte @${creator.handle}, prêtes à cuisiner.`;
 
     const html = renderSeoHtml({
       distDir,
@@ -148,7 +151,7 @@ app.get('/sitemap.xml', async (req, res) => {
     const siteUrl = `${req.protocol}://${req.get('host')}`;
     const [recipes, creators] = await Promise.all([
       prisma.recipe.findMany({ select: { id: true, updatedAt: true } }),
-      prisma.creator.findMany({ select: { instagramHandle: true, updatedAt: true } }),
+      prisma.creator.findMany({ select: { platform: true, handle: true, updatedAt: true } }),
     ]);
 
     const urls: Array<{ loc: string; lastmod?: Date }> = [
@@ -156,7 +159,7 @@ app.get('/sitemap.xml', async (req, res) => {
       { loc: `${siteUrl}/decouvrir` },
       ...recipes.map((recipe) => ({ loc: `${siteUrl}/recipe/${recipe.id}`, lastmod: recipe.updatedAt })),
       ...creators.map((creator) => ({
-        loc: `${siteUrl}/createurs/${encodeURIComponent(creator.instagramHandle)}`,
+        loc: `${siteUrl}/createurs/${creator.platform}/${encodeURIComponent(creator.handle)}`,
         lastmod: creator.updatedAt,
       })),
     ];

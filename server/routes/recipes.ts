@@ -11,7 +11,7 @@ import { requireAuth } from '../middleware/supabaseAuth.js';
 
 const router = Router();
 
-type CreatorRef = { instagramHandle: string; displayName: string | null; avatarUrl: string | null } | null;
+type CreatorRef = { platform: 'instagram' | 'tiktok'; handle: string; displayName: string | null; avatarUrl: string | null } | null;
 
 function parseRecipe<T extends { ingredients: string; instructions: string; creator?: CreatorRef }>(recipe: T) {
   const { creator, ...rest } = recipe;
@@ -20,7 +20,7 @@ function parseRecipe<T extends { ingredients: string; instructions: string; crea
     ingredients: JSON.parse(recipe.ingredients || '[]'),
     instructions: JSON.parse(recipe.instructions || '[]'),
     creator: creator
-      ? { instagramHandle: creator.instagramHandle, displayName: creator.displayName, avatarUrl: creator.avatarUrl }
+      ? { platform: creator.platform, handle: creator.handle, displayName: creator.displayName, avatarUrl: creator.avatarUrl }
       : null,
   };
 }
@@ -73,14 +73,12 @@ const fromUrl: RequestHandler = async (req, res) => {
       const transcription = await transcribeVideoFromUrl(media.videoUrl);
       const interpreted = await interpretRecipe(media.caption, transcription ?? '');
 
-      // Creator is an Instagram-specific concept (the model's only handle
-      // field is instagramHandle — see schema.prisma) — skip attribution
-      // entirely for TikTok rather than upserting a TikTok handle into it.
-      const creator = platform === 'instagram' && media.ownerUsername
+      const creator = media.ownerUsername
         ? await prisma.creator.upsert({
-            where: { instagramHandle: media.ownerUsername },
+            where: { platform_handle: { platform, handle: media.ownerUsername } },
             create: {
-              instagramHandle: media.ownerUsername,
+              platform,
+              handle: media.ownerUsername,
               displayName: media.ownerFullName,
               avatarUrl: media.ownerProfilePicUrl,
             },
@@ -101,6 +99,7 @@ const fromUrl: RequestHandler = async (req, res) => {
           instructions: JSON.stringify(interpreted.instructions),
           illustration: media.thumbnailUrl ?? null,
           illustrationPending: true,
+          platform,
           url: normalizedUrl,
           videoUrl: media.videoUrl,
           prepTime: interpreted.prepTime,
