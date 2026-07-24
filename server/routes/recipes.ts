@@ -158,7 +158,7 @@ const getMine: RequestHandler = async (req, res) => {
   try {
     const saved = await prisma.savedRecipe.findMany({
       where: { userId: req.user!.id },
-      include: { recipe: true },
+      include: { recipe: { include: { creator: true } } },
       orderBy: { savedAt: 'desc' },
     });
     res.json(saved.map((s) => parseRecipe(s.recipe)));
