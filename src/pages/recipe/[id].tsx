@@ -314,11 +314,18 @@ const RecipePage = () => {
                   // this page (the video box included) instead of dropping
                   // Instagram's default white embed straight onto the page.
                   // Cropped via instagram-embed-crop (see index.css) — only
-                  // the likes/comment row is hidden; the header and action
-                  // icons stay so this is still visibly a real Instagram
-                  // embed. Uncropped, the box was internally scrollable.
-                  <div className="instagram-embed-crop w-full max-w-xs mx-auto bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
+                  // the likes count / comment row is hidden; the header and
+                  // action icons stay so this is still visibly a real
+                  // Instagram embed. Uncropped, the box was internally
+                  // scrollable. The gradient overlay fades whatever sliver
+                  // is left uncropped into the card background rather than
+                  // ending on a hard, awkward-looking cut. Since the embed's
+                  // own header/footer already show the creator and link
+                  // back to the reel, creatorAndReelLinks below is skipped
+                  // here — it'd just repeat what's already on screen.
+                  <div className="instagram-embed-crop relative w-full max-w-xs mx-auto bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
                     <InstagramEmbed url={recipe.url} />
+                    <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent rounded-b-xl pointer-events-none" />
                   </div>
                 ) : (
                   <div className="aspect-[9/16] w-full max-w-xs mx-auto max-h-[70vh] bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
@@ -330,7 +337,9 @@ const RecipePage = () => {
                     />
                   </div>
                 )}
-                <div className="max-w-xs">{creatorAndReelLinks}</div>
+                {!(sourcePlatform === 'instagram' && recipe.url) && (
+                  <div className="max-w-xs">{creatorAndReelLinks}</div>
+                )}
               </div>
             </div>
           )}

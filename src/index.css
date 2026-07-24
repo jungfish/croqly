@@ -111,16 +111,19 @@
    The profile header and the "view on Instagram" / action-icon row stay
    visible — that's what shows this is a genuine Instagram embed, which
    matters for their embedding terms. Only the likes count and "add a
-   comment" row (the bottom-most slice) get cropped off. Margin-bottom
-   percentages resolve against the containing block's *width* (CSS spec),
-   so pulling the iframe up by a fixed percentage crops proportionally at
-   any embed size. Combined with overflow: hidden, the cropped slice is
-   clipped instead of pushing the box's height out (which is what made it
-   scrollable before). */
+   comment" row (the bottom-most slice) get cropped off, via a fixed pixel
+   margin — the wrapper is a fixed width (max-w-xs), so unlike a
+   percentage this can't drift into cropping more (or less) than intended
+   as that width changes. Kept deliberately conservative (crops less than
+   the full likes+comment height) so it can never eat into the action-icon
+   row above it; the gradient overlay in recipe/[id].tsx fades whatever
+   sliver is left uncropped into the card background. Combined with
+   overflow: hidden, the cropped slice is clipped instead of pushing the
+   box's height out (which is what made it scrollable before). */
 .instagram-embed-crop {
   overflow: hidden;
 }
 .instagram-embed-crop .instagram-media {
-  margin-bottom: -26% !important;
+  margin-bottom: -60px !important;
 }
 
