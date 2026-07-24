@@ -17,6 +17,9 @@ export type Recipe = {
   ingredients: string[];
   instructions: string[];
   illustration?: string;
+  // Smaller WebP variant for grid/card thumbnails — falls back to
+  // `illustration` for recipes generated before this field existed.
+  illustrationThumb?: string;
   // The platform this recipe was imported from — undefined for recipes with
   // no captured source (e.g. the photo/OCR upload path).
   platform?: Platform;

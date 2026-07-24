@@ -1,5 +1,5 @@
 import { getOpenAI } from './openaiClient.js';
-import { uploadIllustration } from './storage.js';
+import { uploadIllustration, IllustrationUrls } from './storage.js';
 
 // Cheapest capable tier — extracting a recipe from a short caption/
 // transcription is a pattern-extraction task, not a reasoning-heavy one.
@@ -77,7 +77,7 @@ export async function interpretRecipe(caption: string, transcription: string): P
 
 // Illustration generation only — gpt-image-2 is never used to read/interpret
 // images, only to generate them.
-export async function generateIllustration(title: string, ingredients: string[]): Promise<string> {
+export async function generateIllustration(title: string, ingredients: string[]): Promise<IllustrationUrls> {
   const prompt = `A bold, minimalist illustration of ${title}, in a warm and playful style inspired by modern recipe cards — clean shapes and confident brushstrokes rather than photorealistic detail. The main ingredients are the following: ${ingredients.slice(0, 8).join(', ')}. They are arranged appetizingly in a bowl or on a plate, with steam subtly rising. Color palette: a warm cream background (like parchment paper), with vivid, appetizing accents on the food itself — tomato red, fresh basil green, and egg-yolk yellow. Bright, even lighting, no harsh shadows. Clean and modern aesthetic. No text included. Composition should be wide and horizontal to fit as a banner image.`;
 
   const response = await getOpenAI().images.generate({

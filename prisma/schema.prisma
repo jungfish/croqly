@@ -25,7 +25,11 @@ model Recipe {
   category            String
   ingredients         String // Will store JSON string
   instructions        String // Will store JSON string
-  illustration        String?
+  illustration        String? // full-size WebP, used for the recipe hero
+  // Smaller WebP variant for grid/card thumbnails — avoids shipping the
+  // full-size hero image into a tiny card slot. Null for recipes created
+  // before this field existed or still on the raw source thumbnail.
+  illustrationThumb   String?
   // True while illustration generation is still running in the background
   // (see server/routes/recipes.ts) — persisted so a page reload or a
   // different route into this recipe still knows to retry/poll for it,

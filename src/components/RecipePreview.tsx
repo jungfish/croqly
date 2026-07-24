@@ -10,7 +10,12 @@ const categoryColors = {
   "Bébé": "bg-purple-100",
 } as const;
 
+const isUnspecifiedDuration = (value?: string) =>
+  !value || /^non[\s-]?(précisé|spécifié)e?$/i.test(value.trim());
+
 const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
+  const duration = [recipe.totalTime, recipe.prepTime].find((value) => !isUnspecifiedDuration(value));
+
   return (
     <Link
       to={`/recipe/${recipe.id}`}
@@ -19,8 +24,10 @@ const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
       <div className="aspect-[4/3] overflow-hidden">
         {recipe.illustration ? (
           <img
-            src={recipe.illustration}
+            src={recipe.illustrationThumb || recipe.illustration}
             alt={recipe.title}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
           />
         ) : (
@@ -37,13 +44,13 @@ const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
           devices with no way to see it (or the "Voir la recette" link it
           contained) before tapping. Hover still adds the fuller gradient. */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pt-8 pb-3 px-4 text-white transition-opacity group-hover:from-black/90">
-        <h3 className="text-base sm:text-lg font-semibold leading-snug line-clamp-2">{recipe.title}</h3>
-        {(recipe.totalTime || recipe.prepTime) && (
-          <div className="flex items-center gap-2 text-sm mt-1 text-white/90">
+        {duration && (
+          <div className="flex items-center gap-2 text-sm mb-1 text-white/90">
             <Clock className="w-4 h-4" />
-            <span>{recipe.totalTime || recipe.prepTime}</span>
+            <span>{duration}</span>
           </div>
         )}
+        <h3 className="text-base sm:text-lg font-semibold leading-snug line-clamp-2">{recipe.title}</h3>
       </div>
     </Link>
   );

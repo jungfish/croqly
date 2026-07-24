@@ -146,8 +146,10 @@ const RecipesPage = () => {
               <div className="h-48 overflow-hidden">
                 {recipe.illustration ? (
                   <img
-                    src={recipe.illustration}
+                    src={recipe.illustrationThumb || recipe.illustration}
                     alt={recipe.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (

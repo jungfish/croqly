@@ -86,10 +86,15 @@ const RecipePage = () => {
     if (!recipe?.id || !recipe.illustrationPending) return;
     let cancelled = false;
 
-    generateIllustrationForRecipe(recipe.id).then((illustration) => {
+    generateIllustrationForRecipe(recipe.id).then((result) => {
       if (cancelled) return;
       queryClient.setQueryData<Recipe>(['recipe', recipe.id], (current) =>
-        current && { ...current, illustration: illustration ?? current.illustration, illustrationPending: false }
+        current && {
+          ...current,
+          illustration: result?.illustration ?? current.illustration,
+          illustrationThumb: result?.illustrationThumb ?? current.illustrationThumb,
+          illustrationPending: false,
+        }
       );
     });
 
@@ -198,6 +203,8 @@ const RecipePage = () => {
             <img
               src={recipe.creator.avatarUrl}
               alt={recipe.creator.displayName || recipe.creator.handle}
+              loading="lazy"
+              decoding="async"
               className="w-8 h-8 rounded-full object-cover"
             />
           )}
@@ -303,7 +310,10 @@ const RecipePage = () => {
                 {sourcePlatform === 'instagram' && recipe.url ? (
                   // Instagram's official embed widget — see InstagramEmbed for
                   // why this replaces playing our own downloaded copy of the Reel.
-                  <div className="w-full max-w-xs mx-auto mb-4">
+                  // Framed to match the card treatment used everywhere else on
+                  // this page (the video box included) instead of dropping
+                  // Instagram's default white embed straight onto the page.
+                  <div className="w-full max-w-xs mx-auto max-h-[70vh] overflow-y-auto bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
                     <InstagramEmbed url={recipe.url} />
                   </div>
                 ) : (
@@ -316,7 +326,7 @@ const RecipePage = () => {
                     />
                   </div>
                 )}
-                <div className="max-w-xs mx-auto">{creatorAndReelLinks}</div>
+                <div className="max-w-xs">{creatorAndReelLinks}</div>
               </div>
             </div>
           )}

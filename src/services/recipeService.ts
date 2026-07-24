@@ -24,11 +24,13 @@ export async function processRecipeFromUrl(url: string): Promise<Recipe & { cach
 // from processRecipeFromUrl so the initial import doesn't have to wait on
 // the slowest AI step. Called after the user is already looking at the
 // recipe page, which shows a loader over the placeholder thumbnail meanwhile.
-export async function generateIllustrationForRecipe(recipeId: string): Promise<string | null> {
+export async function generateIllustrationForRecipe(
+  recipeId: string
+): Promise<{ illustration: string; illustrationThumb: string } | null> {
   const response = await authFetch(`/api/recipes/${recipeId}/illustration`, { method: 'POST' });
   if (!response.ok) return null;
-  const { illustration } = await response.json();
-  return illustration ?? null;
+  const { illustration, illustrationThumb } = await response.json();
+  return illustration ? { illustration, illustrationThumb } : null;
 }
 
 export async function processRecipeFromInstagram(

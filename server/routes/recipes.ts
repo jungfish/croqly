@@ -97,7 +97,10 @@ const fromUrl: RequestHandler = async (req, res) => {
           category: interpreted.category,
           ingredients: JSON.stringify(interpreted.ingredients),
           instructions: JSON.stringify(interpreted.instructions),
+          // Raw source thumbnail as a placeholder — not resized/converted,
+          // since it's replaced by the generated WebP variants within seconds.
           illustration: media.thumbnailUrl ?? null,
+          illustrationThumb: media.thumbnailUrl ?? null,
           illustrationPending: true,
           platform,
           url: normalizedUrl,
@@ -137,13 +140,13 @@ const generateRecipeIllustration: RequestHandler<{ id: string }> = async (req, r
     const recipe = await prisma.recipe.findUnique({ where: { id: req.params.id } });
     if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
 
-    const illustration = await generateIllustration(recipe.title, JSON.parse(recipe.ingredients || '[]'));
+    const { full, thumb } = await generateIllustration(recipe.title, JSON.parse(recipe.ingredients || '[]'));
     await prisma.recipe.update({
       where: { id: recipe.id },
-      data: { illustration, illustrationPending: false },
+      data: { illustration: full, illustrationThumb: thumb, illustrationPending: false },
     });
 
-    res.json({ illustration });
+    res.json({ illustration: full, illustrationThumb: thumb });
   } catch (error) {
     console.error('Error generating recipe illustration:', error);
     res.status(500).json({ error: 'Failed to generate illustration' });
