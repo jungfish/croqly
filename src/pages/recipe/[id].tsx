@@ -323,7 +323,12 @@ const RecipePage = () => {
                   // own header/footer already show the creator and link
                   // back to the reel, creatorAndReelLinks below is skipped
                   // here — it'd just repeat what's already on screen.
-                  <div className="instagram-embed-crop relative w-full max-w-xs mx-auto bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
+                  // max-w-sm, not max-w-xs: Instagram's embed.js enforces its
+                  // own 326px min-width on the widget regardless of the
+                  // container. At max-w-xs (320px minus this padding), the
+                  // widget was wider than its box and overflow: hidden clipped
+                  // the right edge instead of just the bottom.
+                  <div className="instagram-embed-crop relative w-full max-w-sm mx-auto bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
                     <InstagramEmbed url={recipe.url} />
                     <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent rounded-b-xl pointer-events-none" />
                   </div>
