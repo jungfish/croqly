@@ -6,6 +6,7 @@ import { instagramFetcher } from '../lib/instagramFetcher.js';
 import { tiktokFetcher } from '../lib/tiktokFetcher.js';
 import { transcribeVideoFromUrl } from '../lib/transcription.js';
 import { interpretRecipe, generateIllustration } from '../lib/aiInterpretation.js';
+import { buildEmbeddingInput, embed, storeRecipeEmbedding } from '../lib/embeddings.js';
 import { isAnonymousLimitExceeded, recordAnonymousUsage } from '../lib/rateLimit.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
 
@@ -113,6 +114,20 @@ const fromUrl: RequestHandler = async (req, res) => {
         },
         include: { creator: true },
       });
+
+      // Best-effort — a failed embed shouldn't fail recipe creation. Any
+      // recipe left without one is picked up later by scripts/backfillEmbeddings.ts.
+      try {
+        const input = buildEmbeddingInput({
+          title: interpreted.title,
+          category: interpreted.category,
+          ingredients: interpreted.ingredients,
+          instructions: interpreted.instructions,
+        });
+        await storeRecipeEmbedding(recipe.id, await embed(input));
+      } catch (error) {
+        console.error('Error embedding recipe:', error);
+      }
 
       if (!req.user) await recordAnonymousUsage(req.ip ?? 'unknown');
     }

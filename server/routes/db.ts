@@ -1,5 +1,6 @@
 import { Router, RequestHandler } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { buildEmbeddingInput, embed, storeRecipeEmbedding } from '../lib/embeddings.js';
 
 const router = Router();
 
@@ -110,6 +111,20 @@ const createOrUpdateRecipe: RequestHandler = async (req, res) => {
       savedRecipe = await prisma.recipe.create({
         data: recipeData,
       });
+    }
+
+    // Best-effort — a failed embed shouldn't fail the save. Any recipe left
+    // without one is picked up later by scripts/backfillEmbeddings.ts.
+    try {
+      const input = buildEmbeddingInput({
+        title: recipeData.title,
+        category: recipeData.category,
+        ingredients: recipe.ingredients ?? [],
+        instructions: recipe.instructions ?? [],
+      });
+      await storeRecipeEmbedding(savedRecipe.id, await embed(input));
+    } catch (error) {
+      console.error('Error embedding recipe:', error);
     }
 
     res.json(savedRecipe);

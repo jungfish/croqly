@@ -10,6 +10,7 @@ import aiRoutes from './routes/ai.js';
 import recipesRoutes from './routes/recipes.js';
 import creatorsRoutes from './routes/creators.js';
 import shoppingListRoutes from './routes/shoppingList.js';
+import chatRoutes from './routes/chat.js';
 import { prisma } from './lib/prisma.js';
 import { renderSeoHtml } from './lib/renderSeoHtml.js';
 import { buildRecipeJsonLd, buildCreatorHubJsonLd } from './lib/schemaOrg.js';
@@ -47,6 +48,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/recipes', recipesRoutes);
 app.use('/api/creators', creatorsRoutes);
 app.use('/api/shopping-list', shoppingListRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/api/test', (_req, res) => {
   res.json({ message: 'API is working!' });

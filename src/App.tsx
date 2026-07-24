@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
 import DecouvrirPage from "@/pages/decouvrir";
+import ChatPage from "@/pages/chat";
 import RecipesList from "@/pages/recipes";
 import RecipeView from "@/pages/recipe/[id]";
 import ShoppingListPage from "@/pages/shopping-list";
@@ -37,6 +38,7 @@ const App = () => {
                     {/* Public: anyone can try the product and view/share a recipe without an account */}
                     <Route path="/" element={<Index />} />
                     <Route path="/decouvrir" element={<DecouvrirPage />} />
+                    <Route path="/assistant" element={<ChatPage />} />
                     <Route path="/recipe/:id" element={<RecipeView />} />
                     <Route path="/createurs/:platform/:handle" element={<CreatorHub />} />
                     <Route path="/login" element={<Login />} />

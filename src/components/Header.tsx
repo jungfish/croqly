@@ -78,6 +78,9 @@ const Header = () => {
       <Link to="/decouvrir" className={linkClass}>
         Découvrir
       </Link>
+      <Link to="/assistant" className={linkClass}>
+        Assistant
+      </Link>
       <Link to="/recipes" className={linkClass}>
         Mes Recettes
       </Link>
@@ -157,6 +160,11 @@ const Header = () => {
             <SheetClose asChild>
               <Link to="/decouvrir" className="text-lg text-foreground/80 hover:text-foreground">
                 Découvrir
+              </Link>
+            </SheetClose>
+            <SheetClose asChild>
+              <Link to="/assistant" className="text-lg text-foreground/80 hover:text-foreground">
+                Assistant
               </Link>
             </SheetClose>
             <SheetClose asChild>

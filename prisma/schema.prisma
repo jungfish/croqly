@@ -2,13 +2,15 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL") // pooled (port 6543) — used at runtime
-  directUrl = env("DIRECT_URL") // direct (port 5432) — used by `prisma migrate` only
+  provider   = "postgresql"
+  url        = env("DATABASE_URL") // pooled (port 6543) — used at runtime
+  directUrl  = env("DIRECT_URL") // direct (port 5432) — used by `prisma migrate` only
+  extensions = [vector]
 }
 
 enum Platform {
@@ -48,6 +50,12 @@ model Recipe {
   savedRecipes        SavedRecipe[]
   creatorId           String?
   creator             Creator?      @relation(fields: [creatorId], references: [id])
+  // Semantic-search vector over title+category+ingredients+instructions
+  // (OpenAI text-embedding-3-small, 1536 dims). Null until the background
+  // embed step (or the backfill script) fills it in — see
+  // server/lib/embeddings.ts. Prisma can't type pgvector columns, so this is
+  // never read/written through the normal client, only via $queryRaw/$executeRaw.
+  embedding           Unsupported("vector(1536)")?
 
   @@index([creatorId])
 }
