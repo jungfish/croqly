@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Menu, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
@@ -13,6 +14,7 @@ import {
   SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
+import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
 
 // Below this scroll offset the hero image is still filling the header's
 // backdrop, so the "light" (white) styling stays legible without a
@@ -25,6 +27,15 @@ const Header = () => {
   const { hasHero } = useHero();
   const { canInstall, isIOS, isStandalone, promptInstall } = usePwaInstall();
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
+
+  // Same query key as the shopping-list page, so this badge stays in sync
+  // with any add/check/delete done there without extra polling.
+  const { data: shoppingListItems = [] } = useQuery<ShoppingListItem[]>({
+    queryKey: ['shopping-list'],
+    queryFn: fetchShoppingList,
+    enabled: !!user,
+  });
+  const remainingCount = shoppingListItems.filter((item) => !item.checked).length;
 
   const showInstall = !isStandalone && (canInstall || isIOS);
   const handleInstallClick = () => {
@@ -70,8 +81,16 @@ const Header = () => {
       <Link to="/recipes" className={linkClass}>
         Mes Recettes
       </Link>
-      <Link to="/shopping-list" className={linkClass}>
+      <Link to="/shopping-list" className={`${linkClass} relative inline-flex items-center gap-1.5`}>
         Liste de courses
+        {remainingCount > 0 && (
+          <span
+            className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
+            aria-label={`${remainingCount} article${remainingCount > 1 ? 's' : ''} à acheter`}
+          >
+            {remainingCount}
+          </span>
+        )}
       </Link>
       {user ? (
         <button onClick={() => signOut()} className={linkClass}>
@@ -146,8 +165,16 @@ const Header = () => {
               </Link>
             </SheetClose>
             <SheetClose asChild>
-              <Link to="/shopping-list" className="text-lg text-foreground/80 hover:text-foreground">
+              <Link to="/shopping-list" className="text-lg text-foreground/80 hover:text-foreground inline-flex items-center gap-2">
                 Liste de courses
+                {remainingCount > 0 && (
+                  <span
+                    className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
+                    aria-label={`${remainingCount} article${remainingCount > 1 ? 's' : ''} à acheter`}
+                  >
+                    {remainingCount}
+                  </span>
+                )}
               </Link>
             </SheetClose>
             {user ? (
