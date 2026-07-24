@@ -313,10 +313,10 @@ const RecipePage = () => {
                   // Framed to match the card treatment used everywhere else on
                   // this page (the video box included) instead of dropping
                   // Instagram's default white embed straight onto the page.
-                  // Cropped to just the media via instagram-embed-crop (see
-                  // index.css) — the profile header and like/comment footer
-                  // are redundant with creatorAndReelLinks right below, and
-                  // left uncropped they made this box internally scrollable.
+                  // Cropped via instagram-embed-crop (see index.css) — only
+                  // the likes/comment row is hidden; the header and action
+                  // icons stay so this is still visibly a real Instagram
+                  // embed. Uncropped, the box was internally scrollable.
                   <div className="instagram-embed-crop w-full max-w-xs mx-auto bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
                     <InstagramEmbed url={recipe.url} />
                   </div>

@@ -107,18 +107,20 @@
   background-size: 1000px 100%;
 }
 
-/* Instagram's oEmbed widget always renders its own profile header and a
-   like/comment/share footer, with no official option to omit them. Margin
+/* Instagram's oEmbed widget has no official option to omit parts of itself.
+   The profile header and the "view on Instagram" / action-icon row stay
+   visible — that's what shows this is a genuine Instagram embed, which
+   matters for their embedding terms. Only the likes count and "add a
+   comment" row (the bottom-most slice) get cropped off. Margin-bottom
    percentages resolve against the containing block's *width* (CSS spec),
-   so pulling the iframe up/in by a fixed percentage crops off those rows
-   proportionally at any embed size, leaving just the media. Combined with
-   overflow: hidden, the cropped rows are clipped instead of pushing the
-   box's height out (which is what made it scrollable before). */
+   so pulling the iframe up by a fixed percentage crops proportionally at
+   any embed size. Combined with overflow: hidden, the cropped slice is
+   clipped instead of pushing the box's height out (which is what made it
+   scrollable before). */
 .instagram-embed-crop {
   overflow: hidden;
 }
 .instagram-embed-crop .instagram-media {
-  margin-top: -23% !important;
-  margin-bottom: -54% !important;
+  margin-bottom: -26% !important;
 }
 
