@@ -27,11 +27,19 @@ const URLInput = () => {
 
   const processingSteps = {
     EXTRACT: "Extraction du texte...",
-    TRANSCRIBE: "Transcription de la vidéo...",
     ANALYZE: "Analyse de la recette...",
-    GENERATE: "Génération de l'illustration...",
     SAVE: "Sauvegarde de la recette..."
   };
+
+  // The URL flow is one blocking backend call (see server/routes/recipes.ts)
+  // with no real progress events, so these steps advance on an estimated
+  // timeline rather than actual backend state — a rough approximation of
+  // where the request likely is, not a guarantee.
+  const URL_STEPS = [
+    { label: "Récupération de la vidéo...", atMs: 0 },
+    { label: "Transcription de l'audio...", atMs: 2500 },
+    { label: "Analyse de la recette...", atMs: 8500 },
+  ];
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -41,11 +49,15 @@ const URLInput = () => {
     }
 
     setLoading(true);
+    const timers: ReturnType<typeof setTimeout>[] = [];
     try {
-      // One backend call does the cache lookup, scrape, transcription,
-      // interpretation, illustration, and save — see server/routes/recipes.ts.
-      setCurrentStep(processingSteps.ANALYZE);
+      setCurrentStep(URL_STEPS[0].label);
+      URL_STEPS.slice(1).forEach(({ label, atMs }) => {
+        timers.push(setTimeout(() => setCurrentStep(label), atMs));
+      });
+
       const recipe = await processRecipeFromUrl(url);
+      timers.forEach(clearTimeout);
 
       if (recipe.cached) {
         toast.success("Cette recette a déjà été extraite — résultat instantané.");
@@ -77,6 +89,7 @@ const URLInput = () => {
         toast.error("Pas de recette repérable dans ce lien. Réessaie avec un reel de cuisine, ou importe des photos de la recette ci-dessous.");
       }
     } finally {
+      timers.forEach(clearTimeout);
       setLoading(false);
       setCurrentStep('');
     }

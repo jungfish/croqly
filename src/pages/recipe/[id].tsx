@@ -259,6 +259,26 @@ const RecipePage = () => {
           {firstName ? `${firstName}, on la cuisine ensemble ?` : 'On la cuisine ensemble ?'}
         </p>
 
+        {/* At-a-glance facts (time, servings, category) are known the instant
+            the recipe loads — unlike the illustration, which can still be
+            generating. Surfacing them here, above the fold, means the first
+            thing read isn't just a repeat of the Instagram/TikTok thumbnail. */}
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-4 text-sm text-muted-foreground">
+          {recipe.totalTime && (
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />
+              {recipe.totalTime}
+            </span>
+          )}
+          <span className="flex items-center gap-1.5">
+            <UtensilsCrossed className="w-4 h-4" />
+            {getServings()} portions
+          </span>
+          {recipe.category && (
+            <span className="px-2.5 py-0.5 rounded-full bg-muted">{recipe.category}</span>
+          )}
+        </div>
+
         <div className="sticky top-16 z-30 flex flex-nowrap items-center justify-end gap-2 mb-4 py-2 -mx-4 px-4 bg-background/80 backdrop-blur-sm overflow-x-auto">
           <ShareButton title={recipe.title} text={`La recette "${recipe.title}" sur Croqly`} className="shrink-0" />
           <Button
