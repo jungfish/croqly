@@ -17,7 +17,10 @@ export async function interpretRecipe(caption: string, transcription: string): P
   return response.json();
 }
 
-export async function generateRecipeImage(title: string, ingredients: string[]): Promise<string> {
+export async function generateRecipeImage(
+  title: string,
+  ingredients: string[]
+): Promise<{ illustration: string; illustrationThumb: string }> {
   try {
     const response = await fetch('/api/ai/illustrate', {
       method: 'POST',
@@ -25,10 +28,11 @@ export async function generateRecipeImage(title: string, ingredients: string[]):
       body: JSON.stringify({ title, ingredients }),
     });
     if (!response.ok) throw new Error('Failed to generate illustration');
-    const { illustrationUrl } = await response.json();
-    return illustrationUrl;
+    const { illustration, illustrationThumb } = await response.json();
+    return { illustration, illustrationThumb };
   } catch (error) {
     console.error('Error generating recipe image:', error);
-    return `https://source.unsplash.com/featured/?${encodeURIComponent(title)},food`;
+    const fallback = `https://source.unsplash.com/featured/?${encodeURIComponent(title)},food`;
+    return { illustration: fallback, illustrationThumb: fallback };
   }
 }

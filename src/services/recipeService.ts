@@ -43,15 +43,16 @@ export async function processRecipeFromInstagram(
   try {
     const recipe = await interpretRecipe(caption || '', transcription || '');
     // Generate custom illustration if no thumbnail provided
-    const illustration = await generateRecipeImage(recipe.title, recipe.ingredients) || thumbnailUrl;
-    
+    const { illustration, illustrationThumb } = await generateRecipeImage(recipe.title, recipe.ingredients);
+
     // Prepare recipe data with video URL
     const processedRecipe: Recipe = {
       title: recipe.title || 'Untitled Recipe',
       category: recipe.category || 'Plat principal',
       ingredients: recipe.ingredients || [],
       instructions: recipe.instructions || [],
-      illustration,
+      illustration: illustration || thumbnailUrl,
+      illustrationThumb: illustrationThumb || thumbnailUrl,
       url: postUrl,
       videoUrl, // Add video URL from Instagram media endpoint
       prepTime: recipe.prepTime,

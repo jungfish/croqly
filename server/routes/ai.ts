@@ -25,8 +25,8 @@ const illustrateHandler: RequestHandler = async (req, res) => {
   try {
     const { title, ingredients } = req.body as { title?: string; ingredients?: string[] };
     if (!title) return res.status(400).json({ error: 'title is required' });
-    const illustrationUrl = await generateIllustration(title, ingredients ?? [], req.user?.id);
-    res.json({ illustrationUrl });
+    const { full, thumb } = await generateIllustration(title, ingredients ?? [], req.user?.id);
+    res.json({ illustration: full, illustrationThumb: thumb });
   } catch (error) {
     logError('Error generating recipe illustration', error);
     res.status(500).json({ error: 'Failed to generate illustration' });
