@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Instagram, Music2 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Recipe, Creator } from '@/types/recipe';
 import RecipePreview from '@/components/RecipePreview';
 import ShareButton from '@/components/ShareButton';
@@ -36,7 +37,10 @@ const ClaimBanner = ({ creator }: { creator: Creator }) => {
       setCode(data.code);
       setError(null);
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => {
+      setError(err.message);
+      toast.error("Impossible de générer le code. Réessaie dans un instant.");
+    },
   });
 
   const verifyMutation = useMutation({
@@ -45,7 +49,10 @@ const ClaimBanner = ({ creator }: { creator: Creator }) => {
       if (!response.ok) throw new Error((await response.json().catch(() => ({})))?.error ?? 'Échec de la vérification');
       return response.json() as Promise<{ claimed: boolean }>;
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => {
+      setError(err.message);
+      toast.error("Impossible de vérifier ta bio pour l'instant. Réessaie.");
+    },
   });
 
   if (creator.claimed) {

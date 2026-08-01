@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ const RecipesPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [addingToList, setAddingToList] = useState(false);
 
-  const { data: recipes = [] } = useQuery<Recipe[]>({
+  const { data: recipes = [], isError: isRecipesError } = useQuery<Recipe[]>({
     queryKey: ['recipes', 'mine', debouncedSearch, selectedCategory],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -45,6 +45,12 @@ const RecipesPage = () => {
       return res.json();
     },
   });
+
+  useEffect(() => {
+    if (isRecipesError) {
+      toast.error("Impossible de charger tes recettes. Réessaie dans un instant.");
+    }
+  }, [isRecipesError]);
 
   const toggleSelectMode = () => {
     setSelectMode((prev) => !prev);

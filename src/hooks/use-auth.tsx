@@ -9,7 +9,7 @@ interface AuthContextValue {
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, firstName?: string) => Promise<{ error: string | null }>;
   signInWithGoogle: (redirectPath?: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -61,7 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: error?.message ?? null };
     },
     signOut: async () => {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      return { error: error?.message ?? null };
     },
   };
 

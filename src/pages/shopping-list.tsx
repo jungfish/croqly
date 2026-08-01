@@ -63,6 +63,7 @@ const ShoppingListPage = () => {
       queryClient.setQueryData<ShoppingListItem[]>(['shopping-list'], (current) =>
         current?.filter((i) => i.id !== id)
       );
+      toast.success('Article supprimé.');
     } catch {
       toast.error("Impossible de supprimer cet article.");
     } finally {
@@ -93,6 +94,7 @@ const ShoppingListPage = () => {
       queryClient.setQueryData<ShoppingListItem[]>(['shopping-list'], (current) =>
         current?.filter((i) => !i.checked)
       );
+      toast.success('Articles cochés supprimés.');
     } catch {
       toast.error("Impossible de vider les articles cochés.");
     }
@@ -103,6 +105,7 @@ const ShoppingListPage = () => {
     try {
       await clearAllItems();
       queryClient.setQueryData<ShoppingListItem[]>(['shopping-list'], []);
+      toast.success('Liste de courses vidée.');
     } catch {
       toast.error('Impossible de vider la liste de courses.');
     }

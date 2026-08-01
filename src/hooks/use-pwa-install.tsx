@@ -13,7 +13,7 @@ interface PwaInstallContextValue {
   // to "Share > Add to Home Screen" instructions instead of calling promptInstall.
   isIOS: boolean;
   isStandalone: boolean;
-  promptInstall: () => Promise<void>;
+  promptInstall: () => Promise<'accepted' | 'dismissed' | null>;
 }
 
 const PwaInstallContext = createContext<PwaInstallContextValue | undefined>(undefined);
@@ -51,10 +51,11 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const promptInstall = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) return null;
     await deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
+    const { outcome } = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
+    return outcome;
   };
 
   return (

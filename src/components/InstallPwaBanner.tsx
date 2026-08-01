@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Share } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 
@@ -26,6 +27,14 @@ export default function InstallPwaBanner() {
     setDismissed(true);
   };
 
+  const handleInstallClick = async () => {
+    const outcome = await promptInstall();
+    if (outcome === 'accepted') {
+      toast.success('Croqly installée !');
+    }
+    dismiss();
+  };
+
   const showIOSInstructions = isIOS && !isStandalone;
   if (dismissed || isStandalone || (!canInstall && !showIOSInstructions)) return null;
 
@@ -46,7 +55,7 @@ export default function InstallPwaBanner() {
           )}
         </div>
         {!showIOSInstructions && (
-          <Button size="sm" onClick={() => promptInstall().then(dismiss)} className="shrink-0">
+          <Button size="sm" onClick={handleInstallClick} className="shrink-0">
             Installer
           </Button>
         )}

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { authFetch } from '@/lib/apiClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,7 @@ const numberFormatter = new Intl.NumberFormat('fr-FR');
 const AdminDashboard = () => {
   const [page, setPage] = useState(1);
 
-  const { data: overview } = useQuery<OverviewResponse>({
+  const { data: overview, isError: isOverviewError } = useQuery<OverviewResponse>({
     queryKey: ['admin', 'overview', PERIOD_DAYS],
     queryFn: async () => {
       const res = await authFetch(`/api/admin/overview?days=${PERIOD_DAYS}`);
@@ -45,7 +46,7 @@ const AdminDashboard = () => {
     },
   });
 
-  const { data: recipesPage } = useQuery<RecipesResponse>({
+  const { data: recipesPage, isError: isRecipesError } = useQuery<RecipesResponse>({
     queryKey: ['admin', 'recipes', page],
     queryFn: async () => {
       const res = await authFetch(`/api/admin/recipes?page=${page}&pageSize=${PAGE_SIZE}`);
@@ -53,6 +54,12 @@ const AdminDashboard = () => {
       return res.json();
     },
   });
+
+  useEffect(() => {
+    if (isOverviewError || isRecipesError) {
+      toast.error("Impossible de charger les données d'administration.");
+    }
+  }, [isOverviewError, isRecipesError]);
 
   const totalPages = recipesPage ? Math.max(1, Math.ceil(recipesPage.total / PAGE_SIZE)) : 1;
 

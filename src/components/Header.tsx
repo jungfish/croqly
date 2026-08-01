@@ -40,14 +40,26 @@ const Header = () => {
   const showAdminLink = isAdminUser(user);
 
   const showInstall = !isStandalone && (canInstall || isIOS);
-  const handleInstallClick = () => {
+  const handleInstallClick = async () => {
     if (isIOS) {
       toast("Installer Croqly", {
         description: "Appuyez sur Partager puis « Sur l'écran d'accueil ».",
       });
       return;
     }
-    promptInstall();
+    const outcome = await promptInstall();
+    if (outcome === 'accepted') {
+      toast.success('Croqly installée !');
+    }
+  };
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error('Impossible de se déconnecter. Réessaie.');
+      return;
+    }
+    toast.success('À bientôt !');
   };
 
   useEffect(() => {
@@ -103,7 +115,7 @@ const Header = () => {
         </Link>
       )}
       {user ? (
-        <button onClick={() => signOut()} className={linkClass}>
+        <button onClick={handleSignOut} className={linkClass}>
           Déconnexion
         </button>
       ) : (
@@ -209,7 +221,7 @@ const Header = () => {
             )}
             {user ? (
               <SheetClose asChild>
-                <button onClick={() => signOut()} className="text-lg text-left text-foreground/80 hover:text-foreground">
+                <button onClick={handleSignOut} className="text-lg text-left text-foreground/80 hover:text-foreground">
                   Déconnexion
                 </button>
               </SheetClose>

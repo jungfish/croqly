@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import ParallaxHero from "@/components/ParallaxHero";
 import RecipePreview from "@/components/RecipePreview";
 import { UtensilsCrossed, Search } from "lucide-react";
@@ -24,7 +25,7 @@ const DecouvrirPage = () => {
   const debouncedSearch = useDebouncedValue(search);
   const hasActiveFilter = selectedCategory !== "Toutes" || debouncedSearch.trim().length > 0;
 
-  const { data: recipes = [] } = useQuery<Recipe[]>({
+  const { data: recipes = [], isError: isRecipesError } = useQuery<Recipe[]>({
     queryKey: ['recipes', 'all', debouncedSearch, selectedCategory],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -35,6 +36,12 @@ const DecouvrirPage = () => {
       return res.json();
     },
   });
+
+  useEffect(() => {
+    if (isRecipesError) {
+      toast.error("Impossible de charger les recettes. Réessaie dans un instant.");
+    }
+  }, [isRecipesError]);
 
   return (
     <div className="min-h-screen bg-background">
