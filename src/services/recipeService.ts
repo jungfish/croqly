@@ -34,11 +34,12 @@ export async function generateIllustrationForRecipe(
 }
 
 export async function processRecipeFromInstagram(
-  caption?: string, 
-  transcription?: string, 
-  thumbnailUrl?: string, 
+  caption?: string,
+  transcription?: string,
+  thumbnailUrl?: string,
   videoUrl?: string,
-  postUrl?: string
+  postUrl?: string,
+  source?: string
 ): Promise<Recipe> {
   try {
     const recipe = await interpretRecipe(caption || '', transcription || '');
@@ -54,6 +55,7 @@ export async function processRecipeFromInstagram(
       illustration: illustration || thumbnailUrl,
       illustrationThumb: illustrationThumb || thumbnailUrl,
       url: postUrl,
+      source,
       videoUrl, // Add video URL from Instagram media endpoint
       prepTime: recipe.prepTime,
       cookTime: recipe.cookTime,

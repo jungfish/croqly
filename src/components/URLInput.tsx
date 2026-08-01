@@ -21,6 +21,7 @@ const URLInput = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [url, setUrl] = useState("");
+  const [source, setSource] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
@@ -119,7 +120,7 @@ const URLInput = () => {
       const data = await response.json();
 
       setCurrentStep(processingSteps.ANALYZE);
-      const recipe = await processRecipeFromInstagram('', data.text);
+      const recipe = await processRecipeFromInstagram('', data.text, undefined, undefined, undefined, source.trim() || undefined);
 
       if (!user && recipe.id) recordAnonRecipeView(recipe.id);
 
@@ -229,6 +230,18 @@ const URLInput = () => {
             <span>{isDragging ? "Lâche l'image ici" : "Importe, colle (Ctrl+V) ou glisse tes photos de recette ici"}</span>
           </div>
         </label>
+
+        {/* Optional attribution for photos of a book/magazine page — lets us
+            credit the original author and identify these recipes if a
+            rights holder ever asks for one to be taken down. */}
+        <input
+          type="text"
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          placeholder="Source de la photo (optionnel) — ex. Ottolenghi, Simple"
+          disabled={loading}
+          className="mt-3 w-full px-4 py-2.5 rounded-xl bg-card/90 border border-border text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+        />
 
         {loading && (
           <div className="mt-4 flex items-center justify-center gap-3 text-muted-foreground">

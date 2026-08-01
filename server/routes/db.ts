@@ -99,6 +99,7 @@ const createOrUpdateRecipe: RequestHandler = async (req, res) => {
       instructions: recipe.instructions ? JSON.stringify(recipe.instructions) : '[]',
       illustration: recipe.illustration,
       url: recipe.url,
+      source: recipe.source,
       videoUrl: recipe.videoUrl,
       prepTime: recipe.prepTime,
       cookTime: recipe.cookTime,

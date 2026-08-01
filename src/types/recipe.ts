@@ -23,6 +23,9 @@ export type Recipe = {
   // The platform this recipe was imported from — undefined for recipes with
   // no captured source (e.g. the photo/OCR upload path).
   platform?: Platform;
+  // Freeform provenance for recipes with no platform/creator (e.g. "Ottolenghi
+  // – Simple") — set only via the photo/OCR upload path today.
+  source?: string;
   url?: string;
   videoUrl?: string;
   servings: number;

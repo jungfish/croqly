@@ -241,6 +241,12 @@ const RecipePage = () => {
     </div>
   );
 
+  // Attribution for a recipe photographed from a book/magazine — no platform
+  // link to show, just the freeform credit the importer typed in.
+  const bookSourceCredit = recipe.source && (
+    <p className="mb-4 text-sm text-muted-foreground">Recette tirée de : {recipe.source}</p>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -331,6 +337,7 @@ const RecipePage = () => {
             video when there is one (mobile and desktop alike); otherwise
             shown up here since there's no video to anchor them to. */}
         {!recipe.videoUrl && creatorAndReelLinks}
+        {bookSourceCredit}
 
         <div className={`flex flex-col gap-6 ${recipe.videoUrl ? 'lg:grid lg:grid-cols-3' : ''}`}>
           {/* Video column — full width and first on mobile; becomes a sticky

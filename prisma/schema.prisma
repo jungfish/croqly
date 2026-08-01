@@ -40,6 +40,11 @@ model Recipe {
   // Null for recipes with no captured source (e.g. the photo/OCR upload path).
   platform            Platform?
   url                 String?       @unique
+  // Freeform provenance for recipes with no platform/creator (e.g. "Ottolenghi
+  // – Simple"), captured for attribution and rights-holder takedown requests —
+  // set only via the photo/OCR upload path today. Always null for
+  // platform-sourced recipes, which get attribution from creator/url instead.
+  source              String?
   videoUrl            String?
   prepTime            String?
   cookTime            String?
