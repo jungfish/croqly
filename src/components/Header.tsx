@@ -145,10 +145,18 @@ const Header = () => {
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Menu"
-              className={shouldBeLight ? 'text-white hover:text-white/80 hover:bg-white/10' : ''}
+              aria-label={remainingCount > 0 ? `Menu, ${remainingCount} article${remainingCount > 1 ? 's' : ''} à acheter` : 'Menu'}
+              className={`relative ${shouldBeLight ? 'text-white hover:text-white/80 hover:bg-white/10' : ''}`}
             >
               <Menu className="w-6 h-6" />
+              {remainingCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-0.5 right-0.5 inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-primary text-primary-foreground text-[0.65rem] font-semibold leading-none"
+                >
+                  {remainingCount}
+                </span>
+              )}
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="flex flex-col gap-6 pt-[max(3rem,env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)]">
