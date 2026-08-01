@@ -203,6 +203,8 @@ const RecipePage = () => {
             <img
               src={recipe.creator.avatarUrl}
               alt={recipe.creator.displayName || recipe.creator.handle}
+              width={32}
+              height={32}
               loading="lazy"
               decoding="async"
               className="w-8 h-8 rounded-full object-cover"

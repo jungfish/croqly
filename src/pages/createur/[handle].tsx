@@ -168,6 +168,10 @@ const CreatorHubPage = () => {
             <img
               src={creator.avatarUrl}
               alt={displayName}
+              width={96}
+              height={96}
+              loading="lazy"
+              decoding="async"
               className="w-24 h-24 rounded-full object-cover shadow-lg border border-border"
             />
           )}

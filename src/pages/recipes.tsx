@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import ParallaxHero from "@/components/ParallaxHero";
+import RecipeImage from "@/components/RecipeImage";
 import { UtensilsCrossed, Search, Check } from "lucide-react";
 import type { Recipe } from "@/types/recipe";
 import { authFetch } from "@/lib/apiClient";
@@ -12,14 +13,6 @@ import { addRecipesToShoppingList } from "@/services/shoppingListService";
 import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-
-const categoryColors = {
-  "Dessert": "bg-pink-100",
-  "Soupe": "bg-amber-100",
-  "Plat principal": "bg-emerald-100",
-  "Entrée": "bg-blue-100",
-  "Bébé": "bg-purple-100",
-} as const;
 
 const categories = ["Toutes", "Dessert", "Soupe", "Plat principal", "Entrée", "Bébé"] as const;
 
@@ -152,22 +145,11 @@ const RecipesPage = () => {
                 </div>
               )}
               <div className="h-48 overflow-hidden">
-                {recipe.illustration ? (
-                  <img
-                    src={recipe.illustrationThumb || recipe.illustration}
-                    alt={recipe.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className={`h-full w-full flex items-center justify-center ${categoryColors[recipe.category] || 'bg-muted'}`}>
-                    <div className="text-center p-4">
-                      <UtensilsCrossed className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">{recipe.category}</span>
-                    </div>
-                  </div>
-                )}
+                <RecipeImage
+                  recipe={recipe}
+                  sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                  className="group-hover:scale-105"
+                />
               </div>
               <div className="p-4 bg-card/50 backdrop-blur-sm">
                 <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>

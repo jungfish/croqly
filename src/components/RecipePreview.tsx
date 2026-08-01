@@ -1,14 +1,7 @@
 import { Recipe } from "@/types/recipe";
-import { Clock, UtensilsCrossed } from "lucide-react";
+import { Clock } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const categoryColors = {
-  "Dessert": "bg-pink-100",
-  "Soupe": "bg-amber-100",
-  "Plat principal": "bg-emerald-100",
-  "Entrée": "bg-blue-100",
-  "Bébé": "bg-purple-100",
-} as const;
+import RecipeImage from "@/components/RecipeImage";
 
 const isUnspecifiedDuration = (value?: string) =>
   !value || /^non[\s-]?(précisé|spécifié)e?$/i.test(value.trim());
@@ -22,22 +15,11 @@ const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
       className="group relative block overflow-hidden rounded-xl bg-card shadow-md transition-all hover:shadow-xl"
     >
       <div className="aspect-[4/3] overflow-hidden">
-        {recipe.illustration ? (
-          <img
-            src={recipe.illustrationThumb || recipe.illustration}
-            alt={recipe.title}
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-          />
-        ) : (
-          <div className={`h-full w-full flex items-center justify-center ${categoryColors[recipe.category] || 'bg-muted'}`}>
-            <div className="text-center p-4">
-              <UtensilsCrossed className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">{recipe.category}</span>
-            </div>
-          </div>
-        )}
+        <RecipeImage
+          recipe={recipe}
+          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
+          className="group-hover:scale-110"
+        />
       </div>
 
       {/* Title/time bar is always visible — hover-only reveal left touch
@@ -57,6 +39,8 @@ const RecipePreview = ({ recipe }: { recipe: Recipe }) => {
               <img
                 src={recipe.creator.avatarUrl}
                 alt={recipe.creator.displayName || recipe.creator.handle}
+                width={20}
+                height={20}
                 loading="lazy"
                 decoding="async"
                 className="w-5 h-5 rounded-full object-cover"
