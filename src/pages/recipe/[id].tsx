@@ -82,25 +82,35 @@ const RecipePage = () => {
   // A freshly-imported recipe arrives with its illustration still pending
   // (see server/routes/recipes.ts) — fetch the real one in the background
   // and swap it in once it's ready, instead of blocking the import on it.
+  //
+  // Deliberately not tied to this component's mount lifetime: the server
+  // flips illustrationPending to false as soon as it claims the job (well
+  // before generation actually finishes), so this in-flight request is the
+  // only signal that the real image is ready. If the user navigates away
+  // and back while it's running, a stale-closure guard here would discard
+  // the result once it lands — and since illustrationPending is already
+  // false server-side, nothing would ever retry. Always apply the result to
+  // the shared query cache; setQueryData is safe to call after unmount.
   useEffect(() => {
     if (!recipe?.id || !recipe.illustrationPending) return;
-    let cancelled = false;
+    const recipeId = recipe.id;
 
-    generateIllustrationForRecipe(recipe.id).then((result) => {
-      if (cancelled) return;
-      queryClient.setQueryData<Recipe>(['recipe', recipe.id], (current) =>
-        current && {
-          ...current,
-          illustration: result?.illustration ?? current.illustration,
-          illustrationThumb: result?.illustrationThumb ?? current.illustrationThumb,
-          illustrationPending: false,
-        }
-      );
-    });
-
-    return () => {
-      cancelled = true;
-    };
+    generateIllustrationForRecipe(recipeId)
+      .then((result) => {
+        queryClient.setQueryData<Recipe>(['recipe', recipeId], (current) =>
+          current && {
+            ...current,
+            illustration: result?.illustration ?? current.illustration,
+            illustrationThumb: result?.illustrationThumb ?? current.illustrationThumb,
+            illustrationPending: false,
+          }
+        );
+      })
+      .catch(() => {
+        queryClient.setQueryData<Recipe>(['recipe', recipeId], (current) =>
+          current && { ...current, illustrationPending: false }
+        );
+      });
   }, [recipe?.id, recipe?.illustrationPending, queryClient]);
 
   // Function to adjust ingredient quantities
