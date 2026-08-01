@@ -18,8 +18,8 @@ export type IngredientCategory = (typeof CATEGORY_ORDER)[number];
 
 const CATEGORY_RULES: Array<[RegExp, IngredientCategory]> = [
   [/pomme de terre|patate|\bpomme\b|carotte|avocat|citron|tomate|oignon|échalote|\bail\b|salade|courgette|poivron|champignon|banane|orange|poire|fraise|framboise|menthe|basilic|persil|coriandre|ciboulette/i, 'Fruits et légumes'],
-  [/poulet|volaille|bœuf|boeuf|steak|viande hachée|porc|agneau|lardon|jambon|saucisse|poisson|saumon|thon|cabillaud|crevette/i, 'Viandes et poissons'],
-  [/œuf|oeuf|beurre|lait\b|crème|fromage|parmesan|mozzarella|feta|gruy[eè]re|comt[eé]|yaourt/i, 'Crémerie'],
+  [/poulet|volaille|bœuf|boeuf|steak|viande hachée|porc|agneau|lardon|jambon|saucisse|mortadelle|poisson|saumon|thon|cabillaud|crevette/i, 'Viandes et poissons'],
+  [/œuf|oeuf|beurre|lait\b|crème|fromage|parmesan|mozzarella|feta|gruy[eè]re|comt[eé]|burrata|yaourt/i, 'Crémerie'],
   [/pain\b|baguette|brioche|croissant/i, 'Boulangerie'],
   [/surgel[ée]/i, 'Surgelés'],
   [/vin\b|bière|jus\b|soda|eau\b/i, 'Boissons'],
