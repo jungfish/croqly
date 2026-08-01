@@ -51,7 +51,7 @@ const ShoppingListPage = () => {
     try {
       await toggleShoppingListItem(item.id, !item.checked);
     } catch {
-      toast.error("Impossible de mettre à jour cet article.");
+      toast.error("Impossible de mettre à jour cet article. Réessaie dans un instant.");
       queryClient.invalidateQueries({ queryKey: ['shopping-list'] });
     }
   };
@@ -63,9 +63,9 @@ const ShoppingListPage = () => {
       queryClient.setQueryData<ShoppingListItem[]>(['shopping-list'], (current) =>
         current?.filter((i) => i.id !== id)
       );
-      toast.success('Article supprimé.');
+      toast.success('Article retiré de ta liste.');
     } catch {
-      toast.error("Impossible de supprimer cet article.");
+      toast.error("Impossible de supprimer cet article. Réessaie dans un instant.");
     } finally {
       setPending(id, false);
     }
@@ -80,9 +80,9 @@ const ShoppingListPage = () => {
       const updated = await addManualItemToShoppingList(text);
       queryClient.setQueryData(['shopping-list'], updated);
       setNewItemText('');
-      toast.success('Article ajouté à la liste.');
+      toast.success('Article ajouté à ta liste de courses.');
     } catch {
-      toast.error("Impossible d'ajouter cet article.");
+      toast.error("Impossible d'ajouter cet article. Réessaie dans un instant.");
     } finally {
       setIsAdding(false);
     }
@@ -94,9 +94,9 @@ const ShoppingListPage = () => {
       queryClient.setQueryData<ShoppingListItem[]>(['shopping-list'], (current) =>
         current?.filter((i) => !i.checked)
       );
-      toast.success('Articles cochés supprimés.');
+      toast.success('Articles cochés retirés de ta liste.');
     } catch {
-      toast.error("Impossible de vider les articles cochés.");
+      toast.error("Impossible de vider les articles cochés. Réessaie dans un instant.");
     }
   };
 
@@ -105,9 +105,9 @@ const ShoppingListPage = () => {
     try {
       await clearAllItems();
       queryClient.setQueryData<ShoppingListItem[]>(['shopping-list'], []);
-      toast.success('Liste de courses vidée.');
+      toast.success('Ta liste de courses est vidée !');
     } catch {
-      toast.error('Impossible de vider la liste de courses.');
+      toast.error('Impossible de vider la liste de courses. Réessaie dans un instant.');
     }
   };
 

@@ -57,7 +57,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (isOverviewError || isRecipesError) {
-      toast.error("Impossible de charger les données d'administration.");
+      toast.error("Impossible de charger les données d'administration. Réessaie dans un instant.");
     }
   }, [isOverviewError, isRecipesError]);
 

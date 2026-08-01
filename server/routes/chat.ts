@@ -37,7 +37,7 @@ const recommend: RequestHandler = async (req, res) => {
   try {
     const { message } = req.body as { message?: string };
     if (!message || !message.trim()) {
-      return res.status(400).json({ error: 'message is required' });
+      return res.status(400).json({ error: 'Dis-moi ce dont tu as envie pour que je puisse te proposer une recette.' });
     }
 
     // Same cost-protection shape as the Instagram-import flow (server/routes/recipes.ts)
@@ -117,7 +117,7 @@ const recommend: RequestHandler = async (req, res) => {
     res.json({ reply, recipes: ranked.map(parseRecipe) });
   } catch (error) {
     logError('Error in chat recommendation', error);
-    res.status(500).json({ error: 'Failed to get recipe recommendation' });
+    res.status(500).json({ error: "Impossible de te proposer une recette. Réessaie dans un instant." });
   }
 };
 

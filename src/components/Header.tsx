@@ -56,7 +56,7 @@ const Header = () => {
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
-      toast.error('Impossible de se déconnecter. Réessaie.');
+      toast.error('Impossible de se déconnecter. Réessaie dans un instant.');
       return;
     }
     toast.success('À bientôt !');

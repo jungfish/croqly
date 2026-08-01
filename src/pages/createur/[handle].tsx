@@ -51,7 +51,7 @@ const ClaimBanner = ({ creator }: { creator: Creator }) => {
     },
     onError: (err: Error) => {
       setError(err.message);
-      toast.error("Impossible de vérifier ta bio pour l'instant. Réessaie.");
+      toast.error("Impossible de vérifier ta bio pour le moment. Réessaie dans un instant.");
     },
   });
 
