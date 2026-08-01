@@ -79,6 +79,7 @@ const ShoppingListPage = () => {
       const updated = await addManualItemToShoppingList(text);
       queryClient.setQueryData(['shopping-list'], updated);
       setNewItemText('');
+      toast.success('Article ajouté à la liste.');
     } catch {
       toast.error("Impossible d'ajouter cet article.");
     } finally {
@@ -123,11 +124,11 @@ const ShoppingListPage = () => {
           {firstName ? `${firstName}, voici` : 'Voici'} tout ce qu'il te faut pour tes prochaines recettes !
         </p>
 
-        <form onSubmit={handleAddItem} className="mb-6 flex gap-2">
+        <form onSubmit={handleAddItem} className="mb-1 flex gap-2">
           <Input
             value={newItemText}
             onChange={(e) => setNewItemText(e.target.value)}
-            placeholder="Ajouter un article (ex: 2 sacs poubelle)"
+            placeholder="Ajouter un article"
             aria-label="Ajouter un article"
             disabled={isAdding}
           />
@@ -135,6 +136,7 @@ const ShoppingListPage = () => {
             Ajouter
           </Button>
         </form>
+        <p className="mb-6 text-xs text-muted-foreground">Ex : 2 sacs poubelle</p>
 
         {items.length > 0 && (
           <div className="mb-4 flex justify-end gap-2">
