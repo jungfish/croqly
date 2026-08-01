@@ -14,7 +14,7 @@ interface MergeLine {
   unit: string;
   quantity: number | null;
   category: IngredientCategory;
-  recipeId: string;
+  recipeId?: string;
 }
 
 // Free-text ingredient lines -> merge-ready lines: parsed, canonicalized,
@@ -55,7 +55,9 @@ async function mergeLines(userId: string, lines: MergeLine[]) {
             quantity,
             label: formatLabel(line.name, quantity, line.unit),
             category: line.category,
-            sourceRecipeIds: Array.from(new Set([...existing.sourceRecipeIds, line.recipeId])),
+            sourceRecipeIds: line.recipeId
+              ? Array.from(new Set([...existing.sourceRecipeIds, line.recipeId]))
+              : existing.sourceRecipeIds,
           },
         });
       } else {
@@ -67,7 +69,7 @@ async function mergeLines(userId: string, lines: MergeLine[]) {
             quantity: line.quantity,
             label: formatLabel(line.name, line.quantity, line.unit),
             category: line.category,
-            sourceRecipeIds: [line.recipeId],
+            sourceRecipeIds: line.recipeId ? [line.recipeId] : [],
           },
         });
       }
@@ -101,6 +103,24 @@ const addFromRecipe: RequestHandler<{ id: string }> = async (req, res) => {
   } catch (error) {
     logError('Error adding recipe to shopping list', error);
     res.status(500).json({ error: 'Failed to add recipe to shopping list' });
+  }
+};
+
+const addManualItem: RequestHandler = async (req, res) => {
+  try {
+    const { text } = req.body as { text?: string };
+    if (!text?.trim()) return res.status(400).json({ error: 'text is required' });
+
+    const parsed = parseIngredientLine(text);
+    const name = canonicalizeName(parsed.name);
+    if (!name) return res.status(400).json({ error: 'text is required' });
+
+    const { quantity, unit } = toBaseUnit(parsed.quantity, parsed.unit);
+    await mergeLines(req.user!.id, [{ name, unit, quantity, category: categorizeIngredient(name) }]);
+    res.json(await fetchList(req.user!.id));
+  } catch (error) {
+    logError('Error adding manual shopping list item', error);
+    res.status(500).json({ error: 'Failed to add item' });
   }
 };
 
@@ -180,6 +200,7 @@ const clearAll: RequestHandler = async (req, res) => {
 };
 
 router.get('/', requireAuth, getList);
+router.post('/', requireAuth, addManualItem);
 router.post('/from-recipe/:id', requireAuth, addFromRecipe);
 router.post('/from-recipes', requireAuth, addFromRecipes);
 // Registered before the '/:id' routes below — otherwise "checked" (or no

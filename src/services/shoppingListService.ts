@@ -20,6 +20,15 @@ export async function fetchShoppingList(): Promise<ShoppingListItem[]> {
   return parseOrThrow(response, 'Failed to fetch shopping list');
 }
 
+export async function addManualItemToShoppingList(text: string): Promise<ShoppingListItem[]> {
+  const response = await authFetch('/api/shopping-list', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  return parseOrThrow(response, "Failed to add item");
+}
+
 export async function addRecipeToShoppingList(recipeId: string): Promise<ShoppingListItem[]> {
   const response = await authFetch(`/api/shopping-list/from-recipe/${recipeId}`, { method: 'POST' });
   return parseOrThrow(response, 'Failed to add recipe to shopping list');

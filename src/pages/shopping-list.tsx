@@ -5,8 +5,10 @@ import { toast } from 'sonner';
 import { ShoppingCart, Trash2 } from 'lucide-react';
 import ParallaxHero from '@/components/ParallaxHero';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   fetchShoppingList,
+  addManualItemToShoppingList,
   toggleShoppingListItem,
   deleteShoppingListItem,
   clearCheckedItems,
@@ -23,6 +25,8 @@ const ShoppingListPage = () => {
   const firstName = getFirstName(user);
   const queryClient = useQueryClient();
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const [newItemText, setNewItemText] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
 
   const { data: items = [] } = useQuery<ShoppingListItem[]>({
     queryKey: ['shopping-list'],
@@ -66,6 +70,22 @@ const ShoppingListPage = () => {
     }
   };
 
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = newItemText.trim();
+    if (!text || isAdding) return;
+    setIsAdding(true);
+    try {
+      const updated = await addManualItemToShoppingList(text);
+      queryClient.setQueryData(['shopping-list'], updated);
+      setNewItemText('');
+    } catch {
+      toast.error("Impossible d'ajouter cet article.");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   const handleClearChecked = async () => {
     try {
       await clearCheckedItems();
@@ -102,6 +122,19 @@ const ShoppingListPage = () => {
         <p className="text-center text-muted-foreground mb-8">
           {firstName ? `${firstName}, voici` : 'Voici'} tout ce qu'il te faut pour tes prochaines recettes !
         </p>
+
+        <form onSubmit={handleAddItem} className="mb-6 flex gap-2">
+          <Input
+            value={newItemText}
+            onChange={(e) => setNewItemText(e.target.value)}
+            placeholder="Ajouter un article (ex: 2 sacs poubelle)"
+            aria-label="Ajouter un article"
+            disabled={isAdding}
+          />
+          <Button type="submit" disabled={isAdding || !newItemText.trim()}>
+            Ajouter
+          </Button>
+        </form>
 
         {items.length > 0 && (
           <div className="mb-4 flex justify-end gap-2">
