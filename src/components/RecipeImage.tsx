@@ -7,6 +7,7 @@ const categoryColors = {
   "Soupe": "bg-amber-100",
   "Plat principal": "bg-emerald-100",
   "Entrée": "bg-blue-100",
+  "Salade": "bg-lime-100",
   "Bébé": "bg-purple-100",
 } as const;
 

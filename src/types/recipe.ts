@@ -13,7 +13,7 @@ export type Creator = {
 export type Recipe = {
   id?: string;
   title: string;
-  category: "Dessert" | "Soupe" | "Plat principal" | "Entrée" | "Bébé";
+  category: "Dessert" | "Soupe" | "Plat principal" | "Entrée" | "Salade" | "Bébé";
   ingredients: string[];
   instructions: string[];
   illustration?: string;

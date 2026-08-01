@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
-const categories = ["Toutes", "Dessert", "Soupe", "Plat principal", "Entrée", "Bébé"] as const;
+const categories = ["Toutes", "Dessert", "Soupe", "Plat principal", "Entrée", "Salade", "Bébé"] as const;
 
 const RecipesPage = () => {
   const { user } = useAuth();

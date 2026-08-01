@@ -13,7 +13,7 @@ const RECIPE_SCHEMA = {
     title: { type: 'string' },
     category: {
       type: 'string',
-      enum: ['Dessert', 'Soupe', 'Plat principal', 'Entrée', 'Bébé'],
+      enum: ['Dessert', 'Soupe', 'Plat principal', 'Entrée', 'Salade', 'Bébé'],
     },
     ingredients: { type: 'array', items: { type: 'string' } },
     instructions: { type: 'array', items: { type: 'string' } },

@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
-const categories = ["Toutes", "Dessert", "Soupe", "Plat principal", "Entrée", "Bébé"] as const;
+const categories = ["Toutes", "Dessert", "Soupe", "Plat principal", "Entrée", "Salade", "Bébé"] as const;
 
 // The public counterpart to /recipes ("Mes Recettes") — every recipe ever
 // croquée by anyone, browsable with no account. Gives a visitor who lands
