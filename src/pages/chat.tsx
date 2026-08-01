@@ -27,12 +27,18 @@ const ChatPage = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [started, setStarted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, isSending]);
+
+  const handleStart = () => {
+    setStarted(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
 
   const sendMessage = async (message: string) => {
     if (!message || isSending) return;
@@ -49,12 +55,12 @@ const ChatPage = () => {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || "Failed to get recommendation");
+        throw new Error(body?.error || "Impossible de contacter l'assistant. Réessaie dans un instant.");
       }
       const { reply, recipes } = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: reply, recipes }]);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de contacter l'assistant.");
+      toast.error(error instanceof Error ? error.message : "Impossible de contacter l'assistant. Réessaie dans un instant.");
     } finally {
       setIsSending(false);
     }
@@ -78,6 +84,17 @@ const ChatPage = () => {
         height="h-[200px] sm:h-[240px] lg:h-[300px]"
       />
 
+      {!started ? (
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-6 -mt-16 relative z-10 bg-neutral-900 text-center px-8">
+          <Sparkles className="w-8 h-8 text-neutral-400" />
+          <p className="text-neutral-300 max-w-sm">
+            Dis-moi ce dont tu as envie, je te propose des recettes déjà croquées par la communauté.
+          </p>
+          <Button type="button" size="lg" onClick={handleStart} className="rounded-full px-8">
+            Lancer la discussion
+          </Button>
+        </div>
+      ) : (
       <div className="flex-1 min-h-0 flex flex-col container mx-auto px-8 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] -mt-8 relative z-10 max-w-2xl">
         <p className="text-center text-muted-foreground mb-8 shrink-0">
           Dis-moi ce dont tu as envie, je te propose des recettes déjà croquées par la communauté.
@@ -151,6 +168,7 @@ const ChatPage = () => {
           </Button>
         </form>
       </div>
+      )}
     </div>
   );
 };
