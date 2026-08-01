@@ -73,8 +73,8 @@ const fromUrl: RequestHandler = async (req, res) => {
       const media = platform === 'tiktok'
         ? await tiktokFetcher.getMediaByUrl(normalizedUrl)
         : await instagramFetcher.getMediaByUrl(normalizedUrl);
-      const transcription = await transcribeVideoFromUrl(media.videoUrl);
-      const interpreted = await interpretRecipe(media.caption, transcription ?? '');
+      const transcription = await transcribeVideoFromUrl(media.videoUrl, req.user?.id);
+      const interpreted = await interpretRecipe(media.caption, transcription ?? '', req.user?.id);
 
       const creator = media.ownerUsername
         ? await prisma.creator.upsert({
@@ -113,6 +113,7 @@ const fromUrl: RequestHandler = async (req, res) => {
           totalTime: interpreted.totalTime,
           servings: interpreted.servings,
           creatorId: creator?.id,
+          createdByUserId: req.user?.id,
         },
         include: { creator: true },
       });
@@ -126,7 +127,7 @@ const fromUrl: RequestHandler = async (req, res) => {
           ingredients: interpreted.ingredients,
           instructions: interpreted.instructions,
         });
-        await storeRecipeEmbedding(recipe.id, await embed(input));
+        await storeRecipeEmbedding(recipe.id, await embed(input, 'recipe_embedding', req.user?.id));
       } catch (error) {
         logError('Error embedding recipe', error);
       }
@@ -174,7 +175,7 @@ const generateRecipeIllustration: RequestHandler<{ id: string }> = async (req, r
     }
 
     try {
-      const { full, thumb } = await generateIllustration(recipe.title, JSON.parse(recipe.ingredients || '[]'));
+      const { full, thumb } = await generateIllustration(recipe.title, JSON.parse(recipe.ingredients || '[]'), req.user?.id);
       await prisma.recipe.update({
         where: { id: recipe.id },
         data: { illustration: full, illustrationThumb: thumb },

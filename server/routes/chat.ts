@@ -4,6 +4,7 @@ import { getOpenAI } from '../lib/openaiClient.js';
 import { logError } from '../lib/logger.js';
 import { embed } from '../lib/embeddings.js';
 import { isAnonymousLimitExceeded, recordAnonymousUsage } from '../lib/rateLimit.js';
+import { logAiUsage } from '../lib/aiUsageLog.js';
 
 const router = Router();
 
@@ -47,7 +48,7 @@ const recommend: RequestHandler = async (req, res) => {
       });
     }
 
-    const queryEmbedding = await embed(message);
+    const queryEmbedding = await embed(message, 'chat_recommend', req.user?.id);
     const vectorLiteral = `[${queryEmbedding.join(',')}]`;
 
     const matches = await prisma.$queryRaw<{ id: string }[]>`
@@ -83,7 +84,8 @@ const recommend: RequestHandler = async (req, res) => {
           content:
             'Tu recommandes des recettes à partir uniquement de la liste fournie — ne jamais inventer ' +
             'de recette, ingrédient ou titre absent de cette liste. Réponds uniquement en français, en ' +
-            "1 à 3 phrases, en expliquant pourquoi ces recettes répondent à la demande de l'utilisateur.",
+            "1 à 3 phrases, en expliquant pourquoi ces recettes répondent à la demande de l'utilisateur. " +
+            "Réponds en texte brut, sans markdown (pas d'astérisques ni de gras).",
         },
         {
           role: 'user',
@@ -97,6 +99,15 @@ const recommend: RequestHandler = async (req, res) => {
               .join('\n'),
         },
       ],
+    });
+
+    await logAiUsage({
+      action: 'chat_recommend',
+      model: CHAT_MODEL,
+      userId: req.user?.id,
+      promptTokens: completion.usage?.prompt_tokens,
+      completionTokens: completion.usage?.completion_tokens,
+      totalTokens: completion.usage?.total_tokens,
     });
 
     const reply = completion.choices[0]?.message?.content || '';

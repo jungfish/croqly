@@ -4,6 +4,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { getOpenAI } from './openaiClient.js';
 import { logError } from './logger.js';
+import { logAiUsage } from './aiUsageLog.js';
 
 ffmpeg.setFfmpegPath(ffmpegPath.path);
 
@@ -32,7 +33,7 @@ function extractAudio(videoPath: string, audioPath: string): Promise<void> {
 // Downloads a video, extracts its audio track, and transcribes it. Reels are
 // short (a couple of minutes at most), so whisper-1 stays the right (cheap)
 // choice — no need for a pricier transcription model.
-export async function transcribeVideoFromUrl(videoUrl: string): Promise<string | null> {
+export async function transcribeVideoFromUrl(videoUrl: string, userId?: string | null): Promise<string | null> {
   const videoPath = `/tmp/video-${Date.now()}.mp4`;
   const audioPath = `/tmp/audio-${Date.now()}.mp3`;
   try {
@@ -48,9 +49,20 @@ export async function transcribeVideoFromUrl(videoUrl: string): Promise<string |
       throw new Error(`Extracted audio still too large for Whisper (${size} bytes)`);
     }
 
+    // verbose_json (vs. the default json) costs nothing extra but includes
+    // `duration`, which is what Whisper is actually billed by — needed for
+    // the /admin usage dashboard's cost estimate.
     const transcription = await getOpenAI().audio.transcriptions.create({
       file: fs.createReadStream(audioPath),
       model: 'whisper-1',
+      response_format: 'verbose_json',
+    });
+
+    await logAiUsage({
+      action: 'recipe_transcription',
+      model: 'whisper-1',
+      userId,
+      audioSeconds: (transcription as { duration?: number }).duration,
     });
 
     return transcription.text;

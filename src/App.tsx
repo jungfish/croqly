@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Index from "@/pages/Index";
 import DecouvrirPage from "@/pages/decouvrir";
 import ChatPage from "@/pages/chat";
@@ -17,11 +17,54 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import InstallPwaBanner from '@/components/InstallPwaBanner';
 import RequireAuth from '@/components/RequireAuth';
+import RequireAdmin from '@/components/RequireAdmin';
+import AdminDashboard from '@/pages/admin';
 import { AuthProvider } from '@/hooks/use-auth';
 import { HeroProvider } from '@/hooks/use-hero';
 import { PwaInstallProvider } from '@/hooks/use-pwa-install';
 
 const queryClient = new QueryClient();
+
+// The chat page manages its own full-viewport scroll region (conversation
+// scrolls, not the page), so it opts out of the sitewide footer that would
+// otherwise sit below the fold and make the whole page scrollable again.
+const FULL_SCREEN_ROUTES = ["/assistant"];
+
+const AppShell = () => {
+  const location = useLocation();
+  const isFullScreen = FULL_SCREEN_ROUTES.includes(location.pathname);
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+      <main className="flex-1">
+        <Routes>
+          {/* Public: anyone can try the product and view/share a recipe without an account */}
+          <Route path="/" element={<Index />} />
+          <Route path="/decouvrir" element={<DecouvrirPage />} />
+          <Route path="/assistant" element={<ChatPage />} />
+          <Route path="/recipe/:id" element={<RecipeView />} />
+          <Route path="/createurs/:platform/:handle" element={<CreatorHub />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          {/* Protected: only "my recipes" needs an identity */}
+          <Route element={<RequireAuth />}>
+            <Route path="/recipes" element={<RecipesList />} />
+            <Route path="/shopping-list" element={<ShoppingListPage />} />
+          </Route>
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+      {!isFullScreen && <Footer />}
+      <Toaster />
+      <Sonner />
+      <InstallPwaBanner />
+    </div>
+  );
+};
 
 const App = () => {
   return (
@@ -30,33 +73,9 @@ const App = () => {
         <TooltipProvider>
           <Router>
             <HeroProvider>
-            <PwaInstallProvider>
-              <div className="min-h-screen flex flex-col bg-background">
-                <Header />
-                <main className="flex-1">
-                  <Routes>
-                    {/* Public: anyone can try the product and view/share a recipe without an account */}
-                    <Route path="/" element={<Index />} />
-                    <Route path="/decouvrir" element={<DecouvrirPage />} />
-                    <Route path="/assistant" element={<ChatPage />} />
-                    <Route path="/recipe/:id" element={<RecipeView />} />
-                    <Route path="/createurs/:platform/:handle" element={<CreatorHub />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    {/* Protected: only "my recipes" needs an identity */}
-                    <Route element={<RequireAuth />}>
-                      <Route path="/recipes" element={<RecipesList />} />
-                      <Route path="/shopping-list" element={<ShoppingListPage />} />
-                    </Route>
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </main>
-                <Footer />
-                <Toaster />
-                <Sonner />
-                <InstallPwaBanner />
-              </div>
-            </PwaInstallProvider>
+              <PwaInstallProvider>
+                <AppShell />
+              </PwaInstallProvider>
             </HeroProvider>
           </Router>
         </TooltipProvider>

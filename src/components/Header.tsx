@@ -15,6 +15,7 @@ import {
   SheetClose,
 } from '@/components/ui/sheet';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
+import { isAdminUser } from '@/lib/admin';
 
 // Below this scroll offset the hero image is still filling the header's
 // backdrop, so the "light" (white) styling stays legible without a
@@ -36,6 +37,7 @@ const Header = () => {
     enabled: !!user,
   });
   const remainingCount = shoppingListItems.filter((item) => !item.checked).length;
+  const showAdminLink = isAdminUser(user);
 
   const showInstall = !isStandalone && (canInstall || isIOS);
   const handleInstallClick = () => {
@@ -95,6 +97,11 @@ const Header = () => {
           </span>
         )}
       </Link>
+      {showAdminLink && (
+        <Link to="/admin" className={linkClass}>
+          Admin
+        </Link>
+      )}
       {user ? (
         <button onClick={() => signOut()} className={linkClass}>
           Déconnexion
@@ -193,6 +200,13 @@ const Header = () => {
                 )}
               </Link>
             </SheetClose>
+            {showAdminLink && (
+              <SheetClose asChild>
+                <Link to="/admin" className="text-lg text-foreground/80 hover:text-foreground">
+                  Admin
+                </Link>
+              </SheetClose>
+            )}
             {user ? (
               <SheetClose asChild>
                 <button onClick={() => signOut()} className="text-lg text-left text-foreground/80 hover:text-foreground">

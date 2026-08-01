@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
+import { isAdminEmail } from '../lib/admin.js';
 
 export interface AuthUser {
   id: string;
@@ -38,6 +39,15 @@ export const attachUser = async (req: Request, _res: Response, next: NextFunctio
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+  next();
+};
+
+// Chain after requireAuth on admin-only routes (see server/routes/admin.ts).
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!isAdminEmail(req.user?.email)) {
+    res.status(403).json({ error: 'Admin access required' });
     return;
   }
   next();

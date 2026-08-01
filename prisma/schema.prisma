@@ -50,6 +50,11 @@ model Recipe {
   savedRecipes        SavedRecipe[]
   creatorId           String?
   creator             Creator?      @relation(fields: [creatorId], references: [id])
+  // Supabase user id of whoever triggered the scrape+AI pipeline that created
+  // this row (see POST /api/recipes/from-url) — null for anonymous imports.
+  // Distinct from SavedRecipe.userId: that tracks who has this recipe in
+  // their own list, not who paid for the AI work that produced it.
+  createdByUserId     String?
   // Semantic-search vector over title+category+ingredients+instructions
   // (OpenAI text-embedding-3-small, 1536 dims). Null until the background
   // embed step (or the backfill script) fills it in — see
@@ -58,6 +63,7 @@ model Recipe {
   embedding           Unsupported("vector(1536)")?
 
   @@index([creatorId])
+  @@index([createdByUserId])
 }
 
 // The Instagram or TikTok account a recipe was scraped from. Nullable link
@@ -108,6 +114,28 @@ model AnonymousProcessingLog {
   createdAt DateTime @default(now())
 
   @@index([ip, createdAt])
+}
+
+// One row per OpenAI call — powers the /admin usage dashboard. `action`
+// identifies the call site (see server/lib/aiUsageLog.ts), not the model.
+// costUsd is computed and frozen at write time from server/lib/aiPricing.ts,
+// so it reflects the rate that actually applied then, even if rates change later.
+model AiUsageLog {
+  id               String   @id @default(cuid())
+  action           String
+  model            String
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  audioSeconds     Float?
+  imageCount       Int?
+  costUsd          Float    @default(0)
+  // Supabase user id, when the triggering request was authenticated — null
+  // for anonymous callers (rate-limited separately, see AnonymousProcessingLog).
+  userId           String?
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // Per-user merged shopping list line. Rows are keyed by (userId, name, unit) so

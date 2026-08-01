@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { attachUser } from './middleware/supabaseAuth.js';
+import { attachUser, requireAuth, requireAdmin } from './middleware/supabaseAuth.js';
 import dbRoutes from './routes/db.js';
 import instagramRoutes from './routes/instagram.js';
 import aiRoutes from './routes/ai.js';
@@ -11,6 +11,7 @@ import recipesRoutes from './routes/recipes.js';
 import creatorsRoutes from './routes/creators.js';
 import shoppingListRoutes from './routes/shoppingList.js';
 import chatRoutes from './routes/chat.js';
+import adminRoutes from './routes/admin.js';
 import { prisma } from './lib/prisma.js';
 import { logError } from './lib/logger.js';
 import { renderSeoHtml } from './lib/renderSeoHtml.js';
@@ -50,6 +51,7 @@ app.use('/api/recipes', recipesRoutes);
 app.use('/api/creators', creatorsRoutes);
 app.use('/api/shopping-list', shoppingListRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
 
 app.get('/api/test', (_req, res) => {
   res.json({ message: 'API is working!' });

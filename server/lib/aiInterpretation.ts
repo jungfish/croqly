@@ -1,5 +1,6 @@
 import { getOpenAI } from './openaiClient.js';
 import { uploadIllustration, IllustrationUrls } from './storage.js';
+import { logAiUsage } from './aiUsageLog.js';
 
 // Cheapest capable tier — extracting a recipe from a short caption/
 // transcription is a pattern-extraction task, not a reasoning-heavy one.
@@ -46,7 +47,11 @@ export interface InterpretedRecipe {
 // Caption + transcription -> structured recipe JSON. The instructions are a
 // fixed prefix and the variable content comes last, so OpenAI's automatic
 // prompt caching applies across calls.
-export async function interpretRecipe(caption: string, transcription: string): Promise<InterpretedRecipe> {
+export async function interpretRecipe(
+  caption: string,
+  transcription: string,
+  userId?: string | null
+): Promise<InterpretedRecipe> {
   const completion = await getOpenAI().chat.completions.create({
     model: TEXT_MODEL,
     response_format: {
@@ -70,6 +75,15 @@ export async function interpretRecipe(caption: string, transcription: string): P
     ],
   });
 
+  await logAiUsage({
+    action: 'recipe_interpret',
+    model: TEXT_MODEL,
+    userId,
+    promptTokens: completion.usage?.prompt_tokens,
+    completionTokens: completion.usage?.completion_tokens,
+    totalTokens: completion.usage?.total_tokens,
+  });
+
   const content = completion.choices[0]?.message?.content;
   if (!content) throw new Error('Empty response from model');
   return JSON.parse(content);
@@ -77,7 +91,11 @@ export async function interpretRecipe(caption: string, transcription: string): P
 
 // Illustration generation only — gpt-image-2 is never used to read/interpret
 // images, only to generate them.
-export async function generateIllustration(title: string, ingredients: string[]): Promise<IllustrationUrls> {
+export async function generateIllustration(
+  title: string,
+  ingredients: string[],
+  userId?: string | null
+): Promise<IllustrationUrls> {
   const prompt = `A retro riso-print style illustration of ${title}, inspired by risograph printing — flat shapes with a soft halftone/grain texture, NO black outlines, 3 layered spot colors only (warm red-orange, fresh green, golden yellow) plus a cream paper background, slight color misregistration for a handmade printed poster feel. Main ingredients visible: ${ingredients.slice(0, 8).join(', ')}, arranged simply in a bowl, centered. Muted, slightly desaturated, textured — like a limited-edition print, not a cartoon. No text. Wide horizontal composition for a banner.`;
 
   const response = await getOpenAI().images.generate({
@@ -87,6 +105,8 @@ export async function generateIllustration(title: string, ingredients: string[])
     size: '1536x1024',
     quality: 'low', // a stylized illustration doesn't need "medium"/"high" — ~8x cheaper than medium
   });
+
+  await logAiUsage({ action: 'recipe_illustration', model: 'gpt-image-2', userId, imageCount: 1 });
 
   const b64 = response.data?.[0]?.b64_json;
   if (!b64) throw new Error('No image returned');

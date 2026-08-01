@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { getOpenAI } from '../lib/openaiClient.js';
 import { interpretRecipe, generateIllustration } from '../lib/aiInterpretation.js';
 import { logError } from '../lib/logger.js';
+import { logAiUsage } from '../lib/aiUsageLog.js';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ const router = Router();
 const interpretHandler: RequestHandler = async (req, res) => {
   try {
     const { caption, transcription } = req.body as { caption?: string; transcription?: string };
-    res.json(await interpretRecipe(caption ?? '', transcription ?? ''));
+    res.json(await interpretRecipe(caption ?? '', transcription ?? '', req.user?.id));
   } catch (error) {
     logError('Error interpreting recipe', error);
     res.status(500).json({ error: 'Failed to interpret recipe' });
@@ -24,7 +25,7 @@ const illustrateHandler: RequestHandler = async (req, res) => {
   try {
     const { title, ingredients } = req.body as { title?: string; ingredients?: string[] };
     if (!title) return res.status(400).json({ error: 'title is required' });
-    const illustrationUrl = await generateIllustration(title, ingredients ?? []);
+    const illustrationUrl = await generateIllustration(title, ingredients ?? [], req.user?.id);
     res.json({ illustrationUrl });
   } catch (error) {
     logError('Error generating recipe illustration', error);
@@ -61,6 +62,16 @@ const performOCR: RequestHandler = async (req, res) => {
     });
 
     await fs.promises.unlink(file.filepath);
+
+    await logAiUsage({
+      action: 'recipe_ocr',
+      model: 'gpt-5.6-luna',
+      userId: req.user?.id,
+      promptTokens: completion.usage?.prompt_tokens,
+      completionTokens: completion.usage?.completion_tokens,
+      totalTokens: completion.usage?.total_tokens,
+    });
+
     res.json({ text: completion.choices[0]?.message?.content || '' });
   } catch (error) {
     logError('Error in OCR processing', error);
