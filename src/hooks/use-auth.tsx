@@ -8,7 +8,7 @@ interface AuthContextValue {
   loading: boolean;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, firstName?: string) => Promise<{ error: string | null }>;
-  signInWithGoogle: () => Promise<{ error: string | null }>;
+  signInWithGoogle: (redirectPath?: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -49,13 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return { error: error?.message ?? null };
     },
-    signInWithGoogle: async () => {
+    signInWithGoogle: async (redirectPath) => {
       // Explicit redirectTo so this lands back on whichever origin the app
       // is actually running on (localhost in dev, the real domain in prod)
-      // instead of Supabase's dashboard-configured Site URL default.
+      // instead of Supabase's dashboard-configured Site URL default, and on
+      // the page the visitor was on rather than always the home page.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: `${window.location.origin}${redirectPath ?? ''}` },
       });
       return { error: error?.message ?? null };
     },

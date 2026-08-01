@@ -92,7 +92,7 @@ const Login = () => {
             variant="outline"
             className="w-full"
             onClick={async () => {
-              const { error } = await signInWithGoogle();
+              const { error } = await signInWithGoogle(from);
               if (error) toast.error(toFriendlyAuthError(error));
             }}
           >
