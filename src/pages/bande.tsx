@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Users, UtensilsCrossed, Share2, Zap } from "lucide-react";
 import RecipeImage from "@/components/RecipeImage";
 import { Button } from "@/components/ui/button";
+import GridCardSkeleton from "@/components/GridCardSkeleton";
 import BandeSwitcher from "@/components/bande/BandeSwitcher";
 import HouseholdPanel from "@/components/bande/HouseholdPanel";
 import CreateOrJoinPanel from "@/components/bande/CreateOrJoinPanel";
@@ -132,7 +133,11 @@ const BandePage = () => {
 
   const selected = households?.find((h) => h.id === selectedId) ?? null;
 
-  const { data: recipes = [], isError: isRecipesError } = useQuery<HouseholdRecipe[]>({
+  const {
+    data: recipes = [],
+    isLoading: recipesLoading,
+    isError: isRecipesError,
+  } = useQuery<HouseholdRecipe[]>({
     queryKey: ["recipes", "household", selectedId],
     queryFn: () => fetchHouseholdRecipes(selectedId!),
     enabled: Boolean(selectedId),
@@ -189,13 +194,21 @@ const BandePage = () => {
               <>
                 <HouseholdPanel household={selected} onLeft={refreshHouseholds} onRenamed={refreshHouseholds} />
 
-                {isRecipesError && (
+                {recipesLoading && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <GridCardSkeleton key={i} imageHeight="h-48" />
+                    ))}
+                  </div>
+                )}
+
+                {!recipesLoading && isRecipesError && (
                   <div className="text-center text-muted-foreground py-8">
                     Impossible de charger les recettes de la bande. Réessaie dans un instant.
                   </div>
                 )}
 
-                {!isRecipesError && recipes.length === 0 && (
+                {!recipesLoading && !isRecipesError && recipes.length === 0 && (
                   <div className="flex flex-col items-center gap-4 text-center py-16 text-muted-foreground">
                     <UtensilsCrossed className="w-10 h-10" />
                     <p>Personne n'a encore ajouté de recette dans cette bande.</p>
@@ -211,7 +224,7 @@ const BandePage = () => {
                   </div>
                 )}
 
-                {recipes.length > 0 && (
+                {!recipesLoading && recipes.length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {recipes.map((recipe) => (
                       <div

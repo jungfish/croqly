@@ -79,6 +79,29 @@ function serializeRecipeRef(savedRecipe: { id: string; recipeId: string; recipe:
   };
 }
 
+// Count of still-open challenges, across every bande the caller belongs to,
+// that they haven't submitted a dressage to yet — powers the nav badge (see
+// AppSidebar.tsx/Header.tsx) that nudges "you owe the bande a photo" without
+// needing to open Laser Croq to notice. Registered before GET /:id below so
+// this literal path isn't swallowed by that param route.
+const getPendingCount: RequestHandler = async (req, res) => {
+  try {
+    const memberships = await prisma.householdMember.findMany({ where: { userId: req.user!.id } });
+    const householdIds = memberships.map((m) => m.householdId);
+    if (householdIds.length === 0) return res.json({ count: 0 });
+
+    const openChallenges = await prisma.platingChallenge.findMany({
+      where: { householdId: { in: householdIds }, endsAt: { gt: new Date() } },
+      select: { submissions: { where: { userId: req.user!.id }, select: { id: true } } },
+    });
+    const count = openChallenges.filter((c) => c.submissions.length === 0).length;
+    res.json({ count });
+  } catch (error) {
+    logError('Error fetching pending plating challenge count', error);
+    res.status(500).json({ error: 'Failed to fetch pending count' });
+  }
+};
+
 // A bande's challenges as cards: open ones first (soonest deadline first),
 // then closed ones (most recently ended first) with their winner — the
 // submission with the most votes, ties broken by earliest submission so the
@@ -421,13 +444,14 @@ const toggleVote: RequestHandler<{ submissionId: string }> = async (req, res) =>
   }
 };
 
-// Toggles one of the caller's 7 fun reactions on a submission. Unlike
-// toggleVote there's no self-reaction ban — reacting to your own dressage
-// is harmless and arguably part of the fun — but the same reveal gate
-// applies: no peeking (or reacting) at someone else's photo before you've
-// shown yours. A caller can stack several different reaction types on the
-// same submission (toggle per type, same shape as Reaction on SavedRecipe).
-const togglePlatingReaction: RequestHandler<{ submissionId: string }> = async (req, res) => {
+// Adds one of the caller's 7 fun reactions to a submission — Google
+// Meet-style: every call adds a new reaction rather than toggling one on/off,
+// so repeat-tapping the same button in the UI just keeps racking up the
+// count instead of cancelling itself out on the second click. No self-
+// reaction ban (unlike toggleVote) — reacting to your own dressage is
+// harmless and part of the fun — but the same reveal gate applies: no
+// peeking (or reacting) at someone else's photo before you've shown yours.
+const addPlatingReaction: RequestHandler<{ submissionId: string }> = async (req, res) => {
   try {
     const { type } = req.body as { type?: string };
     if (!type || !ALLOWED_PLATING_REACTIONS.includes(type as PlatingReactionType)) {
@@ -451,20 +475,13 @@ const togglePlatingReaction: RequestHandler<{ submissionId: string }> = async (r
       if (!myOwnSubmission) return res.status(403).json({ error: 'Envoie ta photo pour débloquer les réactions de ce défi.' });
     }
 
-    const existing = await prisma.platingReaction.findUnique({
-      where: { submissionId_userId_type: { submissionId: submission.id, userId: req.user!.id, type } },
-    });
-    if (existing) {
-      await prisma.platingReaction.delete({ where: { id: existing.id } });
-    } else {
-      await prisma.platingReaction.create({ data: { submissionId: submission.id, userId: req.user!.id, type } });
-    }
+    await prisma.platingReaction.create({ data: { submissionId: submission.id, userId: req.user!.id, type } });
 
     const reactions = await prisma.platingReaction.findMany({ where: { submissionId: submission.id } });
     res.json({ reactions: summarizePlatingReactions(reactions, req.user!.id) });
   } catch (error) {
-    logError('Error toggling plating reaction', error);
-    res.status(500).json({ error: 'Failed to toggle reaction' });
+    logError('Error adding plating reaction', error);
+    res.status(500).json({ error: 'Failed to add reaction' });
   }
 };
 
@@ -579,11 +596,12 @@ const deleteMySubmission: RequestHandler<{ id: string }> = async (req, res) => {
 router.get('/household/:householdId', requireAuth, listChallenges);
 router.get('/household/:householdId/feed', requireAuth, listFeed);
 router.post('/household/:householdId', requireAuth, createChallenge);
+router.get('/pending-count', requireAuth, getPendingCount);
 router.get('/:id', requireAuth, getChallenge);
 router.post('/:id/submissions', requireAuth, submitPlating);
 router.delete('/:id/submissions/mine', requireAuth, deleteMySubmission);
 router.post('/submissions/:submissionId/vote', requireAuth, toggleVote);
-router.post('/submissions/:submissionId/reactions', requireAuth, togglePlatingReaction);
+router.post('/submissions/:submissionId/reactions', requireAuth, addPlatingReaction);
 router.get('/submissions/:submissionId/comments', requireAuth, listComments);
 router.post('/submissions/:submissionId/comments', requireAuth, addComment);
 router.delete('/comments/:commentId', requireAuth, deleteComment);

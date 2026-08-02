@@ -323,10 +323,12 @@ model PlatingComment {
 
 // A fun, purely-expressive reaction on a dressage submission — distinct
 // from PlatingVote (the one "best dressage" crown): everyone in the bande
-// can drop as many of the 7 curated types as they like on the same photo
-// (toggle per type, like Reaction on SavedRecipe), and the client replays
-// them all as an animated burst whenever the card comes into view — see
-// ALLOWED_PLATING_REACTIONS in server/routes/platingChallenges.ts.
+// can spam as many of the 7 curated types as they like on the same photo,
+// Google Meet-style — every click adds a new row rather than toggling one
+// on/off, so repeat-tapping the same reaction keeps racking up the count.
+// The client replays them all as an animated burst whenever the card comes
+// into view — see ALLOWED_PLATING_REACTIONS in
+// server/routes/platingChallenges.ts.
 model PlatingReaction {
   id           String            @id @default(cuid())
   submissionId String
@@ -335,6 +337,5 @@ model PlatingReaction {
   type         String
   createdAt    DateTime          @default(now())
 
-  @@unique([submissionId, userId, type])
   @@index([submissionId])
 }

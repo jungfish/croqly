@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Camera, Check, Crown, MessageCircle, Plus, Trophy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import GridCardSkeleton from "@/components/GridCardSkeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import BandeSwitcher from "@/components/bande/BandeSwitcher";
 import ReactionBurst from "@/components/ReactionBurst";
@@ -253,50 +254,52 @@ const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
   const [ref, inView] = useInViewOnce<HTMLAnchorElement>();
 
   return (
-    <Link
-      ref={ref}
-      to={`/laser-croq/${challenge.id}`}
-      className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border block"
-    >
-      <div className="h-36 overflow-hidden relative bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 flex items-center justify-center">
-        {challenge.recipe?.thumb ? (
-          <img
-            src={challenge.recipe.thumb}
-            alt=""
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <Camera className="w-10 h-10 text-primary/50" />
-        )}
-        <span
-          className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm ${
-            challenge.isOpen ? "bg-primary text-primary-foreground" : "bg-foreground/80 text-background"
-          }`}
-        >
-          {challenge.isOpen ? timeLeftLabel(challenge.endsAt) : "Terminé"}
-        </span>
-        {challenge.hasSubmittedByMe && challenge.isOpen && (
-          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-background/90 text-foreground text-xs font-semibold shadow-sm flex items-center gap-1">
-            <Check className="w-3 h-3" /> Envoyé
+    <div className={challenge.winner && inView ? "laser-ring rounded-xl" : ""}>
+      <Link
+        ref={ref}
+        to={`/laser-croq/${challenge.id}`}
+        className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border block"
+      >
+        <div className="h-36 overflow-hidden relative bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 flex items-center justify-center">
+          {challenge.recipe?.thumb ? (
+            <img
+              src={challenge.recipe.thumb}
+              alt=""
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <Camera className="w-10 h-10 text-primary/50" />
+          )}
+          <span
+            className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm ${
+              challenge.isOpen ? "bg-primary text-primary-foreground" : "bg-foreground/80 text-background"
+            }`}
+          >
+            {challenge.isOpen ? timeLeftLabel(challenge.endsAt) : "Terminé"}
           </span>
-        )}
-      </div>
-      <div className="p-4">
-        <h3 className="font-display font-semibold text-foreground mb-1 truncate">{challenge.title}</h3>
-        {challenge.recipe && <p className="text-xs text-muted-foreground truncate mb-2">{challenge.recipe.title}</p>}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            {challenge.submissionsCount} dressage{challenge.submissionsCount > 1 ? "s" : ""}
-          </span>
-          {challenge.winner && (
-            <span className={`flex items-center gap-1 font-medium text-foreground ${inView ? "winner-pop" : "opacity-0"}`}>
-              <Trophy className="w-3.5 h-3.5 text-yolk" />
-              {memberLabel(challenge.winner.email, false)}
+          {challenge.hasSubmittedByMe && challenge.isOpen && (
+            <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-background/90 text-foreground text-xs font-semibold shadow-sm flex items-center gap-1">
+              <Check className="w-3 h-3" /> Envoyé
             </span>
           )}
         </div>
-      </div>
-    </Link>
+        <div className="p-4">
+          <h3 className="font-display font-semibold text-foreground mb-1 truncate">{challenge.title}</h3>
+          {challenge.recipe && <p className="text-xs text-muted-foreground truncate mb-2">{challenge.recipe.title}</p>}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {challenge.submissionsCount} dressage{challenge.submissionsCount > 1 ? "s" : ""}
+            </span>
+            {challenge.winner && (
+              <span className={`flex items-center gap-1 font-medium text-foreground ${inView ? "winner-pop" : "opacity-0"}`}>
+                <Trophy className="w-3.5 h-3.5 text-yolk" />
+                {memberLabel(challenge.winner.email, false)}
+              </span>
+            )}
+          </div>
+        </div>
+      </Link>
+    </div>
   );
 };
 
@@ -396,13 +399,13 @@ const LaserCroqPage = () => {
     [selectedId, households]
   );
 
-  const { data: challenges = [] } = useQuery<PlatingChallengeCard[]>({
+  const { data: challenges = [], isLoading: challengesLoading } = useQuery<PlatingChallengeCard[]>({
     queryKey: ["laser-croq", "challenges", activeId],
     queryFn: () => fetchChallenges(activeId!),
     enabled: Boolean(activeId),
   });
 
-  const { data: feed = [] } = useQuery<PlatingFeedItem[]>({
+  const { data: feed = [], isLoading: feedLoading } = useQuery<PlatingFeedItem[]>({
     queryKey: ["laser-croq", "feed", activeId],
     queryFn: () => fetchDressageFeed(activeId!),
     enabled: Boolean(activeId),
@@ -455,7 +458,13 @@ const LaserCroqPage = () => {
               <NewChallengeSheet householdId={activeId} onCreated={() => queryClient.invalidateQueries({ queryKey: ["laser-croq", "challenges", activeId] })} />
             </div>
 
-            {challenges.length === 0 ? (
+            {challengesLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <GridCardSkeleton key={i} imageHeight="h-36" />
+                ))}
+              </div>
+            ) : challenges.length === 0 ? (
               <div className="text-center text-muted-foreground py-8 mb-8">Aucun défi pour l'instant — lance le premier !</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
@@ -466,7 +475,13 @@ const LaserCroqPage = () => {
             )}
 
             <h2 className="font-display text-xl font-semibold text-foreground mb-4">Feed des dressages</h2>
-            {feed.length === 0 ? (
+            {feedLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <GridCardSkeleton key={i} imageHeight="h-48" />
+                ))}
+              </div>
+            ) : feed.length === 0 ? (
               <div className="text-center text-muted-foreground py-12">
                 <Camera className="w-10 h-10 mx-auto mb-3" />
                 Aucun dressage réalisé pour l'instant.

@@ -9,6 +9,7 @@ import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
 import { fetchMyHouseholds, shareInviteLink, type Household } from '@/services/householdService';
+import { fetchPendingChallengeCount } from '@/services/platingChallengeService';
 import { isAdminUser } from '@/lib/admin';
 
 const NAV_ITEMS = [
@@ -17,7 +18,6 @@ const NAV_ITEMS = [
   { to: '/assistant', label: 'Croq', icon: MessageCircle, badge: 'IA' },
   { to: '/recipes', label: 'Mes Recettes', icon: BookOpen },
   { to: '/bande', label: 'Bande', icon: Users },
-  { to: '/laser-croq', label: 'Laser Croq', icon: Zap },
 ];
 
 // Desktop-only app shell nav (Notion/Linear style) shown once a session
@@ -39,6 +39,15 @@ const AppSidebar = () => {
   const { data: households = [] } = useQuery<Household[]>({
     queryKey: ['households'],
     queryFn: fetchMyHouseholds,
+    enabled: !!user,
+  });
+
+  // Number of open Laser Croq défis the caller hasn't submitted a dressage
+  // to yet, across every bande they're in — surfaced as a badge so "you owe
+  // the bande a photo" is visible without opening Laser Croq to check.
+  const { data: pendingChallengeCount = 0 } = useQuery<number>({
+    queryKey: ['laser-croq', 'pending-count'],
+    queryFn: fetchPendingChallengeCount,
     enabled: !!user,
   });
 
@@ -125,6 +134,17 @@ const AppSidebar = () => {
             )}
           </Link>
         ))}
+        <Link to="/laser-croq" className={`${linkClass('/laser-croq')} justify-between`}>
+          <span className="flex items-center gap-3">
+            <Zap className="w-4 h-4 shrink-0" />
+            Laser Croq
+          </span>
+          {pendingChallengeCount > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold animate-pulse">
+              {pendingChallengeCount}
+            </span>
+          )}
+        </Link>
         <Link to="/shopping-list" className={`${linkClass('/shopping-list')} justify-between`}>
           <span className="flex items-center gap-3">
             <ShoppingCart className="w-4 h-4 shrink-0" />

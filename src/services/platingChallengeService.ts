@@ -113,6 +113,15 @@ async function parseErrorOr(response: Response, fallback: string): Promise<never
   throw new Error(body.error || fallback);
 }
 
+// Count of still-open challenges (across every bande the caller is in) they
+// haven't submitted a dressage to yet — drives the nav badge.
+export async function fetchPendingChallengeCount(): Promise<number> {
+  const response = await authFetch('/api/plating-challenges/pending-count');
+  if (!response.ok) return parseErrorOr(response, 'Failed to fetch pending challenge count');
+  const { count } = await response.json();
+  return count;
+}
+
 export async function fetchChallenges(householdId: string): Promise<PlatingChallengeCard[]> {
   const response = await authFetch(`/api/plating-challenges/household/${householdId}`);
   if (!response.ok) return parseErrorOr(response, 'Failed to fetch plating challenges');
@@ -171,13 +180,17 @@ export async function toggleVote(submissionId: string): Promise<{ votesCount: nu
   return response.json();
 }
 
-export async function togglePlatingReaction(submissionId: string, type: PlatingReactionType): Promise<PlatingReactionSummary[]> {
+// Google Meet-style: every call adds a reaction, it never removes one — see
+// addPlatingReaction in server/routes/platingChallenges.ts. Callers should
+// fire this once per click/tap without waiting for the response, so rapid
+// repeat taps all land instead of getting stuck behind a pending request.
+export async function sendPlatingReaction(submissionId: string, type: PlatingReactionType): Promise<PlatingReactionSummary[]> {
   const response = await authFetch(`/api/plating-challenges/submissions/${submissionId}/reactions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type }),
   });
-  if (!response.ok) return parseErrorOr(response, 'Failed to toggle reaction');
+  if (!response.ok) return parseErrorOr(response, 'Failed to add reaction');
   const { reactions } = await response.json();
   return reactions;
 }

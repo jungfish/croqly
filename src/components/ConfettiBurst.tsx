@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 const COLORS = ["bg-crunch", "bg-basil", "bg-yolk", "bg-primary", "bg-secondary"];
-const PIECE_COUNT = 24;
+const PIECE_COUNT = 48;
 
 // Hand-rolled confetti burst (no canvas/animation dependency, just a
 // handful of absolutely-positioned divs falling via the confetti-fall
@@ -31,7 +31,7 @@ const ConfettiBurst = () => {
       {pieces.map((piece) => (
         <span
           key={piece.id}
-          className={`confetti-piece w-2 h-2 ${piece.color} ${piece.rounded ? "rounded-full" : "rounded-sm"}`}
+          className={`confetti-piece w-3.5 h-3.5 ${piece.color} ${piece.rounded ? "rounded-full" : "rounded-sm"}`}
           style={
             {
               "--confetti-left": piece.left,

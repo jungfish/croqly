@@ -2,7 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Camera, Crown, Lock, MessageCircle, Send, Trash2, Trophy, Zap } from "lucide-react";
+import {
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Crown,
+  LayoutGrid,
+  Layers,
+  Lock,
+  MessageCircle,
+  Send,
+  Trash2,
+  Trophy,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ConfettiBurst from "@/components/ConfettiBurst";
@@ -38,7 +51,15 @@ function timeLeftLabel(endsAt: string): string {
 // The submit/replace form for the caller's own dressage — shown instead of
 // a locked/revealed card in the grid, in the slot where their submission
 // will eventually sit once sent.
-const SubmitForm = ({ challengeId, onSubmitted }: { challengeId: string; onSubmitted: () => void }) => {
+const SubmitForm = ({
+  challengeId,
+  onSubmitted,
+  large,
+}: {
+  challengeId: string;
+  onSubmitted: () => void;
+  large?: boolean;
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -72,13 +93,15 @@ const SubmitForm = ({ challengeId, onSubmitted }: { challengeId: string; onSubmi
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="h-40 rounded-lg overflow-hidden bg-card/70 border border-border flex items-center justify-center hover:bg-muted transition-colors"
+        className={`rounded-lg overflow-hidden bg-card/70 border border-border flex items-center justify-center hover:bg-muted transition-colors ${
+          large ? "h-[24rem] sm:h-[30rem]" : "h-40"
+        }`}
       >
         {preview ? (
           <img src={preview} alt="Aperçu" className="w-full h-full object-cover" />
         ) : (
           <span className="flex flex-col items-center gap-2 text-muted-foreground text-sm">
-            <Camera className="w-8 h-8" />
+            <Camera className={large ? "w-12 h-12" : "w-8 h-8"} />
             Prendre ou choisir une photo
           </span>
         )}
@@ -152,7 +175,15 @@ const Comments = ({ submissionId }: { submissionId: string }) => {
   );
 };
 
-const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmission; showConfetti: boolean }) => {
+const SubmissionCard = ({
+  submission,
+  showConfetti,
+  large,
+}: {
+  submission: PlatingSubmission;
+  showConfetti: boolean;
+  large?: boolean;
+}) => {
   const queryClient = useQueryClient();
   const [voting, setVoting] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -169,9 +200,13 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
 
   if (submission.locked) {
     return (
-      <div className="relative rounded-xl overflow-hidden border border-border bg-muted h-56 flex flex-col items-center justify-center text-center p-4 text-muted-foreground">
-        <Lock className="w-6 h-6 mb-2" />
-        <p className="text-sm">Envoie ta photo pour débloquer les dressages de la bande.</p>
+      <div
+        className={`relative rounded-xl overflow-hidden border border-border bg-muted flex flex-col items-center justify-center text-center p-4 text-muted-foreground ${
+          large ? "h-[28rem] sm:h-[34rem]" : "h-56"
+        }`}
+      >
+        <Lock className={large ? "w-10 h-10 mb-3" : "w-6 h-6 mb-2"} />
+        <p className={large ? "text-base" : "text-sm"}>Envoie ta photo pour débloquer les dressages de la bande.</p>
       </div>
     );
   }
@@ -192,53 +227,149 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
   };
 
   return (
-    <div ref={ref} className="relative rounded-xl overflow-hidden border border-border bg-card/70 backdrop-blur-sm shadow-sm">
-      <div className="h-56 overflow-hidden relative">
-        <img src={submission.photoUrl} alt={submission.caption ?? ""} className="w-full h-full object-cover" />
-        {showConfetti && inView && <ConfettiBurst key={`confetti-${burstKey}`} />}
-        <ReactionBurst key={`reactions-${burstKey}`} reactions={reactions} />
-      </div>
-      <div className="p-3">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className="text-sm font-medium text-foreground">{memberLabel(submission.email, submission.isMine)}</span>
-          {showConfetti && (
-            <span className={`inline-flex items-center gap-1 text-xs font-semibold text-yolk-deep ${inView ? "winner-pop" : "opacity-0"}`}>
-              <Trophy className="w-3.5 h-3.5" /> Gagnant
+    <div className={showConfetti && inView ? "laser-ring rounded-xl" : ""}>
+      <div
+        ref={ref}
+        className={`relative rounded-xl overflow-hidden border border-border bg-card/70 backdrop-blur-sm shadow-sm ${large ? "shadow-xl" : ""}`}
+      >
+        <div className={`overflow-hidden relative ${large ? "h-[28rem] sm:h-[34rem]" : "h-56"}`}>
+          <img src={submission.photoUrl} alt={submission.caption ?? ""} className="w-full h-full object-cover" />
+          {showConfetti && inView && <ConfettiBurst key={`confetti-${burstKey}`} />}
+          <ReactionBurst key={`reactions-${burstKey}`} reactions={reactions} />
+        </div>
+        <div className={large ? "p-4" : "p-3"}>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className={`font-medium text-foreground ${large ? "text-base" : "text-sm"}`}>
+              {memberLabel(submission.email, submission.isMine)}
             </span>
-          )}
+            {showConfetti && (
+              <span
+                className={`inline-flex items-center gap-1 font-semibold text-yolk-deep ${large ? "text-sm" : "text-xs"} ${
+                  inView ? "winner-pop" : "opacity-0"
+                }`}
+              >
+                <Trophy className={large ? "w-4 h-4" : "w-3.5 h-3.5"} /> Gagnant
+              </span>
+            )}
+          </div>
+          {submission.caption && <p className={`text-muted-foreground mb-2 ${large ? "text-base" : "text-sm"}`}>{submission.caption}</p>}
+          <div className="flex items-center gap-3 mb-2">
+            <button
+              onClick={handleVote}
+              disabled={submission.isMine || voting}
+              title={submission.isMine ? "Tu ne peux pas voter pour ton propre dressage" : "Couronner ce dressage"}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors ${
+                submission.votedByMe
+                  ? "bg-yolk/20 border-yolk text-yolk-deep"
+                  : "bg-card border-border text-foreground hover:bg-muted disabled:opacity-50"
+              }`}
+            >
+              <Crown className="w-3.5 h-3.5" />
+              {submission.votesCount}
+            </button>
+            <button
+              onClick={() => setCommentsOpen((prev) => !prev)}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              {submission.commentsCount}
+            </button>
+          </div>
+          <PlatingReactionBar
+            submissionId={submission.id}
+            reactions={reactions}
+            onChange={(updated) => {
+              setReactions(updated);
+              setBurstKey((k) => k + 1);
+            }}
+          />
+          {commentsOpen && <Comments submissionId={submission.id} />}
         </div>
-        {submission.caption && <p className="text-sm text-muted-foreground mb-2">{submission.caption}</p>}
-        <div className="flex items-center gap-3 mb-2">
-          <button
-            onClick={handleVote}
-            disabled={submission.isMine || voting}
-            title={submission.isMine ? "Tu ne peux pas voter pour ton propre dressage" : "Couronner ce dressage"}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors ${
-              submission.votedByMe
-                ? "bg-yolk/20 border-yolk text-yolk-deep"
-                : "bg-card border-border text-foreground hover:bg-muted disabled:opacity-50"
-            }`}
-          >
-            <Crown className="w-3.5 h-3.5" />
-            {submission.votesCount}
-          </button>
-          <button
-            onClick={() => setCommentsOpen((prev) => !prev)}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            {submission.commentsCount}
-          </button>
+      </div>
+    </div>
+  );
+};
+
+// Drag distance (px) past which releasing counts as a swipe rather than a
+// tap-and-cancel — tuned loose enough that a quick flick registers, tight
+// enough that clicking a button inside the card doesn't accidentally
+// trigger navigation.
+const SWIPE_THRESHOLD = 90;
+
+// Tinder-style "one dressage at a time" browser — the default way to go
+// through a défi's submissions: bigger, more focused, and closer to how the
+// bande actually wants to savor each other's plating one at a time instead
+// of scanning a grid. Swipe (or use the arrows) to move between slides;
+// dragging past SWIPE_THRESHOLD advances, otherwise the card springs back.
+const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[] }) => {
+  const [index, setIndex] = useState(0);
+  const [dragX, setDragX] = useState(0);
+  const draggingRef = useRef(false);
+  const startXRef = useRef(0);
+
+  const clamped = Math.max(0, Math.min(index, slides.length - 1));
+
+  const goTo = (next: number) => setIndex(Math.max(0, Math.min(slides.length - 1, next)));
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    draggingRef.current = true;
+    startXRef.current = e.clientX;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    setDragX(e.clientX - startXRef.current);
+  };
+  const endDrag = () => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    if (dragX <= -SWIPE_THRESHOLD) goTo(clamped + 1);
+    else if (dragX >= SWIPE_THRESHOLD) goTo(clamped - 1);
+    setDragX(0);
+  };
+
+  if (slides.length === 0) return null;
+
+  return (
+    <div className="max-w-md mx-auto">
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        style={{
+          transform: `translateX(${dragX}px) rotate(${dragX / 24}deg)`,
+          transition: dragX === 0 ? "transform 0.25s ease" : "none",
+          touchAction: "pan-y",
+        }}
+      >
+        {slides[clamped].node}
+      </div>
+
+      <div className="flex items-center justify-center gap-4 mt-5">
+        <button
+          type="button"
+          onClick={() => goTo(clamped - 1)}
+          disabled={clamped === 0}
+          aria-label="Dressage précédent"
+          className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-1.5">
+          {slides.map((slide, i) => (
+            <span key={slide.key} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === clamped ? "bg-primary" : "bg-border"}`} />
+          ))}
         </div>
-        <PlatingReactionBar
-          submissionId={submission.id}
-          reactions={reactions}
-          onChange={(updated) => {
-            setReactions(updated);
-            setBurstKey((k) => k + 1);
-          }}
-        />
-        {commentsOpen && <Comments submissionId={submission.id} />}
+        <button
+          type="button"
+          onClick={() => goTo(clamped + 1)}
+          disabled={clamped === slides.length - 1}
+          aria-label="Dressage suivant"
+          className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );
@@ -247,6 +378,7 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
 const ChallengeDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const [viewMode, setViewMode] = useState<"focus" | "grid">("focus");
 
   const { data: challenge, isLoading, isError } = useQuery<PlatingChallengeDetail>({
     queryKey: ["laser-croq", "challenge", id],
@@ -319,18 +451,67 @@ const ChallengeDetailPage = () => {
           </Link>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {!challenge.hasSubmittedByMe && challenge.isOpen && (
-            <SubmitForm challengeId={challenge.id} onSubmitted={refresh} />
-          )}
-          {challenge.submissions.map((submission) => (
-            <SubmissionCard
-              key={submission.id}
-              submission={submission}
-              showConfetti={!challenge.isOpen && submission.id === topVotedId && !submission.locked && submission.votesCount > 0}
-            />
-          ))}
-        </div>
+        {(challenge.submissions.length > 0 || (!challenge.hasSubmittedByMe && challenge.isOpen)) && (
+          <div className="flex justify-end mb-4">
+            <div className="inline-flex rounded-lg border border-border p-0.5 gap-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("focus")}
+                aria-label="Mode focus"
+                title="Mode focus — un dressage à la fois"
+                className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors ${
+                  viewMode === "focus" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                aria-label="Mode grille"
+                title="Mode grille — tout voir d'un coup"
+                className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors ${
+                  viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {viewMode === "focus" ? (
+          <FocusDeck
+            slides={[
+              ...(!challenge.hasSubmittedByMe && challenge.isOpen
+                ? [{ key: "submit-form", node: <SubmitForm challengeId={challenge.id} onSubmitted={refresh} large /> }]
+                : []),
+              ...challenge.submissions.map((submission) => ({
+                key: submission.id,
+                node: (
+                  <SubmissionCard
+                    submission={submission}
+                    showConfetti={!challenge.isOpen && submission.id === topVotedId && !submission.locked && submission.votesCount > 0}
+                    large
+                  />
+                ),
+              })),
+            ]}
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {!challenge.hasSubmittedByMe && challenge.isOpen && (
+              <SubmitForm challengeId={challenge.id} onSubmitted={refresh} />
+            )}
+            {challenge.submissions.map((submission) => (
+              <SubmissionCard
+                key={submission.id}
+                submission={submission}
+                showConfetti={!challenge.isOpen && submission.id === topVotedId && !submission.locked && submission.votesCount > 0}
+              />
+            ))}
+          </div>
+        )}
 
         {challenge.submissions.length === 0 && challenge.hasSubmittedByMe === false && !challenge.isOpen && (
           <p className="text-center text-muted-foreground py-12">Ce défi s'est terminé sans aucun dressage envoyé.</p>

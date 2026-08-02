@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { PLATING_REACTIONS, type PlatingReactionSummary } from "@/services/platingChallengeService";
 
-// Caps how many pieces a single reaction type spawns — with a lively bande
-// leaving 10+ of the same reaction, animating all of them would just be
-// visual noise; 3 already reads as "lots of people did this".
-const MAX_PIECES_PER_TYPE = 3;
+// Caps how many pieces a single reaction type spawns — with a very lively
+// bande leaving dozens of the same reaction, animating literally all of
+// them would stutter the browser; 8 is already a proper flood.
+const MAX_PIECES_PER_TYPE = 8;
 
 // Replays every reaction left on a dressage as a burst of floating emoji —
 // see the plating-reaction-float keyframe in index.css. Meant to be
@@ -24,11 +24,11 @@ const ReactionBurst = ({ reactions }: { reactions: PlatingReactionSummary[] }) =
     return items.map((item, index) => ({
       ...item,
       left: `${10 + Math.random() * 80}%`,
-      drift: `${(Math.random() - 0.5) * 50}px`,
-      wobble: `${-12 + Math.random() * 24}deg`,
-      size: `${1.4 + Math.random() * 0.7}rem`,
-      duration: `${1.4 + Math.random() * 0.6}s`,
-      delay: `${index * 0.07}s`,
+      drift: `${(Math.random() - 0.5) * 70}px`,
+      wobble: `${-14 + Math.random() * 28}deg`,
+      size: `${2.4 + Math.random() * 1.4}rem`,
+      duration: `${1.5 + Math.random() * 0.7}s`,
+      delay: `${index * 0.06}s`,
     }));
   }, [reactions]);
 

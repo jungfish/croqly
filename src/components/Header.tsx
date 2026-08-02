@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sheet';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
 import { fetchMyHouseholds, shareInviteLink, type Household } from '@/services/householdService';
+import { fetchPendingChallengeCount } from '@/services/platingChallengeService';
 import { isAdminUser } from '@/lib/admin';
 
 // Below this scroll offset the hero image is still filling the header's
@@ -45,6 +46,14 @@ const Header = () => {
   const { data: households = [] } = useQuery<Household[]>({
     queryKey: ['households'],
     queryFn: fetchMyHouseholds,
+    enabled: !!user,
+  });
+
+  // Same nudge as AppSidebar.tsx: open défis the caller hasn't sent a
+  // dressage to yet, across every bande they're in.
+  const { data: pendingChallengeCount = 0 } = useQuery<number>({
+    queryKey: ['laser-croq', 'pending-count'],
+    queryFn: fetchPendingChallengeCount,
     enabled: !!user,
   });
 
@@ -243,8 +252,16 @@ const Header = () => {
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link to="/laser-croq" className="text-lg text-foreground/80 hover:text-foreground">
+                  <Link to="/laser-croq" className="text-lg text-foreground/80 hover:text-foreground inline-flex items-center gap-2">
                     Laser Croq
+                    {pendingChallengeCount > 0 && (
+                      <span
+                        className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold animate-pulse"
+                        aria-label={`${pendingChallengeCount} défi${pendingChallengeCount > 1 ? "s" : ""} en attente de ta réponse`}
+                      >
+                        {pendingChallengeCount}
+                      </span>
+                    )}
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>

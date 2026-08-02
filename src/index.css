@@ -201,3 +201,40 @@
   animation: winner-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+/* "Laser Croq" winner ring — a spinning conic-gradient beam traced around
+   the winning dressage's photo, on-brand with the app's name/Zap icon.
+   Built with the mask-composite border trick (a ::before slightly larger
+   than the card, masked down to just its edge) rather than an actual
+   border, so the beam can rotate independently of the card's content. */
+@keyframes laser-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.laser-ring {
+  position: relative;
+  isolation: isolate;
+}
+.laser-ring::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  z-index: 20;
+  border-radius: inherit;
+  padding: 3px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    hsl(var(--primary)) 25deg,
+    #fff 40deg,
+    hsl(var(--primary)) 55deg,
+    transparent 90deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: laser-spin 2.2s linear infinite;
+  pointer-events: none;
+}
+
