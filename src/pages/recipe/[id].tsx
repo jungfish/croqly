@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Recipe, Creator } from '@/types/recipe';
-import { UtensilsCrossed, ListOrdered, Clock, Instagram, Music2, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart, Volume2, Pause, Square } from 'lucide-react';
+import { UtensilsCrossed, ListOrdered, Clock, Instagram, Music2, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import ParallaxHero from '@/components/ParallaxHero';
 import InstagramEmbed from '@/components/InstagramEmbed';
@@ -26,10 +26,6 @@ const RecipePage = () => {
   const [servingMultiplier, setServingMultiplier] = useState(1);
   const [saved, setSaved] = useState(false);
   const [addingToList, setAddingToList] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const [speakingStepIndex, setSpeakingStepIndex] = useState<number | null>(null);
-  const speechSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
   const { data: recipe, isLoading: loading, isError } = useQuery<Recipe>({
     // A recipe just created via processRecipeFromUrl is pre-populated under
@@ -172,69 +168,6 @@ const RecipePage = () => {
       toast.error("Impossible d'ajouter ces ingrédients. Réessaie dans un instant.");
     } finally {
       setAddingToList(false);
-    }
-  };
-
-  const stopReading = () => {
-    if (!speechSupported) return;
-    window.speechSynthesis.cancel();
-    setSpeaking(false);
-    setPaused(false);
-    setSpeakingStepIndex(null);
-  };
-
-  // Stop any in-progress reading when the recipe changes or the page
-  // unmounts — speechSynthesis otherwise keeps talking over the next page.
-  useEffect(() => {
-    return () => {
-      if (speechSupported) window.speechSynthesis.cancel();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipe?.id]);
-
-  const readInstructionsAloud = () => {
-    if (!speechSupported || !recipe) return;
-    window.speechSynthesis.cancel();
-
-    const voices = window.speechSynthesis.getVoices();
-    const frenchVoice = voices.find((v) => v.lang === 'fr-FR') || voices.find((v) => v.lang.startsWith('fr'));
-
-    const speakStep = (index: number) => {
-      if (index >= recipe.instructions.length) {
-        setSpeaking(false);
-        setPaused(false);
-        setSpeakingStepIndex(null);
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(recipe.instructions[index]);
-      utterance.lang = 'fr-FR';
-      if (frenchVoice) utterance.voice = frenchVoice;
-      utterance.onstart = () => setSpeakingStepIndex(index);
-      utterance.onend = () => speakStep(index + 1);
-      utterance.onerror = () => {
-        setSpeaking(false);
-        setPaused(false);
-        setSpeakingStepIndex(null);
-      };
-      window.speechSynthesis.speak(utterance);
-    };
-
-    setSpeaking(true);
-    setPaused(false);
-    speakStep(0);
-  };
-
-  const handleToggleReading = () => {
-    if (!speaking) {
-      readInstructionsAloud();
-      return;
-    }
-    if (paused) {
-      window.speechSynthesis.resume();
-      setPaused(false);
-    } else {
-      window.speechSynthesis.pause();
-      setPaused(true);
     }
   };
 
@@ -533,56 +466,13 @@ const RecipePage = () => {
             </div>
 
             <div className="mb-8 p-6 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-lg">
-              <div className="flex items-center justify-between gap-2 mb-4">
-                <div className="flex items-center gap-2">
-                  <ListOrdered className="w-6 h-6 text-foreground" />
-                  <h2 className="text-xl font-display font-semibold text-foreground">Comment tu fais</h2>
-                </div>
-                {speechSupported && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    {speaking && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={stopReading}
-                        aria-label="Arrêter la lecture"
-                      >
-                        <Square className="w-4 h-4" />
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant={speaking ? 'default' : 'outline'}
-                      onClick={handleToggleReading}
-                      className="gap-2"
-                      aria-label={!speaking ? 'Écouter la recette' : paused ? 'Reprendre la lecture' : 'Mettre en pause la lecture'}
-                    >
-                      {speaking && !paused ? <Pause className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                      <span className="hidden sm:inline">
-                        {!speaking ? 'Écouter la recette' : paused ? 'Reprendre' : 'Pause'}
-                      </span>
-                    </Button>
-                  </div>
-                )}
+              <div className="flex items-center gap-2 mb-4">
+                <ListOrdered className="w-6 h-6 text-foreground" />
+                <h2 className="text-xl font-display font-semibold text-foreground">Comment tu fais</h2>
               </div>
-              <ol className="list-none space-y-2 text-muted-foreground">
+              <ol className="list-decimal pl-5 space-y-3 text-muted-foreground">
                 {recipe.instructions.map((step, index) => (
-                  <li
-                    key={index}
-                    className={`flex items-start gap-3 rounded-lg p-3 -mx-3 transition-colors ${
-                      speakingStepIndex === index ? 'bg-primary/10 text-foreground ring-1 ring-primary/30' : ''
-                    }`}
-                  >
-                    <span
-                      className={`flex items-center justify-center shrink-0 w-7 h-7 rounded-full text-sm font-medium mt-0.5 ${
-                        speakingStepIndex === index ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                      }`}
-                      aria-hidden="true"
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="leading-relaxed pt-0.5">{step}</span>
-                  </li>
+                  <li key={index} className="leading-relaxed">{step}</li>
                 ))}
               </ol>
             </div>
