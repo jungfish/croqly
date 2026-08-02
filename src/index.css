@@ -68,6 +68,13 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Reserves the scrollbar's width up front so content that loads in below
+       the fold (or the sidebar toggling on auth resolving) can't narrow the
+       page after the fact — a late narrowing squishes Instagram's embedded
+       widget, which sizes itself once against whatever width it sees. */
+    scrollbar-gutter: stable;
+  }
   body {
     @apply bg-background text-foreground font-sans;
   }

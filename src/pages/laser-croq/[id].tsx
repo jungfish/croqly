@@ -312,6 +312,13 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
   const goTo = (next: number) => setIndex(Math.max(0, Math.min(slides.length - 1, next)));
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Don't hijack presses that started on an actual control (vote, react,
+    // comment, file picker...) — capturing the pointer on the deck wrapper
+    // in those cases was swallowing the button's own click on desktop (the
+    // browser suppresses the synthesized click once an ancestor captures
+    // the pointer on mousedown; touch's tap-to-click path isn't affected the
+    // same way, which is why this only broke on desktop).
+    if ((e.target as HTMLElement).closest("button, a, input, textarea")) return;
     draggingRef.current = true;
     startXRef.current = e.clientX;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -491,7 +498,7 @@ const ChallengeDetailPage = () => {
                 node: (
                   <SubmissionCard
                     submission={submission}
-                    showConfetti={!challenge.isOpen && submission.id === topVotedId && !submission.locked && submission.votesCount > 0}
+                    showConfetti={!challenge.isOpen && submission.id === topVotedId && !submission.locked}
                     large
                   />
                 ),
@@ -507,7 +514,7 @@ const ChallengeDetailPage = () => {
               <SubmissionCard
                 key={submission.id}
                 submission={submission}
-                showConfetti={!challenge.isOpen && submission.id === topVotedId && !submission.locked && submission.votesCount > 0}
+                showConfetti={!challenge.isOpen && submission.id === topVotedId && !submission.locked}
               />
             ))}
           </div>

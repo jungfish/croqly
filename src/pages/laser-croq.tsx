@@ -399,13 +399,13 @@ const LaserCroqPage = () => {
     [selectedId, households]
   );
 
-  const { data: challenges = [], isLoading: challengesLoading } = useQuery<PlatingChallengeCard[]>({
+  const { data: challenges = [], isPending: challengesLoading } = useQuery<PlatingChallengeCard[]>({
     queryKey: ["laser-croq", "challenges", activeId],
     queryFn: () => fetchChallenges(activeId!),
     enabled: Boolean(activeId),
   });
 
-  const { data: feed = [], isLoading: feedLoading } = useQuery<PlatingFeedItem[]>({
+  const { data: feed = [], isPending: feedLoading } = useQuery<PlatingFeedItem[]>({
     queryKey: ["laser-croq", "feed", activeId],
     queryFn: () => fetchDressageFeed(activeId!),
     enabled: Boolean(activeId),

@@ -135,7 +135,7 @@ const BandePage = () => {
 
   const {
     data: recipes = [],
-    isLoading: recipesLoading,
+    isPending: recipesLoading,
     isError: isRecipesError,
   } = useQuery<HouseholdRecipe[]>({
     queryKey: ["recipes", "household", selectedId],
