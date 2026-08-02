@@ -245,3 +245,32 @@
   pointer-events: none;
 }
 
+/* Playful hover border for any Laser Croq card (challenges/feed) — a dashed
+   ring slightly outside the card that spins into view on hover. Distinct
+   from .laser-ring (a solid conic beam reserved for the winner): this is
+   the everyday "this card is fun/clickable" treatment, dashes instead of a
+   solid beam so it doesn't get mistaken for the winner's laser. */
+@keyframes fun-border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.fun-border {
+  position: relative;
+}
+.fun-border::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  z-index: 15;
+  border-radius: inherit;
+  border: 3px dashed hsl(var(--accent));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.fun-border:hover::after {
+  opacity: 0.85;
+  animation: fun-border-spin 6s linear infinite;
+}
+

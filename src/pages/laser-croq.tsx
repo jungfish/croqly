@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Camera, Check, Crown, MessageCircle, Plus, Trophy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,11 @@ import {
   type PlatingReactionSummary,
 } from "@/services/platingChallengeService";
 import { useAuth } from "@/hooks/use-auth";
+
+// motion() needs a ref-forwarding component to attach its animated styles
+// to the actual DOM node — react-router's Link forwards its ref, so this
+// works the same as wrapping a plain <a>.
+const MotionLink = motion(Link);
 
 // Sentinel value (no real duration is ever this large) marking the
 // "Personnaliser" option — picking it swaps the duration buttons for a
@@ -255,10 +261,15 @@ const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
 
   return (
     <div className={`h-full ${challenge.winner && inView ? "laser-ring rounded-xl" : ""}`}>
-      <Link
+      <MotionLink
         ref={ref}
         to={`/laser-croq/${challenge.id}`}
-        className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border flex flex-col h-full"
+        className="fun-border group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg border border-border flex flex-col h-full"
+        initial={{ opacity: 0, y: 16, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        whileHover={{ scale: 1.03, rotate: -1, boxShadow: "0 20px 30px -10px rgb(0 0 0 / 0.25)" }}
+        whileTap={{ scale: 0.96, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 22 }}
       >
         <div className="h-36 shrink-0 overflow-hidden relative bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 flex items-center justify-center">
           {challenge.recipe?.thumb ? (
@@ -298,7 +309,7 @@ const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
             )}
           </div>
         </div>
-      </Link>
+      </MotionLink>
     </div>
   );
 };
@@ -334,7 +345,15 @@ const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boo
   };
 
   return (
-    <div ref={ref} className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border">
+    <motion.div
+      ref={ref}
+      className="fun-border group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg border border-border"
+      initial={{ opacity: 0, y: 16, scale: 0.94 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      whileHover={{ scale: 1.03, rotate: 1, boxShadow: "0 20px 30px -10px rgb(0 0 0 / 0.25)" }}
+      whileTap={{ scale: 0.97, rotate: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 22 }}
+    >
       <Link to={`/laser-croq/${item.challengeId}`} className="block">
         <div className="h-48 overflow-hidden relative">
           <img
@@ -380,7 +399,7 @@ const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boo
           }}
         />
       </div>
-    </div>
+    </motion.div>
   );
 };
 

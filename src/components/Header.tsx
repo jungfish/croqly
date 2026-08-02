@@ -175,7 +175,7 @@ const Header = () => {
         {!user && (
           <div className="hidden md:flex items-center gap-6">
             <Button asChild size="sm">
-              <Link to="/">Accueil</Link>
+              <Link to="/">Ajouter une recette</Link>
             </Button>
             {publicNavLinks}
             <Link to="/login" className={linkClass}>
@@ -221,7 +221,7 @@ const Header = () => {
           <SheetContent side="right" className="flex flex-col gap-6 pt-[max(3rem,env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)]">
             <SheetClose asChild>
               <Button asChild size="lg" className="w-full">
-                <Link to="/">Accueil</Link>
+                <Link to="/">Ajouter une recette</Link>
               </Button>
             </SheetClose>
             <SheetClose asChild>

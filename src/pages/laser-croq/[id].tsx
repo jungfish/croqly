@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { toast } from "sonner";
 import {
   Camera,
@@ -228,9 +229,11 @@ const SubmissionCard = ({
 
   return (
     <div className={showConfetti && inView ? "laser-ring rounded-xl" : ""}>
-      <div
+      <motion.div
         ref={ref}
-        className={`relative rounded-xl overflow-hidden border border-border bg-card/70 backdrop-blur-sm shadow-sm ${large ? "shadow-xl" : ""}`}
+        className={`fun-border relative rounded-xl overflow-hidden border border-border bg-card/70 backdrop-blur-sm shadow-sm ${large ? "shadow-xl" : ""}`}
+        whileHover={{ scale: 1.015 }}
+        whileTap={{ scale: 0.98 }}
       >
         <div className={`overflow-hidden relative ${large ? "h-[28rem] sm:h-[34rem]" : "h-56"}`}>
           <img src={submission.photoUrl} alt={submission.caption ?? ""} className="w-full h-full object-cover" />
@@ -285,78 +288,76 @@ const SubmissionCard = ({
           />
           {commentsOpen && <Comments submissionId={submission.id} />}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
 
-// Drag distance (px) past which releasing counts as a swipe rather than a
-// tap-and-cancel — tuned loose enough that a quick flick registers, tight
-// enough that clicking a button inside the card doesn't accidentally
-// trigger navigation.
+// Drag distance/velocity past which releasing counts as a swipe rather than
+// a tap-and-cancel.
 const SWIPE_THRESHOLD = 90;
+const SWIPE_VELOCITY_THRESHOLD = 500;
+
+// direction: 1 = advancing (next), -1 = going back (previous) — decides
+// which side a card flies in/out from, Tinder-style.
+const slideVariants = {
+  enter: (direction: number) => ({ x: direction > 0 ? 260 : -260, opacity: 0, rotate: direction > 0 ? 6 : -6, scale: 0.94 }),
+  center: { x: 0, opacity: 1, rotate: 0, scale: 1 },
+  exit: (direction: number) => ({ x: direction > 0 ? -260 : 260, opacity: 0, rotate: direction > 0 ? -6 : 6, scale: 0.94 }),
+};
 
 // Tinder-style "one dressage at a time" browser — the default way to go
 // through a défi's submissions: bigger, more focused, and closer to how the
 // bande actually wants to savor each other's plating one at a time instead
-// of scanning a grid. Swipe (or use the arrows) to move between slides;
-// dragging past SWIPE_THRESHOLD advances, otherwise the card springs back.
+// of scanning a grid. Real drag physics via Framer Motion (spring back if
+// the swipe doesn't clear the threshold, fling off-card if it does) —
+// dragging only "arms" past a few pixels of movement, so tapping a button
+// inside the card (vote, react, comment...) is never mistaken for a swipe,
+// unlike the manual pointer-capture version this replaced.
 const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[] }) => {
-  const [index, setIndex] = useState(0);
-  const [dragX, setDragX] = useState(0);
-  const draggingRef = useRef(false);
-  const startXRef = useRef(0);
-
+  const [[index, direction], setIndexState] = useState<[number, number]>([0, 0]);
   const clamped = Math.max(0, Math.min(index, slides.length - 1));
 
-  const goTo = (next: number) => setIndex(Math.max(0, Math.min(slides.length - 1, next)));
+  const goTo = (next: number, dir: number) => {
+    const bounded = Math.max(0, Math.min(slides.length - 1, next));
+    if (bounded === clamped) return;
+    setIndexState([bounded, dir]);
+  };
 
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Don't hijack presses that started on an actual control (vote, react,
-    // comment, file picker...) — capturing the pointer on the deck wrapper
-    // in those cases was swallowing the button's own click on desktop (the
-    // browser suppresses the synthesized click once an ancestor captures
-    // the pointer on mousedown; touch's tap-to-click path isn't affected the
-    // same way, which is why this only broke on desktop).
-    if ((e.target as HTMLElement).closest("button, a, input, textarea")) return;
-    draggingRef.current = true;
-    startXRef.current = e.clientX;
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current) return;
-    setDragX(e.clientX - startXRef.current);
-  };
-  const endDrag = () => {
-    if (!draggingRef.current) return;
-    draggingRef.current = false;
-    if (dragX <= -SWIPE_THRESHOLD) goTo(clamped + 1);
-    else if (dragX >= SWIPE_THRESHOLD) goTo(clamped - 1);
-    setDragX(0);
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.x < -SWIPE_THRESHOLD || info.velocity.x < -SWIPE_VELOCITY_THRESHOLD) goTo(clamped + 1, 1);
+    else if (info.offset.x > SWIPE_THRESHOLD || info.velocity.x > SWIPE_VELOCITY_THRESHOLD) goTo(clamped - 1, -1);
   };
 
   if (slides.length === 0) return null;
 
   return (
     <div className="max-w-md mx-auto">
-      <div
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        style={{
-          transform: `translateX(${dragX}px) rotate(${dragX / 24}deg)`,
-          transition: dragX === 0 ? "transform 0.25s ease" : "none",
-          touchAction: "pan-y",
-        }}
-      >
-        {slides[clamped].node}
+      <div className="relative" style={{ touchAction: "pan-y" }}>
+        <AnimatePresence initial={false} custom={direction}>
+          <motion.div
+            key={slides[clamped].key}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ type: "spring", stiffness: 340, damping: 32 }}
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.7}
+            onDragEnd={handleDragEnd}
+            whileDrag={{ cursor: "grabbing" }}
+          >
+            {slides[clamped].node}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <div className="flex items-center justify-center gap-4 mt-5">
         <button
           type="button"
-          onClick={() => goTo(clamped - 1)}
+          onClick={() => goTo(clamped - 1, -1)}
           disabled={clamped === 0}
           aria-label="Dressage précédent"
           className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
@@ -370,7 +371,7 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
         </div>
         <button
           type="button"
-          onClick={() => goTo(clamped + 1)}
+          onClick={() => goTo(clamped + 1, 1)}
           disabled={clamped === slides.length - 1}
           aria-label="Dressage suivant"
           className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"

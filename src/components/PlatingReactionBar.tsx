@@ -34,13 +34,14 @@ const PlatingReactionBar = ({
   const handlePick = (type: PlatingReactionType, emoji: string) => {
     const newPieces: FlyingPiece[] = Array.from({ length: PIECES_PER_CLICK }, () => {
       const id = nextPieceId.current++;
+      const isJumbo = Math.random() < 0.25;
       return {
         id,
         emoji,
         left: `${15 + Math.random() * 70}%`,
         drift: `${(Math.random() - 0.5) * 60}px`,
         wobble: `${-14 + Math.random() * 28}deg`,
-        size: `${1.8 + Math.random() * 0.9}rem`,
+        size: isJumbo ? `${3 + Math.random() * 1.2}rem` : `${1.5 + Math.random() * 0.8}rem`,
         delay: `${Math.random() * 0.15}s`,
       };
     });

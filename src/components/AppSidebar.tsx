@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Home, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, LogOut, Download, UserPlus, Zap, Bell, BellOff, Sparkles } from 'lucide-react';
+import { Plus, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, LogOut, Download, UserPlus, Zap, Bell, BellOff, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
@@ -123,8 +123,8 @@ const AppSidebar = () => {
       <nav className="flex-1 overflow-y-auto px-3 space-y-1">
         <Button asChild className="w-full justify-start gap-3 mb-2">
           <Link to="/">
-            <Home className="w-4 h-4 shrink-0" />
-            Accueil
+            <Plus className="w-4 h-4 shrink-0" />
+            Ajouter une recette
           </Link>
         </Button>
         {NAV_ITEMS.map(({ to, label, icon: Icon, badge }) => (
