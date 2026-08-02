@@ -93,10 +93,13 @@ const Header = () => {
         Découvrir
       </Link>
       <Link to="/assistant" className={linkClass}>
-        Assistant
+        Croq
       </Link>
       <Link to="/recipes" className={linkClass}>
         Mes Recettes
+      </Link>
+      <Link to="/foyer" className={linkClass}>
+        Foyer
       </Link>
       <Link to="/shopping-list" className={`${linkClass} relative inline-flex items-center gap-1.5`}>
         Liste de courses
@@ -191,12 +194,17 @@ const Header = () => {
             </SheetClose>
             <SheetClose asChild>
               <Link to="/assistant" className="text-lg text-foreground/80 hover:text-foreground">
-                Assistant
+                Croq
               </Link>
             </SheetClose>
             <SheetClose asChild>
               <Link to="/recipes" className="text-lg text-foreground/80 hover:text-foreground">
                 Mes Recettes
+              </Link>
+            </SheetClose>
+            <SheetClose asChild>
+              <Link to="/foyer" className="text-lg text-foreground/80 hover:text-foreground">
+                Foyer
               </Link>
             </SheetClose>
             <SheetClose asChild>

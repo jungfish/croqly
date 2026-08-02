@@ -9,6 +9,7 @@ import ChatPage from "@/pages/chat";
 import RecipesList from "@/pages/recipes";
 import RecipeView from "@/pages/recipe/[id]";
 import ShoppingListPage from "@/pages/shopping-list";
+import FoyerPage from "@/pages/foyer";
 import CreatorHub from "@/pages/createur/[handle]";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
@@ -50,6 +51,7 @@ const AppShell = () => {
           {/* Protected: only "my recipes" needs an identity */}
           <Route element={<RequireAuth />}>
             <Route path="/recipes" element={<RecipesList />} />
+            <Route path="/foyer" element={<FoyerPage />} />
             <Route path="/shopping-list" element={<ShoppingListPage />} />
           </Route>
           <Route element={<RequireAdmin />}>

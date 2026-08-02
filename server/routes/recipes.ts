@@ -11,6 +11,7 @@ import { buildRecipeSearchWhere } from '../lib/recipeSearch.js';
 import { isAnonymousLimitExceeded, recordAnonymousUsage } from '../lib/rateLimit.js';
 import { logError } from '../lib/logger.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
+import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
 
 const router = Router();
 
@@ -210,6 +211,51 @@ const getMine: RequestHandler = async (req, res) => {
   }
 };
 
+// "Foyer" — recipes saved by any member of the caller's household, joined
+// through HouseholdMember -> SavedRecipe. Same shape as getMine but widens
+// the userId filter from "just me" to "everyone in my household", and
+// attributes each card to whoever saved it (email resolved from Supabase
+// auth, same pattern as server/routes/admin.ts).
+const getHousehold: RequestHandler = async (req, res) => {
+  try {
+    const membership = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
+    if (!membership) return res.json([]);
+
+    const members = await prisma.householdMember.findMany({ where: { householdId: membership.householdId } });
+    const memberIds = members.map((m) => m.userId);
+
+    const { search, category } = req.query as { search?: string; category?: string };
+    const saved = await prisma.savedRecipe.findMany({
+      where: { userId: { in: memberIds }, recipe: buildRecipeSearchWhere({ search, category }) },
+      include: { recipe: { include: { creator: true } } },
+      orderBy: { savedAt: 'desc' },
+    });
+
+    const emailById = new Map<string, string>();
+    const supabaseAdmin = getSupabaseAdmin();
+    if (supabaseAdmin) {
+      await Promise.all(
+        memberIds.map(async (id) => {
+          const { data } = await supabaseAdmin.auth.admin.getUserById(id);
+          if (data?.user?.email) emailById.set(id, data.user.email);
+        })
+      );
+    }
+
+    res.json(
+      saved.map((s) => ({
+        ...parseRecipe(s.recipe),
+        savedByUserId: s.userId,
+        savedByEmail: emailById.get(s.userId) ?? null,
+        savedByMe: s.userId === req.user!.id,
+      }))
+    );
+  } catch (error) {
+    logError('Error fetching household recipes', error);
+    res.status(500).json({ error: 'Failed to fetch household recipes' });
+  }
+};
+
 // Explicit "Save" action on an already-viewed recipe (e.g. from the recipe
 // detail page) — same upsert used by the URL flow, exposed standalone so the
 // pending-save-through-signup flow (step 7) can call it after auth succeeds.
@@ -232,6 +278,7 @@ const saveExisting: RequestHandler<{ id: string }> = async (req, res) => {
 
 router.post('/from-url', fromUrl);
 router.get('/mine', requireAuth, getMine);
+router.get('/household', requireAuth, getHousehold);
 router.post('/:id/save', requireAuth, saveExisting);
 router.post('/:id/illustration', generateRecipeIllustration);
 

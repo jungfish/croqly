@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import ParallaxHero from "@/components/ParallaxHero";
 import RecipePreview from "@/components/RecipePreview";
 import { UtensilsCrossed, Search } from "lucide-react";
 import type { Recipe } from "@/types/recipe";
@@ -45,16 +44,18 @@ const DecouvrirPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <ParallaxHero
-        imageUrl="https://images.unsplash.com/photo-1495521821757-a1efb6729352"
-        title="Découvrir"
-        height="h-[200px] sm:h-[240px] lg:h-[300px]"
-      />
-
-      <div className="container mx-auto p-8 -mt-8 relative z-10">
-        <p className="text-center text-muted-foreground mb-8">
-          {firstName ? `Salut ${firstName} ! Voici` : 'Voici'} toutes les recettes croquées par la communauté.
-        </p>
+      <div className="container mx-auto p-8 pt-28">
+        <div className="flex flex-col items-center text-center gap-3 mb-8">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <UtensilsCrossed className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="font-display text-3xl sm:text-4xl text-foreground mb-2">Découvrir</h1>
+            <p className="text-muted-foreground">
+              {firstName ? `Salut ${firstName} ! Voici` : 'Voici'} toutes les recettes croquées par la communauté.
+            </p>
+          </div>
+        </div>
 
         {/* Search */}
         <div className="relative mb-4">

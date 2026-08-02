@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ShoppingCart, Trash2 } from 'lucide-react';
-import ParallaxHero from '@/components/ParallaxHero';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -116,16 +115,18 @@ const ShoppingListPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <ParallaxHero
-        imageUrl="https://images.unsplash.com/photo-1542838132-92c53300491e"
-        title="Liste de courses"
-        height="h-[200px] sm:h-[240px] lg:h-[300px]"
-      />
-
-      <div className="container mx-auto p-8 -mt-8 relative z-10 max-w-2xl">
-        <p className="text-center text-muted-foreground mb-8">
-          {firstName ? `${firstName}, voici` : 'Voici'} tout ce qu'il te faut pour tes prochaines recettes !
-        </p>
+      <div className="container mx-auto p-8 pt-28 max-w-2xl">
+        <div className="flex flex-col items-center text-center gap-3 mb-8">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <ShoppingCart className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="font-display text-3xl sm:text-4xl text-foreground mb-2">Liste de courses</h1>
+            <p className="text-muted-foreground">
+              {firstName ? `${firstName}, voici` : 'Voici'} tout ce qu'il te faut pour tes prochaines recettes !
+            </p>
+          </div>
+        </div>
 
         <form onSubmit={handleAddItem} className="mb-1 flex gap-2">
           <Input

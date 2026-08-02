@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Send, Sparkles, Refrigerator, X } from "lucide-react";
-import ParallaxHero from "@/components/ParallaxHero";
+import { Send, Refrigerator, X } from "lucide-react";
 import RecipePreview from "@/components/RecipePreview";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,10 @@ type ChatMessage = {
   content: string;
   recipes?: Recipe[];
 };
+
+const CroqMark = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <img src="/croqly-mark.svg" alt="" className={className} />
+);
 
 const SUGGESTIONS = [
   "un truc rapide avec du poulet",
@@ -61,12 +64,12 @@ const ChatPage = () => {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || "Impossible de contacter l'assistant. Réessaie dans un instant.");
+        throw new Error(body?.error || "Impossible de contacter Croq. Réessaie dans un instant.");
       }
       const { reply, recipes } = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: reply, recipes }]);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de contacter l'assistant. Réessaie dans un instant.");
+      toast.error(error instanceof Error ? error.message : "Impossible de contacter Croq. Réessaie dans un instant.");
     } finally {
       setIsSending(false);
     }
@@ -75,11 +78,6 @@ const ChatPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(input.trim());
-  };
-
-  const handleSuggestion = (suggestion: string) => {
-    setInput(suggestion);
-    inputRef.current?.focus();
   };
 
   const openFridgeMode = () => {
@@ -127,28 +125,27 @@ const ChatPage = () => {
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-background">
-      <ParallaxHero
-        imageUrl="https://images.unsplash.com/photo-1495521821757-a1efb6729352"
-        title="Assistant recettes"
-        height="h-[200px] sm:h-[240px] lg:h-[300px]"
-      />
-
-      <div className="flex-1 min-h-0 flex flex-col container mx-auto px-8 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] -mt-8 relative z-10 max-w-2xl">
-        <p className="text-center text-muted-foreground mb-8 shrink-0">
-          Dis-moi ce dont tu as envie, je te propose des recettes déjà croquées par la communauté.
-        </p>
+      <div className="flex-1 min-h-0 flex flex-col container mx-auto px-8 pt-28 pb-[max(2rem,env(safe-area-inset-bottom))] max-w-2xl">
+        <div className="flex flex-col items-center text-center gap-2 mb-6 shrink-0">
+          <CroqMark className="w-10 h-10" />
+          <div>
+            <h1 className="font-display text-2xl text-foreground">Croq</h1>
+            <p className="text-muted-foreground">
+              Dis-moi ce dont tu as envie, je te propose des recettes déjà croquées par la communauté.
+            </p>
+          </div>
+        </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto space-y-4 mb-4 pr-1">
           {messages.length === 0 && (
             <div className="flex flex-col items-center gap-4 text-center py-12 text-muted-foreground">
-              <Sparkles className="w-8 h-8" />
               <p>Essaie par exemple :</p>
               <div className="flex flex-wrap justify-center gap-2">
                 {SUGGESTIONS.map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
-                    onClick={() => handleSuggestion(suggestion)}
+                    onClick={() => sendMessage(suggestion)}
                     className="px-3 py-1.5 rounded-full border border-border bg-card text-sm text-foreground hover:bg-accent hover:border-primary/40 transition-colors"
                   >
                     {suggestion}
@@ -167,7 +164,13 @@ const ChatPage = () => {
           )}
 
           {messages.map((message, i) => (
-            <div key={i} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div key={i} className={`flex flex-col gap-1 ${message.role === "user" ? "items-end" : "items-start"}`}>
+              {message.role === "assistant" && (
+                <div className="flex items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground">
+                  <CroqMark className="w-3.5 h-3.5" />
+                  Croq
+                </div>
+              )}
               <div
                 className={`rounded-2xl px-4 py-3 ${
                   message.role === "user"
@@ -188,7 +191,11 @@ const ChatPage = () => {
           ))}
 
           {isSending && (
-            <div className="flex justify-start">
+            <div className="flex flex-col gap-1 items-start">
+              <div className="flex items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground">
+                <CroqMark className="w-3.5 h-3.5" />
+                Croq
+              </div>
               <div className="rounded-2xl px-4 py-3 bg-card border border-border flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]" />
                 <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]" />
