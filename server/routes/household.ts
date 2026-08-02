@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { Router, RequestHandler } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
+import { sendPushToUsers } from '../lib/webPush.js';
 import { logError } from '../lib/logger.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
 
@@ -122,6 +123,19 @@ const joinHousehold: RequestHandler = async (req, res) => {
 
     await prisma.householdMember.create({ data: { householdId: household.id, userId: req.user!.id } });
     const updated = await prisma.household.findUniqueOrThrow({ where: { id: household.id }, include: { members: true } });
+
+    // Fire-and-forget: a failed push must never turn a successful join into
+    // a 500 for the person who just joined.
+    sendPushToUsers(
+      household.members.map((m) => m.userId),
+      {
+        title: household.name ? `Nouveau membre dans ${household.name}` : 'Nouveau membre dans ta bande',
+        body: `${req.user!.email ?? 'Quelqu’un'} vient de rejoindre la bande.`,
+        url: '/bande',
+      },
+      req.user!.id
+    ).catch((error) => logError('Error sending join push notification', error));
+
     res.json({ household: await serializeHousehold(updated, req.user!.id) });
   } catch (error) {
     logError('Error joining household', error);

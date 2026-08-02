@@ -1,5 +1,25 @@
 import { authFetch } from '@/lib/apiClient';
 
+// The 7 curated, purely-expressive reactions a bande can drop on a dressage
+// photo — kept in sync with ALLOWED_PLATING_REACTIONS in
+// server/routes/platingChallenges.ts, which is the actual source of
+// truth/validation (this copy is UI-only, same pattern as REACTION_EMOJIS
+// in householdService.ts). Each has its own emoji + a short French label
+// for the picker, and drives which icon the reaction burst animates.
+export const PLATING_REACTIONS = [
+  { type: 'trop_beau', emoji: '😍', label: 'Trop beau' },
+  { type: 'miam', emoji: '😋', label: 'Miam miam' },
+  { type: 'licorne', emoji: '🦄', label: 'Licorne' },
+  { type: 'degueu', emoji: '🤢', label: 'Dégueu' },
+  { type: 'feu', emoji: '🔥', label: 'Ça envoie' },
+  { type: 'mdr', emoji: '😂', label: 'MDR' },
+  { type: 'clown', emoji: '🤡', label: "N'importe quoi" },
+] as const;
+
+export type PlatingReactionType = (typeof PLATING_REACTIONS)[number]['type'];
+
+export type PlatingReactionSummary = { type: PlatingReactionType; count: number; reactedByMe: boolean };
+
 export type PlatingRecipeRef = {
   savedRecipeId: string;
   recipeId: string;
@@ -32,11 +52,12 @@ export type PlatingFeedItem = {
   votesCount: number;
   votedByMe: boolean;
   commentsCount: number;
+  reactions: PlatingReactionSummary[];
 };
 
 // A submission the caller hasn't unlocked yet — see the reveal gate in
-// server/routes/platingChallenges.ts getChallenge. Vote counts stay visible
-// (so an open challenge still feels alive) but the photo/caption don't.
+// server/routes/platingChallenges.ts getChallenge. Vote/reaction counts stay
+// visible (so an open challenge still feels alive) but the photo/caption don't.
 export type LockedPlatingSubmission = {
   id: string;
   userId: string;
@@ -44,6 +65,7 @@ export type LockedPlatingSubmission = {
   isMine: boolean;
   votesCount: number;
   votedByMe: boolean;
+  reactions: PlatingReactionSummary[];
   locked: true;
 };
 
@@ -54,6 +76,7 @@ export type RevealedPlatingSubmission = {
   isMine: boolean;
   votesCount: number;
   votedByMe: boolean;
+  reactions: PlatingReactionSummary[];
   locked: false;
   photoUrl: string;
   photoThumbUrl: string;
@@ -146,6 +169,17 @@ export async function toggleVote(submissionId: string): Promise<{ votesCount: nu
   const response = await authFetch(`/api/plating-challenges/submissions/${submissionId}/vote`, { method: 'POST' });
   if (!response.ok) return parseErrorOr(response, 'Failed to toggle vote');
   return response.json();
+}
+
+export async function togglePlatingReaction(submissionId: string, type: PlatingReactionType): Promise<PlatingReactionSummary[]> {
+  const response = await authFetch(`/api/plating-challenges/submissions/${submissionId}/reactions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type }),
+  });
+  if (!response.ok) return parseErrorOr(response, 'Failed to toggle reaction');
+  const { reactions } = await response.json();
+  return reactions;
 }
 
 export async function fetchComments(submissionId: string): Promise<PlatingComment[]> {

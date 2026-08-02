@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import BandeSwitcher from "@/components/bande/BandeSwitcher";
+import ReactionBurst from "@/components/ReactionBurst";
+import PlatingReactionBar from "@/components/PlatingReactionBar";
+import { useInViewOnce } from "@/hooks/use-in-view-once";
 import { fetchMyHouseholds, fetchHouseholdRecipes, type Household, type HouseholdRecipe } from "@/services/householdService";
 import {
   fetchChallenges,
@@ -15,6 +18,7 @@ import {
   toggleVote,
   type PlatingChallengeCard,
   type PlatingFeedItem,
+  type PlatingReactionSummary,
 } from "@/services/platingChallengeService";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -52,9 +56,12 @@ function timeLeftLabel(endsAt: string): string {
 }
 
 // Recipe picker for the "Nouveau défi" sheet — a bande can have dozens of
-// saved recipes, so this is a scrollable list of buttons rather than a
-// native <select>; there's no Select primitive in this app's component kit
-// yet (see src/components/ui/), and a handful of styled buttons is enough.
+// saved recipes, so this is a search-filtered scrollable list of buttons
+// rather than a native <select>; there's no Select primitive in this app's
+// component kit yet (see src/components/ui/), and a filter input plus a
+// handful of styled buttons is enough. The selected recipe always stays
+// pinned at the top so picking one and then typing a different search
+// doesn't make it look like the selection was lost.
 const RecipePicker = ({
   recipes,
   selectedId,
@@ -63,33 +70,64 @@ const RecipePicker = ({
   recipes: HouseholdRecipe[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-}) => (
-  <div className="max-h-56 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-    <button
-      type="button"
-      onClick={() => onSelect(null)}
-      className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors ${
-        selectedId === null ? "bg-primary/10 text-primary" : "hover:bg-muted"
-      }`}
-    >
-      {selectedId === null && <Check className="w-4 h-4 shrink-0" />}
-      <span className={selectedId === null ? "" : "pl-6"}>Dressage libre (pas de recette précise)</span>
-    </button>
-    {recipes.map((recipe) => (
-      <button
-        key={recipe.savedRecipeId}
-        type="button"
-        onClick={() => onSelect(recipe.savedRecipeId)}
-        className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors ${
-          selectedId === recipe.savedRecipeId ? "bg-primary/10 text-primary" : "hover:bg-muted"
-        }`}
-      >
-        {selectedId === recipe.savedRecipeId && <Check className="w-4 h-4 shrink-0" />}
-        <span className={`truncate ${selectedId === recipe.savedRecipeId ? "" : "pl-6"}`}>{recipe.title}</span>
-      </button>
-    ))}
-  </div>
-);
+}) => {
+  const [search, setSearch] = useState("");
+  const selected = recipes.find((r) => r.savedRecipeId === selectedId);
+  const filtered = recipes.filter(
+    (r) => r.savedRecipeId !== selectedId && r.title.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
+  return (
+    <div className="rounded-lg border border-border overflow-hidden">
+      {recipes.length > 5 && (
+        <div className="p-2 border-b border-border">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Chercher une recette…"
+            className="h-8 text-sm"
+          />
+        </div>
+      )}
+      <div className="max-h-56 overflow-y-auto divide-y divide-border">
+        <button
+          type="button"
+          onClick={() => onSelect(null)}
+          className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors ${
+            selectedId === null ? "bg-primary/10 text-primary" : "hover:bg-muted"
+          }`}
+        >
+          {selectedId === null && <Check className="w-4 h-4 shrink-0" />}
+          <span className={selectedId === null ? "" : "pl-6"}>Dressage libre (pas de recette précise)</span>
+        </button>
+        {selected && (
+          <button
+            type="button"
+            onClick={() => onSelect(selected.savedRecipeId)}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left bg-primary/10 text-primary"
+          >
+            <Check className="w-4 h-4 shrink-0" />
+            <span className="truncate">{selected.title}</span>
+          </button>
+        )}
+        {filtered.length === 0 && search.trim() ? (
+          <p className="px-3 py-2 text-sm text-muted-foreground">Aucune recette ne correspond.</p>
+        ) : (
+          filtered.map((recipe) => (
+            <button
+              key={recipe.savedRecipeId}
+              type="button"
+              onClick={() => onSelect(recipe.savedRecipeId)}
+              className="w-full flex items-center gap-2 px-3 py-2 pl-9 text-sm text-left transition-colors hover:bg-muted truncate"
+            >
+              {recipe.title}
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
 
 const NewChallengeSheet = ({ householdId, onCreated }: { householdId: string; onCreated: (id: string) => void }) => {
   const [open, setOpen] = useState(false);
@@ -211,55 +249,70 @@ const NewChallengeSheet = ({ householdId, onCreated }: { householdId: string; on
   );
 };
 
-const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => (
-  <Link
-    to={`/laser-croq/${challenge.id}`}
-    className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border block"
-  >
-    <div className="h-36 overflow-hidden relative bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 flex items-center justify-center">
-      {challenge.recipe?.thumb ? (
-        <img
-          src={challenge.recipe.thumb}
-          alt=""
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-      ) : (
-        <Camera className="w-10 h-10 text-primary/50" />
-      )}
-      <span
-        className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm ${
-          challenge.isOpen ? "bg-primary text-primary-foreground" : "bg-foreground/80 text-background"
-        }`}
-      >
-        {challenge.isOpen ? timeLeftLabel(challenge.endsAt) : "Terminé"}
-      </span>
-      {challenge.hasSubmittedByMe && challenge.isOpen && (
-        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-background/90 text-foreground text-xs font-semibold shadow-sm flex items-center gap-1">
-          <Check className="w-3 h-3" /> Envoyé
+const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
+  const [ref, inView] = useInViewOnce<HTMLAnchorElement>();
+
+  return (
+    <Link
+      ref={ref}
+      to={`/laser-croq/${challenge.id}`}
+      className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border block"
+    >
+      <div className="h-36 overflow-hidden relative bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 flex items-center justify-center">
+        {challenge.recipe?.thumb ? (
+          <img
+            src={challenge.recipe.thumb}
+            alt=""
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <Camera className="w-10 h-10 text-primary/50" />
+        )}
+        <span
+          className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm ${
+            challenge.isOpen ? "bg-primary text-primary-foreground" : "bg-foreground/80 text-background"
+          }`}
+        >
+          {challenge.isOpen ? timeLeftLabel(challenge.endsAt) : "Terminé"}
         </span>
-      )}
-    </div>
-    <div className="p-4">
-      <h3 className="font-display font-semibold text-foreground mb-1 truncate">{challenge.title}</h3>
-      {challenge.recipe && <p className="text-xs text-muted-foreground truncate mb-2">{challenge.recipe.title}</p>}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>
-          {challenge.submissionsCount} dressage{challenge.submissionsCount > 1 ? "s" : ""}
-        </span>
-        {challenge.winner && (
-          <span className="flex items-center gap-1 font-medium text-foreground">
-            <Trophy className="w-3.5 h-3.5 text-yolk" />
-            {memberLabel(challenge.winner.email, false)}
+        {challenge.hasSubmittedByMe && challenge.isOpen && (
+          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-background/90 text-foreground text-xs font-semibold shadow-sm flex items-center gap-1">
+            <Check className="w-3 h-3" /> Envoyé
           </span>
         )}
       </div>
-    </div>
-  </Link>
-);
+      <div className="p-4">
+        <h3 className="font-display font-semibold text-foreground mb-1 truncate">{challenge.title}</h3>
+        {challenge.recipe && <p className="text-xs text-muted-foreground truncate mb-2">{challenge.recipe.title}</p>}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            {challenge.submissionsCount} dressage{challenge.submissionsCount > 1 ? "s" : ""}
+          </span>
+          {challenge.winner && (
+            <span className={`flex items-center gap-1 font-medium text-foreground ${inView ? "winner-pop" : "opacity-0"}`}>
+              <Trophy className="w-3.5 h-3.5 text-yolk" />
+              {memberLabel(challenge.winner.email, false)}
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+};
 
 const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boolean }) => {
   const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
+  const [reactions, setReactions] = useState<PlatingReactionSummary[]>(item.reactions);
+  const [burstKey, setBurstKey] = useState(0);
+  const [ref, inView] = useInViewOnce<HTMLDivElement>();
+
+  // Replays the whole reaction burst once the card scrolls into view (if
+  // anyone's already reacted) — the "chacun voit toutes les réactions
+  // quand la card est vue" ask.
+  useEffect(() => {
+    if (inView && reactions.some((r) => r.count > 0)) setBurstKey((k) => k + 1);
+  }, [inView]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleVote = async () => {
     if (isMine || pending) return;
@@ -278,7 +331,7 @@ const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boo
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border">
+    <div ref={ref} className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border">
       <Link to={`/laser-croq/${item.challengeId}`} className="block">
         <div className="h-48 overflow-hidden relative">
           <img
@@ -287,6 +340,7 @@ const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boo
             loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
+          <ReactionBurst key={burstKey} reactions={reactions} />
         </div>
         <div className="p-4 pb-3">
           <p className="text-xs text-muted-foreground mb-1 truncate">{item.challengeTitle}</p>
@@ -294,7 +348,7 @@ const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boo
           <p className="text-xs text-muted-foreground mt-1">Par {memberLabel(item.email, isMine)}</p>
         </div>
       </Link>
-      <div className="px-4 pb-4 flex items-center gap-3">
+      <div className="px-4 pb-3 flex items-center gap-3">
         <button
           onClick={handleVote}
           disabled={isMine || pending}
@@ -312,6 +366,16 @@ const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boo
           <MessageCircle className="w-3.5 h-3.5" />
           {item.commentsCount}
         </span>
+      </div>
+      <div className="px-4 pb-4">
+        <PlatingReactionBar
+          submissionId={item.id}
+          reactions={reactions}
+          onChange={(updated) => {
+            setReactions(updated);
+            setBurstKey((k) => k + 1);
+          }}
+        />
       </div>
     </div>
   );

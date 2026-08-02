@@ -163,6 +163,23 @@ model HouseholdMember {
   @@index([userId])
 }
 
+// One row per browser/device Web Push subscription for a user — a user can
+// have several (phone + desktop). endpoint is unique per subscription and is
+// how the browser identifies it; p256dh/auth are the keys web-push needs to
+// encrypt the notification payload (see server/lib/webPush.ts). No relation
+// to a Users table since there isn't one — userId is the Supabase auth id,
+// same convention as HouseholdMember.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 // Throttles the expensive path (Instagram fetch + AI) for anonymous callers
 // only — cache hits and authenticated users are never rate-limited here.
 model AnonymousProcessingLog {
@@ -272,6 +289,7 @@ model PlatingSubmission {
   createdAt     DateTime         @default(now())
   votes         PlatingVote[]
   comments      PlatingComment[]
+  reactions     PlatingReaction[]
 
   @@unique([challengeId, userId])
   @@index([challengeId])
@@ -300,5 +318,23 @@ model PlatingComment {
   body         String
   createdAt    DateTime          @default(now())
 
+  @@index([submissionId])
+}
+
+// A fun, purely-expressive reaction on a dressage submission — distinct
+// from PlatingVote (the one "best dressage" crown): everyone in the bande
+// can drop as many of the 7 curated types as they like on the same photo
+// (toggle per type, like Reaction on SavedRecipe), and the client replays
+// them all as an animated burst whenever the card comes into view — see
+// ALLOWED_PLATING_REACTIONS in server/routes/platingChallenges.ts.
+model PlatingReaction {
+  id           String            @id @default(cuid())
+  submissionId String
+  submission   PlatingSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  userId       String
+  type         String
+  createdAt    DateTime          @default(now())
+
+  @@unique([submissionId, userId, type])
   @@index([submissionId])
 }

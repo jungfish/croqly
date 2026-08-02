@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { prisma } from '../lib/prisma.js';
 import { uploadPlatingSubmissionPhoto } from '../lib/storage.js';
 import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
+import { sendPushToUsers } from '../lib/webPush.js';
 import { logError } from '../lib/logger.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
 
@@ -17,6 +18,33 @@ const DEFAULT_DURATION_DAYS = 3;
 const MAX_DURATION_DAYS = 14;
 const MAX_CAPTION_LENGTH = 200;
 const MAX_COMMENT_LENGTH = 500;
+
+// The 7 curated, purely-expressive reactions a bande can drop on a dressage
+// photo (see PlatingReaction) — distinct from PlatingVote's single "best
+// dressage" crown. Validated server-side like ALLOWED_REACTION_EMOJIS in
+// recipes.ts, so a client can't store arbitrary reaction types. Order here
+// is the stable display order everywhere (picker, summary pills).
+const ALLOWED_PLATING_REACTIONS = ['trop_beau', 'miam', 'licorne', 'degueu', 'feu', 'mdr', 'clown'] as const;
+type PlatingReactionType = (typeof ALLOWED_PLATING_REACTIONS)[number];
+
+type PlatingReactionSummary = { type: PlatingReactionType; count: number; reactedByMe: boolean };
+
+function summarizePlatingReactions(reactions: { type: string; userId: string }[], currentUserId: string): PlatingReactionSummary[] {
+  const byType = new Map<string, PlatingReactionSummary>();
+  for (const reaction of reactions) {
+    const existing = byType.get(reaction.type);
+    if (existing) {
+      existing.count += 1;
+      existing.reactedByMe ||= reaction.userId === currentUserId;
+    } else {
+      byType.set(reaction.type, { type: reaction.type as PlatingReactionType, count: 1, reactedByMe: reaction.userId === currentUserId });
+    }
+  }
+  // Stable order (not insertion order) so the pill row doesn't reshuffle
+  // every time someone in the bande reacts — same reasoning as reactions on
+  // the bande recipe feed, see summarizeReactions in recipes.ts.
+  return ALLOWED_PLATING_REACTIONS.map((type) => byType.get(type)).filter((r): r is PlatingReactionSummary => Boolean(r));
+}
 
 async function resolveEmails(userIds: string[]): Promise<Map<string, string>> {
   const emailById = new Map<string, string>();
@@ -116,10 +144,14 @@ const listChallenges: RequestHandler<{ householdId: string }> = async (req, res)
   }
 };
 
-// The bande-wide "feed des dressages" — every submitted photo across every
-// challenge in this bande, newest first, independent of which challenge
-// it belongs to. This is the card feed members actually browse day to day;
-// listChallenges above is just for finding/joining an open challenge.
+// The bande-wide "feed des dressages" — every *revealed* photo across every
+// challenge in this bande, newest first, independent of which challenge it
+// belongs to. Same reveal gate as getChallenge: while a challenge is still
+// open, its submissions only show up here once the caller has submitted
+// their own entry to that challenge (or always, for their own submission) —
+// otherwise the feed would spoil the blind-reveal challenge view by leaking
+// photos through the back door. Once a challenge closes, everything in it
+// reveals here too.
 const listFeed: RequestHandler<{ householdId: string }> = async (req, res) => {
   try {
     const membership = await findHouseholdMembership(req.params.householdId, req.user!.id);
@@ -128,17 +160,25 @@ const listFeed: RequestHandler<{ householdId: string }> = async (req, res) => {
     const submissions = await prisma.platingSubmission.findMany({
       where: { challenge: { householdId: req.params.householdId } },
       include: {
-        challenge: { select: { id: true, title: true, savedRecipe: { select: recipeRefSelect } } },
+        challenge: { select: { id: true, title: true, endsAt: true, savedRecipe: { select: recipeRefSelect } } },
         votes: { select: { userId: true } },
+        reactions: { select: { type: true, userId: true } },
         _count: { select: { comments: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    const emailById = await resolveEmails(Array.from(new Set(submissions.map((s) => s.userId))));
+    const myOwnChallengeIds = new Set(
+      submissions.filter((s) => s.userId === req.user!.id).map((s) => s.challengeId)
+    );
+    const revealed = submissions.filter(
+      (s) => s.userId === req.user!.id || !isChallengeOpen(s.challenge.endsAt) || myOwnChallengeIds.has(s.challengeId)
+    );
+
+    const emailById = await resolveEmails(Array.from(new Set(revealed.map((s) => s.userId))));
 
     res.json(
-      submissions.map((s) => ({
+      revealed.map((s) => ({
         id: s.id,
         challengeId: s.challenge.id,
         challengeTitle: s.challenge.title,
@@ -152,6 +192,7 @@ const listFeed: RequestHandler<{ householdId: string }> = async (req, res) => {
         votesCount: s.votes.length,
         votedByMe: s.votes.some((v) => v.userId === req.user!.id),
         commentsCount: s._count.comments,
+        reactions: summarizePlatingReactions(s.reactions, req.user!.id),
       }))
     );
   } catch (error) {
@@ -214,6 +255,13 @@ const createChallenge: RequestHandler<{ householdId: string }> = async (req, res
       },
     });
 
+    const members = await prisma.householdMember.findMany({ where: { householdId: req.params.householdId } });
+    sendPushToUsers(
+      members.map((m) => m.userId),
+      { title: 'Nouveau défi Laser Croq', body: `${req.user!.email ?? 'Quelqu’un'} a lancé « ${challenge.title} »`, url: `/laser-croq/${challenge.id}` },
+      req.user!.id
+    ).catch((error) => logError('Error sending challenge push notification', error));
+
     res.status(201).json({ id: challenge.id });
   } catch (error) {
     logError('Error creating plating challenge', error);
@@ -246,7 +294,11 @@ const getChallenge: RequestHandler<{ id: string }> = async (req, res) => {
 
     const submissions = await prisma.platingSubmission.findMany({
       where: { challengeId: challenge.id },
-      include: { votes: { select: { userId: true } }, _count: { select: { comments: true } } },
+      include: {
+        votes: { select: { userId: true } },
+        reactions: { select: { type: true, userId: true } },
+        _count: { select: { comments: true } },
+      },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -270,6 +322,7 @@ const getChallenge: RequestHandler<{ id: string }> = async (req, res) => {
           isMine,
           votesCount: s.votes.length,
           votedByMe: s.votes.some((v) => v.userId === myUserId),
+          reactions: summarizePlatingReactions(s.reactions, myUserId),
         };
         if (!revealed && !isMine) return { ...base, locked: true as const };
         return {
@@ -365,6 +418,53 @@ const toggleVote: RequestHandler<{ submissionId: string }> = async (req, res) =>
   } catch (error) {
     logError('Error toggling plating vote', error);
     res.status(500).json({ error: 'Failed to toggle vote' });
+  }
+};
+
+// Toggles one of the caller's 7 fun reactions on a submission. Unlike
+// toggleVote there's no self-reaction ban — reacting to your own dressage
+// is harmless and arguably part of the fun — but the same reveal gate
+// applies: no peeking (or reacting) at someone else's photo before you've
+// shown yours. A caller can stack several different reaction types on the
+// same submission (toggle per type, same shape as Reaction on SavedRecipe).
+const togglePlatingReaction: RequestHandler<{ submissionId: string }> = async (req, res) => {
+  try {
+    const { type } = req.body as { type?: string };
+    if (!type || !ALLOWED_PLATING_REACTIONS.includes(type as PlatingReactionType)) {
+      return res.status(400).json({ error: 'Invalid reaction type' });
+    }
+
+    const submission = await prisma.platingSubmission.findUnique({
+      where: { id: req.params.submissionId },
+      include: { challenge: true },
+    });
+    if (!submission) return res.status(404).json({ error: 'Submission not found' });
+
+    const membership = await findHouseholdMembership(submission.challenge.householdId, req.user!.id);
+    if (!membership) return res.status(403).json({ error: 'Not a member of this bande' });
+
+    const open = isChallengeOpen(submission.challenge.endsAt);
+    if (open && submission.userId !== req.user!.id) {
+      const myOwnSubmission = await prisma.platingSubmission.findUnique({
+        where: { challengeId_userId: { challengeId: submission.challengeId, userId: req.user!.id } },
+      });
+      if (!myOwnSubmission) return res.status(403).json({ error: 'Envoie ta photo pour débloquer les réactions de ce défi.' });
+    }
+
+    const existing = await prisma.platingReaction.findUnique({
+      where: { submissionId_userId_type: { submissionId: submission.id, userId: req.user!.id, type } },
+    });
+    if (existing) {
+      await prisma.platingReaction.delete({ where: { id: existing.id } });
+    } else {
+      await prisma.platingReaction.create({ data: { submissionId: submission.id, userId: req.user!.id, type } });
+    }
+
+    const reactions = await prisma.platingReaction.findMany({ where: { submissionId: submission.id } });
+    res.json({ reactions: summarizePlatingReactions(reactions, req.user!.id) });
+  } catch (error) {
+    logError('Error toggling plating reaction', error);
+    res.status(500).json({ error: 'Failed to toggle reaction' });
   }
 };
 
@@ -483,6 +583,7 @@ router.get('/:id', requireAuth, getChallenge);
 router.post('/:id/submissions', requireAuth, submitPlating);
 router.delete('/:id/submissions/mine', requireAuth, deleteMySubmission);
 router.post('/submissions/:submissionId/vote', requireAuth, toggleVote);
+router.post('/submissions/:submissionId/reactions', requireAuth, togglePlatingReaction);
 router.get('/submissions/:submissionId/comments', requireAuth, listComments);
 router.post('/submissions/:submissionId/comments', requireAuth, addComment);
 router.delete('/comments/:commentId', requireAuth, deleteComment);

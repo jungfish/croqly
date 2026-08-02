@@ -23,8 +23,17 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' && componentTagger(),
     VitePWA({
+      // Custom src/sw.ts instead of the auto-generated worker — needed to
+      // add our own `push`/`notificationclick` listeners, which generateSW's
+      // Workbox config has no hook for.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "favicon.ico"],
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
+      },
       manifest: {
         name: "Croqly",
         short_name: "Croqly",
@@ -49,9 +58,6 @@ export default defineConfig(({ mode }) => ({
             purpose: "maskable",
           },
         ],
-      },
-      workbox: {
-        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ].filter(Boolean),

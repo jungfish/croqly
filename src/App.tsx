@@ -26,6 +26,7 @@ import AdminDashboard from '@/pages/admin';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { HeroProvider } from '@/hooks/use-hero';
 import { PwaInstallProvider } from '@/hooks/use-pwa-install';
+import { PushNotificationsProvider } from '@/hooks/use-push-notifications';
 
 const queryClient = new QueryClient();
 
@@ -85,7 +86,9 @@ const App = () => {
           <Router>
             <HeroProvider>
               <PwaInstallProvider>
-                <AppShell />
+                <PushNotificationsProvider>
+                  <AppShell />
+                </PushNotificationsProvider>
               </PwaInstallProvider>
             </HeroProvider>
           </Router>

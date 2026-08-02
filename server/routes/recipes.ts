@@ -9,6 +9,7 @@ import { interpretRecipe, generateIllustration } from '../lib/aiInterpretation.j
 import { buildEmbeddingInput, embed, storeRecipeEmbedding } from '../lib/embeddings.js';
 import { buildRecipeSearchWhere } from '../lib/recipeSearch.js';
 import { isAnonymousLimitExceeded, recordAnonymousUsage } from '../lib/rateLimit.js';
+import { sendPushToUsers } from '../lib/webPush.js';
 import { logError } from '../lib/logger.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
 import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
@@ -305,7 +306,10 @@ const toggleReaction: RequestHandler<{ id: string }> = async (req, res) => {
     }
     if (!householdId) return res.status(400).json({ error: 'householdId is required' });
 
-    const savedRecipe = await prisma.savedRecipe.findUnique({ where: { id: req.params.id } });
+    const savedRecipe = await prisma.savedRecipe.findUnique({
+      where: { id: req.params.id },
+      include: { recipe: { select: { title: true } } },
+    });
     if (!savedRecipe) return res.status(404).json({ error: 'Recipe not found' });
 
     const [reactorMembership, ownerMembership] = await Promise.all([
@@ -324,6 +328,19 @@ const toggleReaction: RequestHandler<{ id: string }> = async (req, res) => {
       await prisma.reaction.delete({ where: { id: existing.id } });
     } else {
       await prisma.reaction.create({ data: { savedRecipeId: savedRecipe.id, householdId, userId: req.user!.id, emoji } });
+
+      // Only on add, not on remove — nobody needs a push about a reaction
+      // being taken back.
+      const members = await prisma.householdMember.findMany({ where: { householdId } });
+      sendPushToUsers(
+        members.map((m) => m.userId),
+        {
+          title: 'Nouvelle réaction',
+          body: `${req.user!.email ?? 'Quelqu’un'} a réagi ${emoji} à « ${savedRecipe.recipe.title} »`,
+          url: '/bande',
+        },
+        req.user!.id
+      ).catch((error) => logError('Error sending reaction push notification', error));
     }
 
     const reactions = await prisma.reaction.findMany({ where: { savedRecipeId: savedRecipe.id, householdId } });

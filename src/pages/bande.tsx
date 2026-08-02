@@ -227,20 +227,20 @@ const BandePage = () => {
                             />
                           </div>
                           <div className="p-4 pb-3 bg-card/50 backdrop-blur-sm">
-                            {isRecentlySaved(recipe.savedAt) && (
-                              <span className="inline-block px-2 py-0.5 mb-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-sm">
-                                Nouveau
-                              </span>
-                            )}
-                            <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                              {isRecentlySaved(recipe.savedAt) && (
+                                <span className="inline-block px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-sm">
+                                  Nouveau
+                                </span>
+                              )}
                               <span className="inline-block px-3 py-1 bg-card/70 backdrop-blur-sm rounded-full text-sm text-foreground shadow-sm">
                                 {recipe.category}
                               </span>
-                              <span className="text-xs text-muted-foreground">
-                                Ajouté par {memberLabel(recipe.savedByEmail, recipe.savedByUserId === user?.id)}
-                              </span>
                             </div>
+                            <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>
+                            <span className="text-xs text-muted-foreground">
+                              Ajouté par {memberLabel(recipe.savedByEmail, recipe.savedByUserId === user?.id)}
+                            </span>
                           </div>
                         </Link>
                         <div className="px-4 pb-4 bg-card/50 backdrop-blur-sm flex items-center justify-between gap-2 flex-wrap">

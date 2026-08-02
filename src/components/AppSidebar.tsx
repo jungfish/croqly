@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Home, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, LogOut, Download, UserPlus, Zap } from 'lucide-react';
+import { Home, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, LogOut, Download, UserPlus, Zap, Bell, BellOff, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
@@ -26,6 +27,7 @@ const AppSidebar = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const { canInstall, isIOS, isStandalone, promptInstall } = usePwaInstall();
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } = usePushNotifications();
 
   const { data: shoppingListItems = [] } = useQuery<ShoppingListItem[]>({
     queryKey: ['shopping-list'],
@@ -88,6 +90,20 @@ const AppSidebar = () => {
     toast.success('À bientôt !');
   };
 
+  const handleTogglePush = async () => {
+    try {
+      if (pushSubscribed) {
+        await unsubscribeFromPush();
+        toast('Notifications désactivées');
+      } else {
+        await subscribeToPush();
+        toast.success('Notifications activées !');
+      }
+    } catch {
+      toast.error('Impossible de mettre à jour les notifications. Réessaie dans un instant.');
+    }
+  };
+
   return (
     <aside className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-40 md:w-64 md:flex-col md:border-r md:border-border md:bg-card">
       <div className="px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-4">
@@ -102,7 +118,8 @@ const AppSidebar = () => {
             <Icon className="w-4 h-4 shrink-0" />
             {label}
             {badge && (
-              <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                <Sparkles className="w-2.5 h-2.5" />
                 {badge}
               </span>
             )}
@@ -146,6 +163,12 @@ const AppSidebar = () => {
           <Button variant="outline" size="sm" onClick={handleInstallClick} className="w-full justify-start gap-3">
             <Download className="w-4 h-4" />
             Installer l'app
+          </Button>
+        )}
+        {pushSupported && (
+          <Button variant="outline" size="sm" onClick={handleTogglePush} disabled={pushLoading} className="w-full justify-start gap-3">
+            {pushSubscribed ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+            {pushSubscribed ? 'Désactiver les notifs' : 'Activer les notifs'}
           </Button>
         )}
         <p className="truncate px-3 pt-1 text-xs text-muted-foreground" title={user?.email ?? ''}>

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -6,6 +6,9 @@ import { Camera, Crown, Lock, MessageCircle, Send, Trash2, Trophy, Zap } from "l
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ConfettiBurst from "@/components/ConfettiBurst";
+import ReactionBurst from "@/components/ReactionBurst";
+import PlatingReactionBar from "@/components/PlatingReactionBar";
+import { useInViewOnce } from "@/hooks/use-in-view-once";
 import {
   fetchChallenge,
   submitPlating,
@@ -16,6 +19,7 @@ import {
   type PlatingChallengeDetail,
   type PlatingSubmission,
   type PlatingComment,
+  type PlatingReactionSummary,
 } from "@/services/platingChallengeService";
 
 function memberLabel(email: string | null, isMine: boolean): string {
@@ -152,6 +156,16 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
   const queryClient = useQueryClient();
   const [voting, setVoting] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [reactions, setReactions] = useState<PlatingReactionSummary[]>(submission.reactions);
+  const [burstKey, setBurstKey] = useState(0);
+  const [ref, inView] = useInViewOnce<HTMLDivElement>();
+
+  // Replays the reaction burst (and, for the winner, the confetti) once the
+  // card actually scrolls into view rather than the instant it mounts —
+  // same "seen = replay" idea as the hub feed's DressageFeedCard.
+  useEffect(() => {
+    if (inView && reactions.some((r) => r.count > 0)) setBurstKey((k) => k + 1);
+  }, [inView]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (submission.locked) {
     return (
@@ -178,22 +192,23 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
   };
 
   return (
-    <div className="relative rounded-xl overflow-hidden border border-border bg-card/70 backdrop-blur-sm shadow-sm">
-      {showConfetti && <ConfettiBurst />}
-      <div className="h-56 overflow-hidden">
+    <div ref={ref} className="relative rounded-xl overflow-hidden border border-border bg-card/70 backdrop-blur-sm shadow-sm">
+      <div className="h-56 overflow-hidden relative">
         <img src={submission.photoUrl} alt={submission.caption ?? ""} className="w-full h-full object-cover" />
+        {showConfetti && inView && <ConfettiBurst key={`confetti-${burstKey}`} />}
+        <ReactionBurst key={`reactions-${burstKey}`} reactions={reactions} />
       </div>
       <div className="p-3">
         <div className="flex items-center justify-between gap-2 mb-1">
           <span className="text-sm font-medium text-foreground">{memberLabel(submission.email, submission.isMine)}</span>
           {showConfetti && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-yolk-deep">
+            <span className={`inline-flex items-center gap-1 text-xs font-semibold text-yolk-deep ${inView ? "winner-pop" : "opacity-0"}`}>
               <Trophy className="w-3.5 h-3.5" /> Gagnant
             </span>
           )}
         </div>
         {submission.caption && <p className="text-sm text-muted-foreground mb-2">{submission.caption}</p>}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-2">
           <button
             onClick={handleVote}
             disabled={submission.isMine || voting}
@@ -215,6 +230,14 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
             {submission.commentsCount}
           </button>
         </div>
+        <PlatingReactionBar
+          submissionId={submission.id}
+          reactions={reactions}
+          onChange={(updated) => {
+            setReactions(updated);
+            setBurstKey((k) => k + 1);
+          }}
+        />
         {commentsOpen && <Comments submissionId={submission.id} />}
       </div>
     </div>

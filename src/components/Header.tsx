@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Menu, Download, UserPlus } from 'lucide-react';
+import { Menu, Download, UserPlus, Bell, BellOff, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { useHero } from '@/hooks/use-hero';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,7 @@ const Header = () => {
   const { user, signOut } = useAuth();
   const { hasHero } = useHero();
   const { canInstall, isIOS, isStandalone, promptInstall } = usePwaInstall();
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } = usePushNotifications();
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
 
   // Same query key as the shopping-list page, so this badge stays in sync
@@ -85,6 +87,20 @@ const Header = () => {
     toast.success('À bientôt !');
   };
 
+  const handleTogglePush = async () => {
+    try {
+      if (pushSubscribed) {
+        await unsubscribeFromPush();
+        toast('Notifications désactivées');
+      } else {
+        await subscribeToPush();
+        toast.success('Notifications activées !');
+      }
+    } catch {
+      toast.error('Impossible de mettre à jour les notifications. Réessaie dans un instant.');
+    }
+  };
+
   useEffect(() => {
     if (!hasHero) {
       setScrolledPastHero(false);
@@ -121,7 +137,8 @@ const Header = () => {
       </Link>
       <Link to="/assistant" className={`${linkClass} inline-flex items-center gap-1.5`}>
         Croq
-        <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+          <Sparkles className="w-2.5 h-2.5" />
           IA
         </span>
       </Link>
@@ -206,7 +223,8 @@ const Header = () => {
             <SheetClose asChild>
               <Link to="/assistant" className="text-lg text-foreground/80 hover:text-foreground inline-flex items-center gap-2">
                 Croq
-                <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                  <Sparkles className="w-2.5 h-2.5" />
                   IA
                 </span>
               </Link>
@@ -247,6 +265,18 @@ const Header = () => {
                     <Link to="/admin" className="text-lg text-foreground/80 hover:text-foreground">
                       Admin
                     </Link>
+                  </SheetClose>
+                )}
+                {pushSupported && (
+                  <SheetClose asChild>
+                    <button
+                      onClick={handleTogglePush}
+                      disabled={pushLoading}
+                      className="text-lg text-left text-foreground/80 hover:text-foreground inline-flex items-center gap-2"
+                    >
+                      {pushSubscribed ? <BellOff className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
+                      {pushSubscribed ? 'Désactiver les notifs' : 'Activer les notifs'}
+                    </button>
                   </SheetClose>
                 )}
                 <SheetClose asChild>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Send, Refrigerator, X, UtensilsCrossed, Copy, RotateCcw } from "lucide-react";
+import { Send, Refrigerator, X, UtensilsCrossed, Copy, RotateCcw, Sparkles } from "lucide-react";
 import RecipePreview from "@/components/RecipePreview";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -213,7 +213,13 @@ const ChatPage = () => {
           <div className="flex-1 flex flex-col items-center justify-center gap-6">
             <CroqMark className="w-9 h-9" />
             <div className="text-center">
-              <h1 className="font-display text-2xl sm:text-3xl text-foreground">Qu'est-ce qu'on cuisine aujourd'hui ?</h1>
+              <h1 className="font-display text-2xl sm:text-3xl text-foreground inline-flex items-center gap-2">
+                Qu'est-ce qu'on cuisine aujourd'hui ?
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-semibold align-middle">
+                  <Sparkles className="w-3 h-3" />
+                  IA
+                </span>
+              </h1>
               <p className="text-muted-foreground mt-1">Des recettes déjà croquées par la communauté.</p>
             </div>
 
@@ -234,7 +240,7 @@ const ChatPage = () => {
               <button
                 type="button"
                 onClick={openFridgeMode}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-muted-foreground hover:bg-card hover:text-foreground transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg text-left border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors dark:border-purple-900 dark:bg-purple-950 dark:text-purple-300 dark:hover:bg-purple-900"
               >
                 <Refrigerator className="w-4 h-4 shrink-0" />
                 Mode frigo — dis-moi ce que tu as
