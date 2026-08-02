@@ -7,7 +7,7 @@ import { usePwaInstall } from '@/hooks/use-pwa-install';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
-import { fetchMyHousehold, shareInviteLink, type Household } from '@/services/householdService';
+import { fetchMyHouseholds, shareInviteLink, type Household } from '@/services/householdService';
 import { isAdminUser } from '@/lib/admin';
 
 const NAV_ITEMS = [
@@ -33,9 +33,9 @@ const AppSidebar = () => {
   });
   const remainingCount = shoppingListItems.filter((item) => !item.checked).length;
 
-  const { data: household } = useQuery<Household | null>({
-    queryKey: ['household', 'me'],
-    queryFn: fetchMyHousehold,
+  const { data: households = [] } = useQuery<Household[]>({
+    queryKey: ['households'],
+    queryFn: fetchMyHouseholds,
     enabled: !!user,
   });
 
@@ -45,10 +45,13 @@ const AppSidebar = () => {
   // Standing growth-loop entry point (distinct from the nudges on /bande
   // itself, see bande.tsx) — surfaces the invite action wherever the user
   // happens to be in the app, not just when they land on the Bande page.
+  // Only fires the one-tap share when there's exactly one bande to invite
+  // to; with several, the button below links to /bande instead so the
+  // caller picks which one.
   const handleInviteClick = async () => {
-    if (!household) return;
+    if (households.length !== 1) return;
     try {
-      const result = await shareInviteLink(household.inviteCode);
+      const result = await shareInviteLink(households[0].inviteCode);
       if (result === 'copied') toast.success("Lien d'invitation copié !");
     } catch {
       toast.error('Impossible de partager. Réessaie dans un instant.');
@@ -119,10 +122,18 @@ const AppSidebar = () => {
       </nav>
 
       <div className="px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 space-y-1 border-t border-border">
-        {household && (
+        {households.length === 1 && (
           <Button onClick={handleInviteClick} className="w-full justify-start gap-3">
             <UserPlus className="w-4 h-4 shrink-0" />
             Inviter à la bande
+          </Button>
+        )}
+        {households.length > 1 && (
+          <Button asChild className="w-full justify-start gap-3">
+            <Link to="/bande">
+              <UserPlus className="w-4 h-4 shrink-0" />
+              Inviter à une bande
+            </Link>
           </Button>
         )}
         {showInstall && (

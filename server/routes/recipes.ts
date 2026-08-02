@@ -235,23 +235,29 @@ const getMine: RequestHandler = async (req, res) => {
 };
 
 // "Bande" (user-facing name for a household) — recipes saved by any member
-// of the caller's household, joined
-// through HouseholdMember -> SavedRecipe. Same shape as getMine but widens
-// the userId filter from "just me" to "everyone in my household", and
+// of one specific bande the caller belongs to (a user can be in several),
+// joined through HouseholdMember -> SavedRecipe. Same shape as getMine but
+// widens the userId filter from "just me" to "everyone in this bande", and
 // attributes each card to whoever saved it (email resolved from Supabase
-// auth, same pattern as server/routes/admin.ts).
-const getHousehold: RequestHandler = async (req, res) => {
+// auth, same pattern as server/routes/admin.ts). Reactions are scoped to
+// this bande too — see toggleReaction.
+const getHousehold: RequestHandler<{ id: string }> = async (req, res) => {
   try {
-    const membership = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
-    if (!membership) return res.json([]);
+    const membership = await prisma.householdMember.findUnique({
+      where: { householdId_userId: { householdId: req.params.id, userId: req.user!.id } },
+    });
+    if (!membership) return res.status(403).json({ error: 'Not a member of this bande' });
 
-    const members = await prisma.householdMember.findMany({ where: { householdId: membership.householdId } });
+    const members = await prisma.householdMember.findMany({ where: { householdId: req.params.id } });
     const memberIds = members.map((m) => m.userId);
 
     const { search, category } = req.query as { search?: string; category?: string };
     const saved = await prisma.savedRecipe.findMany({
       where: { userId: { in: memberIds }, recipe: buildRecipeSearchWhere({ search, category }) },
-      include: { recipe: { include: { creator: true } }, reactions: true },
+      include: {
+        recipe: { include: { creator: true } },
+        reactions: { where: { householdId: req.params.id } },
+      },
       orderBy: { savedAt: 'desc' },
     });
 
@@ -284,41 +290,43 @@ const getHousehold: RequestHandler = async (req, res) => {
 };
 
 // Toggles the caller's reaction (add if absent, remove if already set) on a
-// specific SavedRecipe card. Gated to household-mates of whoever saved it
-// (or the saver themself) — SavedRecipe ids aren't otherwise access-
-// controlled, so this is the only check keeping reactions scoped to people
-// who can actually see this card in their bande feed.
+// specific SavedRecipe card, scoped to one bande — a reaction always belongs
+// to whichever bande's feed it was made from (see Reaction.householdId),
+// since the same saved recipe can appear in more than one of the caller's
+// bandes. Gated to members of that bande (reactor and the card's saver both
+// need to belong to it) — SavedRecipe ids aren't otherwise access-controlled,
+// so this is the only check keeping reactions scoped to people who can
+// actually see this card in that bande's feed.
 const toggleReaction: RequestHandler<{ id: string }> = async (req, res) => {
   try {
-    const { emoji } = req.body as { emoji?: string };
+    const { emoji, householdId } = req.body as { emoji?: string; householdId?: string };
     if (!emoji || !ALLOWED_REACTION_EMOJIS.includes(emoji)) {
       return res.status(400).json({ error: 'Invalid emoji' });
     }
+    if (!householdId) return res.status(400).json({ error: 'householdId is required' });
 
     const savedRecipe = await prisma.savedRecipe.findUnique({ where: { id: req.params.id } });
     if (!savedRecipe) return res.status(404).json({ error: 'Recipe not found' });
 
-    if (savedRecipe.userId !== req.user!.id) {
-      const [reactorMembership, ownerMembership] = await Promise.all([
-        prisma.householdMember.findUnique({ where: { userId: req.user!.id } }),
-        prisma.householdMember.findUnique({ where: { userId: savedRecipe.userId } }),
-      ]);
-      if (!reactorMembership || reactorMembership.householdId !== ownerMembership?.householdId) {
-        return res.status(403).json({ error: 'Not allowed to react to this recipe' });
-      }
+    const [reactorMembership, ownerMembership] = await Promise.all([
+      prisma.householdMember.findUnique({ where: { householdId_userId: { householdId, userId: req.user!.id } } }),
+      prisma.householdMember.findUnique({ where: { householdId_userId: { householdId, userId: savedRecipe.userId } } }),
+    ]);
+    if (!reactorMembership || !ownerMembership) {
+      return res.status(403).json({ error: 'Not allowed to react to this recipe' });
     }
 
     const existing = await prisma.reaction.findUnique({
-      where: { savedRecipeId_userId_emoji: { savedRecipeId: savedRecipe.id, userId: req.user!.id, emoji } },
+      where: { savedRecipeId_householdId_userId_emoji: { savedRecipeId: savedRecipe.id, householdId, userId: req.user!.id, emoji } },
     });
 
     if (existing) {
       await prisma.reaction.delete({ where: { id: existing.id } });
     } else {
-      await prisma.reaction.create({ data: { savedRecipeId: savedRecipe.id, userId: req.user!.id, emoji } });
+      await prisma.reaction.create({ data: { savedRecipeId: savedRecipe.id, householdId, userId: req.user!.id, emoji } });
     }
 
-    const reactions = await prisma.reaction.findMany({ where: { savedRecipeId: savedRecipe.id } });
+    const reactions = await prisma.reaction.findMany({ where: { savedRecipeId: savedRecipe.id, householdId } });
     res.json({ reactions: summarizeReactions(reactions, req.user!.id) });
   } catch (error) {
     logError('Error toggling reaction', error);
@@ -363,7 +371,7 @@ const deleteSavedRecipe: RequestHandler<{ id: string }> = async (req, res) => {
 
 router.post('/from-url', fromUrl);
 router.get('/mine', requireAuth, getMine);
-router.get('/household', requireAuth, getHousehold);
+router.get('/household/:id', requireAuth, getHousehold);
 router.post('/saved/:id/reactions', requireAuth, toggleReaction);
 router.post('/:id/save', requireAuth, saveExisting);
 router.delete('/:id/save', requireAuth, deleteSavedRecipe);

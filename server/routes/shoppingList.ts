@@ -261,11 +261,15 @@ const setShare: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: 'Impossible de partager ta liste avec toi-même.' });
     }
 
-    const [myMembership, targetMembership] = await Promise.all([
-      prisma.householdMember.findUnique({ where: { userId: req.user!.id } }),
-      prisma.householdMember.findUnique({ where: { userId: targetUserId } }),
+    // A user can belong to several bandes now, so "same bande" means any
+    // overlap between the two membership lists, not a single equal id.
+    const [myHouseholds, targetHouseholds] = await Promise.all([
+      prisma.householdMember.findMany({ where: { userId: req.user!.id }, select: { householdId: true } }),
+      prisma.householdMember.findMany({ where: { userId: targetUserId }, select: { householdId: true } }),
     ]);
-    if (!myMembership || !targetMembership || myMembership.householdId !== targetMembership.householdId) {
+    const targetHouseholdIds = new Set(targetHouseholds.map((m) => m.householdId));
+    const shareCommonHousehold = myHouseholds.some((m) => targetHouseholdIds.has(m.householdId));
+    if (!shareCommonHousehold) {
       return res.status(403).json({ error: 'Cette personne ne fait pas partie de ta bande.' });
     }
 

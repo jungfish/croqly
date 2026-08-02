@@ -15,7 +15,7 @@ import {
   SheetClose,
 } from '@/components/ui/sheet';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
-import { fetchMyHousehold, shareInviteLink, type Household } from '@/services/householdService';
+import { fetchMyHouseholds, shareInviteLink, type Household } from '@/services/householdService';
 import { isAdminUser } from '@/lib/admin';
 
 // Below this scroll offset the hero image is still filling the header's
@@ -40,19 +40,22 @@ const Header = () => {
   const remainingCount = shoppingListItems.filter((item) => !item.checked).length;
   const showAdminLink = isAdminUser(user);
 
-  const { data: household } = useQuery<Household | null>({
-    queryKey: ['household', 'me'],
-    queryFn: fetchMyHousehold,
+  const { data: households = [] } = useQuery<Household[]>({
+    queryKey: ['households'],
+    queryFn: fetchMyHouseholds,
     enabled: !!user,
   });
 
   // Standing growth-loop entry point (distinct from the nudges on /bande
   // itself, see bande.tsx) — surfaces the invite action wherever the user
   // happens to be in the app, not just when they land on the Bande page.
+  // Only fires the one-tap share when there's exactly one bande to invite
+  // to; with several, the link below routes to /bande instead so the
+  // caller picks which one (see the Link/Button branch further down).
   const handleInviteClick = async () => {
-    if (!household) return;
+    if (households.length !== 1) return;
     try {
-      const result = await shareInviteLink(household.inviteCode);
+      const result = await shareInviteLink(households[0].inviteCode);
       if (result === 'copied') toast.success("Lien d'invitation copié !");
     } catch {
       toast.error('Impossible de partager. Réessaie dans un instant.');
@@ -267,11 +270,21 @@ const Header = () => {
               </Button>
             )}
 
-            {household && (
+            {households.length === 1 && (
               <SheetClose asChild>
                 <Button onClick={handleInviteClick} className="mt-auto gap-2">
                   <UserPlus className="w-4 h-4" />
                   Inviter à la bande
+                </Button>
+              </SheetClose>
+            )}
+            {households.length > 1 && (
+              <SheetClose asChild>
+                <Button asChild className="mt-auto gap-2">
+                  <Link to="/bande">
+                    <UserPlus className="w-4 h-4" />
+                    Inviter à une bande
+                  </Link>
                 </Button>
               </SheetClose>
             )}

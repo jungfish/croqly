@@ -32,48 +32,54 @@ async function resolveEmails(userIds: string[]): Promise<Map<string, string>> {
   return emailById;
 }
 
-// Current user's household, if any, with member emails resolved from
-// Supabase auth (same pattern as server/routes/admin.ts) since there's no
-// local Users table to join against.
-const getMyHousehold: RequestHandler = async (req, res) => {
+type HouseholdWithMembers = { id: string; name: string | null; inviteCode: string; members: { userId: string; joinedAt: Date }[] };
+
+// Shapes a Household + its members (with emails resolved from Supabase auth,
+// same pattern as server/routes/admin.ts) into the API-facing form shared by
+// every endpoint below.
+async function serializeHousehold(household: HouseholdWithMembers, currentUserId: string) {
+  const memberIds = household.members.map((m) => m.userId);
+  const emailById = await resolveEmails(memberIds);
+  return {
+    id: household.id,
+    name: household.name,
+    inviteCode: household.inviteCode,
+    members: household.members
+      .map((m) => ({
+        userId: m.userId,
+        email: emailById.get(m.userId) ?? null,
+        joinedAt: m.joinedAt,
+        isMe: m.userId === currentUserId,
+      }))
+      .sort((a, b) => (a.joinedAt < b.joinedAt ? -1 : 1)),
+  };
+}
+
+function findMembership(householdId: string, userId: string) {
+  return prisma.householdMember.findUnique({ where: { householdId_userId: { householdId, userId } } });
+}
+
+// Every bande the caller belongs to (a user can be in several — e.g. one
+// with family, one with friends), oldest-joined first so the list order
+// stays stable across requests.
+const listMyHouseholds: RequestHandler = async (req, res) => {
   try {
-    const membership = await prisma.householdMember.findUnique({
+    const memberships = await prisma.householdMember.findMany({
       where: { userId: req.user!.id },
       include: { household: { include: { members: true } } },
+      orderBy: { joinedAt: 'asc' },
     });
-    if (!membership) return res.json({ household: null });
-
-    const memberIds = membership.household.members.map((m) => m.userId);
-    const emailById = await resolveEmails(memberIds);
-
-    res.json({
-      household: {
-        id: membership.household.id,
-        name: membership.household.name,
-        inviteCode: membership.household.inviteCode,
-        members: membership.household.members
-          .map((m) => ({
-            userId: m.userId,
-            email: emailById.get(m.userId) ?? null,
-            joinedAt: m.joinedAt,
-            isMe: m.userId === req.user!.id,
-          }))
-          .sort((a, b) => (a.joinedAt < b.joinedAt ? -1 : 1)),
-      },
-    });
+    const households = await Promise.all(memberships.map((m) => serializeHousehold(m.household, req.user!.id)));
+    res.json({ households });
   } catch (error) {
-    logError('Error fetching household', error);
-    res.status(500).json({ error: 'Failed to fetch household' });
+    logError('Error fetching households', error);
+    res.status(500).json({ error: 'Failed to fetch households' });
   }
 };
 
-// A user belongs to at most one household — retried a few times on the rare
-// invite-code collision (see HouseholdMember.userId unique constraint).
+// Retried a few times on the rare invite-code collision.
 const createHousehold: RequestHandler = async (req, res) => {
   try {
-    const existing = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
-    if (existing) return res.status(409).json({ error: 'Tu fais déjà partie d’une bande.' });
-
     const { name } = req.body as { name?: string };
 
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -84,15 +90,9 @@ const createHousehold: RequestHandler = async (req, res) => {
             inviteCode: generateInviteCode(),
             members: { create: { userId: req.user!.id } },
           },
+          include: { members: true },
         });
-        return res.status(201).json({
-          household: {
-            id: household.id,
-            name: household.name,
-            inviteCode: household.inviteCode,
-            members: [{ userId: req.user!.id, email: req.user!.email ?? null, joinedAt: household.createdAt, isMe: true }],
-          },
-        });
+        return res.status(201).json({ household: await serializeHousehold(household, req.user!.id) });
       } catch (error) {
         if (isUniqueConstraintError(error)) continue;
         throw error;
@@ -110,16 +110,19 @@ const joinHousehold: RequestHandler = async (req, res) => {
     const { code } = req.body as { code?: string };
     if (!code?.trim()) return res.status(400).json({ error: 'code is required' });
 
-    const existing = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
-    if (existing) {
-      return res.status(409).json({ error: 'Tu fais déjà partie d’une bande — quitte-la avant d’en rejoindre une autre.' });
-    }
-
-    const household = await prisma.household.findUnique({ where: { inviteCode: code.trim().toUpperCase() } });
+    const household = await prisma.household.findUnique({
+      where: { inviteCode: code.trim().toUpperCase() },
+      include: { members: true },
+    });
     if (!household) return res.status(404).json({ error: 'Code invalide.' });
 
+    if (household.members.some((m) => m.userId === req.user!.id)) {
+      return res.status(409).json({ error: 'Tu fais déjà partie de cette bande.' });
+    }
+
     await prisma.householdMember.create({ data: { householdId: household.id, userId: req.user!.id } });
-    res.json({ joined: true });
+    const updated = await prisma.household.findUniqueOrThrow({ where: { id: household.id }, include: { members: true } });
+    res.json({ household: await serializeHousehold(updated, req.user!.id) });
   } catch (error) {
     logError('Error joining household', error);
     res.status(500).json({ error: 'Failed to join household' });
@@ -128,14 +131,14 @@ const joinHousehold: RequestHandler = async (req, res) => {
 
 // Deletes the household once its last member leaves, so an abandoned
 // household never lingers with a still-valid invite code.
-const leaveHousehold: RequestHandler = async (req, res) => {
+const leaveHousehold: RequestHandler<{ id: string }> = async (req, res) => {
   try {
-    const membership = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
+    const membership = await findMembership(req.params.id, req.user!.id);
     if (!membership) return res.status(404).json({ error: 'Tu ne fais partie d’aucune bande.' });
 
-    await prisma.householdMember.delete({ where: { userId: req.user!.id } });
-    const remaining = await prisma.householdMember.count({ where: { householdId: membership.householdId } });
-    if (remaining === 0) await prisma.household.delete({ where: { id: membership.householdId } });
+    await prisma.householdMember.delete({ where: { id: membership.id } });
+    const remaining = await prisma.householdMember.count({ where: { householdId: req.params.id } });
+    if (remaining === 0) await prisma.household.delete({ where: { id: req.params.id } });
 
     res.json({ left: true });
   } catch (error) {
@@ -144,14 +147,14 @@ const leaveHousehold: RequestHandler = async (req, res) => {
   }
 };
 
-const renameHousehold: RequestHandler = async (req, res) => {
+const renameHousehold: RequestHandler<{ id: string }> = async (req, res) => {
   try {
-    const membership = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
+    const membership = await findMembership(req.params.id, req.user!.id);
     if (!membership) return res.status(404).json({ error: 'Tu ne fais partie d’aucune bande.' });
 
     const { name } = req.body as { name?: string };
     const household = await prisma.household.update({
-      where: { id: membership.householdId },
+      where: { id: req.params.id },
       data: { name: name?.trim() || null },
     });
     res.json({ name: household.name });
@@ -163,15 +166,15 @@ const renameHousehold: RequestHandler = async (req, res) => {
 
 // Invalidates the old code (e.g. after sharing it too broadly) without
 // affecting existing members.
-const regenerateCode: RequestHandler = async (req, res) => {
+const regenerateCode: RequestHandler<{ id: string }> = async (req, res) => {
   try {
-    const membership = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
+    const membership = await findMembership(req.params.id, req.user!.id);
     if (!membership) return res.status(404).json({ error: 'Tu ne fais partie d’aucune bande.' });
 
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         const household = await prisma.household.update({
-          where: { id: membership.householdId },
+          where: { id: req.params.id },
           data: { inviteCode: generateInviteCode() },
         });
         return res.json({ inviteCode: household.inviteCode });
@@ -187,11 +190,11 @@ const regenerateCode: RequestHandler = async (req, res) => {
   }
 };
 
-router.get('/me', requireAuth, getMyHousehold);
+router.get('/', requireAuth, listMyHouseholds);
 router.post('/', requireAuth, createHousehold);
 router.post('/join', requireAuth, joinHousehold);
-router.patch('/', requireAuth, renameHousehold);
-router.post('/leave', requireAuth, leaveHousehold);
-router.post('/regenerate-code', requireAuth, regenerateCode);
+router.patch('/:id', requireAuth, renameHousehold);
+router.post('/:id/leave', requireAuth, leaveHousehold);
+router.post('/:id/regenerate-code', requireAuth, regenerateCode);
 
 export default router;

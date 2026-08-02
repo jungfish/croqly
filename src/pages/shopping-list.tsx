@@ -18,7 +18,7 @@ import {
   type ShoppingListItem,
   type ShoppingListShareStatus,
 } from '@/services/shoppingListService';
-import { fetchMyHousehold, type Household } from '@/services/householdService';
+import { fetchMyHouseholds, type Household, type HouseholdMember } from '@/services/householdService';
 import { useAuth } from '@/hooks/use-auth';
 import { getFirstName } from '@/lib/getFirstName';
 import { emojiForIngredient } from '@/lib/ingredientEmoji';
@@ -30,11 +30,14 @@ function memberLabel(email: string | null): string {
   return email ? email.split('@')[0] : 'Ce membre';
 }
 
-// Only rendered once the caller has a bande with at least one other member —
-// solo bandes have nobody to share with. Shows either "you're viewing X's
-// shared list" (nothing to configure here) or the sharing controls for the
-// caller's own list.
-const ShareListPanel = ({ household }: { household: Household }) => {
+// Only rendered once the caller belongs to at least one bande with another
+// member in it — solo bandes have nobody to share with. Sharing isn't
+// scoped to a single bande, so the candidate list is every other member
+// across all of the caller's bandes, deduplicated (the same person can be
+// in more than one bande together with the caller). Shows either "you're
+// viewing X's shared list" (nothing to configure here) or the sharing
+// controls for the caller's own list.
+const ShareListPanel = ({ households }: { households: Household[] }) => {
   const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
 
@@ -43,7 +46,13 @@ const ShareListPanel = ({ household }: { household: Household }) => {
     queryFn: fetchShoppingListShareStatus,
   });
 
-  const otherMembers = household.members.filter((m) => !m.isMe);
+  const otherMembersById = new Map<string, HouseholdMember>();
+  for (const household of households) {
+    for (const member of household.members) {
+      if (!member.isMe) otherMembersById.set(member.userId, member);
+    }
+  }
+  const otherMembers = [...otherMembersById.values()];
   if (otherMembers.length === 0) return null;
 
   const handleShare = async (userId: string) => {
@@ -130,9 +139,9 @@ const ShoppingListPage = () => {
     queryFn: fetchShoppingList,
   });
 
-  const { data: household } = useQuery<Household | null>({
-    queryKey: ['household', 'me'],
-    queryFn: fetchMyHousehold,
+  const { data: households = [] } = useQuery<Household[]>({
+    queryKey: ['households'],
+    queryFn: fetchMyHouseholds,
   });
 
   const setPending = (id: string, pending: boolean) => {
@@ -231,7 +240,7 @@ const ShoppingListPage = () => {
           </div>
         </div>
 
-        {household && <ShareListPanel household={household} />}
+        {households.length > 0 && <ShareListPanel households={households} />}
 
         <form onSubmit={handleAddItem} className="mb-1 flex gap-2">
           <Input

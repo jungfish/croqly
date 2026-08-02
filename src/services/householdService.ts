@@ -8,6 +8,8 @@ export type HouseholdMember = {
   isMe: boolean;
 };
 
+// A "bande" — a user can belong to several at once (e.g. one with family,
+// one with friends), each with its own members, invite code, and recipe feed.
 export type Household = {
   id: string;
   name: string | null;
@@ -22,8 +24,9 @@ export const REACTION_EMOJIS = ['😋', '🤤', '😍', '👍', '🔥', '❤️'
 
 export type ReactionSummary = { emoji: string; count: number; reactedByMe: boolean };
 
-// A recipe returned by GET /api/recipes/household, attributed to whoever in
-// the household saved it.
+// A recipe returned by GET /api/recipes/household/:id, attributed to
+// whoever in that bande saved it. Reactions are scoped to this specific
+// bande (see Reaction.householdId server-side).
 export type HouseholdRecipe = Recipe & {
   savedRecipeId: string;
   savedByUserId: string;
@@ -37,24 +40,25 @@ async function parseErrorOr(response: Response, fallback: string): Promise<never
   throw new Error(body.error || fallback);
 }
 
-export async function fetchMyHousehold(): Promise<Household | null> {
-  const response = await authFetch('/api/household/me');
-  if (!response.ok) return parseErrorOr(response, 'Failed to fetch household');
-  const { household } = await response.json();
-  return household;
+// Every bande the caller belongs to.
+export async function fetchMyHouseholds(): Promise<Household[]> {
+  const response = await authFetch('/api/household');
+  if (!response.ok) return parseErrorOr(response, 'Failed to fetch households');
+  const { households } = await response.json();
+  return households;
 }
 
-export async function fetchHouseholdRecipes(): Promise<HouseholdRecipe[]> {
-  const response = await authFetch('/api/recipes/household');
+export async function fetchHouseholdRecipes(householdId: string): Promise<HouseholdRecipe[]> {
+  const response = await authFetch(`/api/recipes/household/${householdId}`);
   if (!response.ok) return parseErrorOr(response, 'Failed to fetch household recipes');
   return response.json();
 }
 
-export async function toggleReaction(savedRecipeId: string, emoji: string): Promise<ReactionSummary[]> {
+export async function toggleReaction(householdId: string, savedRecipeId: string, emoji: string): Promise<ReactionSummary[]> {
   const response = await authFetch(`/api/recipes/saved/${savedRecipeId}/reactions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ emoji }),
+    body: JSON.stringify({ emoji, householdId }),
   });
   if (!response.ok) return parseErrorOr(response, 'Failed to toggle reaction');
   const { reactions } = await response.json();
@@ -72,8 +76,8 @@ export async function createHousehold(name?: string): Promise<Household> {
   return household;
 }
 
-export async function renameHousehold(name: string): Promise<string | null> {
-  const response = await authFetch('/api/household', {
+export async function renameHousehold(householdId: string, name: string): Promise<string | null> {
+  const response = await authFetch(`/api/household/${householdId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
@@ -83,22 +87,25 @@ export async function renameHousehold(name: string): Promise<string | null> {
   return updatedName;
 }
 
-export async function joinHousehold(code: string): Promise<void> {
+// Returns the joined household so the caller can switch straight to it.
+export async function joinHousehold(code: string): Promise<Household> {
   const response = await authFetch('/api/household/join', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code }),
   });
   if (!response.ok) return parseErrorOr(response, 'Failed to join household');
+  const { household } = await response.json();
+  return household;
 }
 
-export async function leaveHousehold(): Promise<void> {
-  const response = await authFetch('/api/household/leave', { method: 'POST' });
+export async function leaveHousehold(householdId: string): Promise<void> {
+  const response = await authFetch(`/api/household/${householdId}/leave`, { method: 'POST' });
   if (!response.ok) return parseErrorOr(response, 'Failed to leave household');
 }
 
-export async function regenerateInviteCode(): Promise<string> {
-  const response = await authFetch('/api/household/regenerate-code', { method: 'POST' });
+export async function regenerateInviteCode(householdId: string): Promise<string> {
+  const response = await authFetch(`/api/household/${householdId}/regenerate-code`, { method: 'POST' });
   if (!response.ok) return parseErrorOr(response, 'Failed to regenerate invite code');
   const { inviteCode } = await response.json();
   return inviteCode;

@@ -112,46 +112,53 @@ model SavedRecipe {
   @@index([userId])
 }
 
-// A Slack-style emoji reaction on a specific SavedRecipe "card" — scoped to
-// the SavedRecipe row (not the shared/global Recipe) so a reaction never
-// leaks across households: Recipe rows are a platform-wide cache and could
-// be saved by members of unrelated households, but a SavedRecipe only ever
-// shows up in its owner's bande feed (see GET /api/recipes/household).
+// A Slack-style emoji reaction on a specific SavedRecipe "card", scoped to
+// the (SavedRecipe, Household) pair rather than just the SavedRecipe — a
+// user can belong to several bandes, so the same saved recipe can appear in
+// more than one bande's feed at once, and reactions must not bleed from one
+// bande into another (e.g. a "copains" reaction showing up to "famille").
 model Reaction {
   id            String      @id @default(cuid())
   savedRecipeId String
   savedRecipe   SavedRecipe @relation(fields: [savedRecipeId], references: [id], onDelete: Cascade)
+  householdId   String
+  household     Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
   userId        String
   emoji         String
   createdAt     DateTime    @default(now())
 
-  @@unique([savedRecipeId, userId, emoji])
-  @@index([savedRecipeId])
+  @@unique([savedRecipeId, householdId, userId, emoji])
+  @@index([savedRecipeId, householdId])
 }
 
-// A small group of users (e.g. a family) who can see each other's saved
-// recipes — see HouseholdMember for membership and server/routes/recipes.ts
-// (GET /household) for the shared feed. Joined via a short, shareable
-// inviteCode rather than an email-based invite flow.
+// A small group of users (e.g. a family, or a friend group) who can see
+// each other's saved recipes — see HouseholdMember for membership and
+// server/routes/recipes.ts (GET /household/:id) for the shared feed. A user
+// can belong to several households at once (e.g. one with family, one with
+// friends); joined via a short, shareable inviteCode rather than an
+// email-based invite flow.
 model Household {
   id         String            @id @default(cuid())
   name       String?
   inviteCode String            @unique
   createdAt  DateTime          @default(now())
   members    HouseholdMember[]
+  reactions  Reaction[]
 }
 
-// One row per member. userId is unique (not just unique per household) so a
-// user belongs to at most one household at a time — matches Recipe/SavedRecipe:
-// there's no local Users table, userId is the Supabase auth id.
+// One row per (household, user) pair. A user can belong to multiple
+// households, so userId is only unique per household, not globally — see
+// Household's doc comment. There's no local Users table; userId is the
+// Supabase auth id.
 model HouseholdMember {
   id          String    @id @default(cuid())
   householdId String
   household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  userId      String    @unique
+  userId      String
   joinedAt    DateTime  @default(now())
 
-  @@index([householdId])
+  @@unique([householdId, userId])
+  @@index([userId])
 }
 
 // Throttles the expensive path (Instagram fetch + AI) for anonymous callers
