@@ -92,12 +92,48 @@ const performOCR: RequestHandler = async (req, res) => {
   }
 };
 
-// All three are exclusively used by the photo-upload (OCR) path (see
-// comments above) — requiring auth here means every recipe imported from a
-// photo is always traceable to an account (see Recipe.createdByUserId in
+// Transcribes a dictated recipe (the "describe it out loud" import path,
+// mirrored on the OCR path above but for audio instead of a photo). Reuses
+// the same whisper-1 model as the Instagram/TikTok video transcription in
+// server/lib/transcription.ts, just against a user-recorded clip instead of
+// a downloaded reel.
+const performAudioTranscription: RequestHandler = async (req, res) => {
+  const form = new IncomingForm({ keepExtensions: true });
+
+  try {
+    const [, files] = await form.parse(req);
+    const uploaded = files.audio ? (Array.isArray(files.audio) ? files.audio[0] : files.audio) : null;
+    if (!uploaded) return res.status(400).json({ error: 'No audio file provided' });
+
+    const transcription = await getOpenAI().audio.transcriptions.create({
+      file: fs.createReadStream(uploaded.filepath),
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+    });
+
+    await fs.promises.unlink(uploaded.filepath).catch(() => {});
+
+    await logAiUsage({
+      action: 'recipe_audio_transcription',
+      model: 'whisper-1',
+      userId: req.user?.id,
+      audioSeconds: (transcription as { duration?: number }).duration,
+    });
+
+    res.json({ text: transcription.text });
+  } catch (error) {
+    logError('Error transcribing audio', error);
+    res.status(500).json({ error: 'Failed to transcribe audio' });
+  }
+};
+
+// All four are exclusively used by manual import paths (photo/OCR, dictated
+// audio) — requiring auth here means every recipe imported this way is
+// always traceable to an account (see Recipe.createdByUserId in
 // server/routes/db.ts), never an anonymous upload.
 router.post('/interpret', requireAuth, interpretHandler);
 router.post('/illustrate', requireAuth, illustrateHandler);
 router.post('/ocr', requireAuth, performOCR);
+router.post('/transcribe', requireAuth, performAudioTranscription);
 
 export default router;

@@ -1,6 +1,6 @@
-import { useState, useEffect, FormEvent, DragEvent } from "react";
+import { useState, useEffect, useRef, FormEvent, DragEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Upload, ImageDown, Instagram } from "lucide-react";
+import { Upload, ImageDown, Instagram, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { processRecipeFromInstagram, processRecipeFromUrl } from "@/services/recipeService";
@@ -27,6 +27,10 @@ const URLInput = () => {
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const micSupported = typeof window !== 'undefined' && 'MediaRecorder' in window && Boolean(navigator.mediaDevices?.getUserMedia);
 
   const processingSteps = {
     EXTRACT: "Extraction du texte...",
@@ -145,6 +149,88 @@ const URLInput = () => {
     }
   };
 
+  // Dictated-recipe flow: transcribe the recording with the same whisper-1
+  // model used for Instagram/TikTok videos, then hand the transcript to the
+  // same interpretation pipeline as the photo/OCR path (caption left empty,
+  // transcript standing in for it).
+  const handleAudioUpload = async (blob: Blob) => {
+    setLoading(true);
+    try {
+      setCurrentStep("Transcription de ta dictée...");
+
+      const formData = new FormData();
+      formData.append('audio', blob, 'recette.webm');
+
+      const response = await authFetch('/api/ai/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      }
+
+      const { text } = await response.json();
+
+      setCurrentStep(processingSteps.ANALYZE);
+      const recipe = await processRecipeFromInstagram('', text, undefined, undefined, undefined, source.trim() || undefined);
+
+      queryClient.setQueryData(['recipe', recipe.id], recipe);
+
+      setCurrentStep(processingSteps.SAVE);
+      navigate(`/recipe/${recipe.id}`);
+    } catch (error) {
+      console.error('Error processing audio:', error);
+      toast.error("Cette dictée n'est pas assez claire. Réessaie en énonçant les ingrédients et les étapes une par une.");
+    } finally {
+      setLoading(false);
+      setCurrentStep('');
+    }
+  };
+
+  const handleToggleRecording = async () => {
+    if (recording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+    // Tied to an account for the same reason as the photo/OCR path — see
+    // handleImageUpload above.
+    if (!user) {
+      toast.error("Connecte-toi pour dicter une recette au micro.");
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        setRecording(false);
+        handleAudioUpload(blob);
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setRecording(true);
+    } catch (error) {
+      console.error('Error starting microphone recording:', error);
+      toast.error("Impossible d'accéder au micro. Vérifie les autorisations de ton navigateur.");
+    }
+  };
+
+  // Stop covers a component unmount mid-recording — otherwise the mic stays
+  // hot after the user navigates away.
+  useEffect(() => {
+    return () => {
+      mediaRecorderRef.current?.stream?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
   // Global listener so a copied screenshot can be pasted anywhere on the
   // page, not just while a specific input is focused.
   useEffect(() => {
@@ -217,42 +303,69 @@ const URLInput = () => {
 
         <div className="mt-4 text-muted-foreground font-medium">ou</div>
 
-        <label
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`mt-4 block w-full px-12 py-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
-            isDragging ? "border-primary bg-accent/20" : "border-border bg-muted hover:bg-accent/20"
-          }`}
-        >
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => e.target.files && handleImageUpload(Array.from(e.target.files))}
-            disabled={loading}
-          />
-          <div className={`flex items-center justify-center gap-2 ${isDragging ? "text-primary" : "text-muted-foreground"}`}>
-            {isDragging ? <ImageDown className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
-            <span>{isDragging ? "Lâche l'image ici" : "Importe, colle (Ctrl+V) ou glisse tes photos de recette ici"}</span>
-          </div>
-        </label>
+        {/* Two manual-import options side by side — photo (existing) and
+            dictated audio (new). Same card treatment so neither reads as the
+            "main" alternative to pasting a link. */}
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`flex flex-col items-center justify-center gap-2 px-4 py-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors text-center ${
+              isDragging ? "border-primary bg-accent/20 text-primary" : "border-border bg-muted hover:bg-accent/20 text-muted-foreground"
+            }`}
+          >
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => e.target.files && handleImageUpload(Array.from(e.target.files))}
+              disabled={loading}
+            />
+            {isDragging ? <ImageDown className="w-6 h-6" /> : <Upload className="w-6 h-6" />}
+            <span className="text-sm">
+              {isDragging ? "Lâche l'image ici" : "Photo d'une recette (livre, magazine…)"}
+            </span>
+          </label>
 
-        {!user && (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Connexion requise pour importer une photo.
-          </p>
-        )}
+          {micSupported && (
+            <button
+              type="button"
+              onClick={handleToggleRecording}
+              disabled={loading && !recording}
+              className={`flex flex-col items-center justify-center gap-2 px-4 py-6 rounded-xl border-2 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed ${
+                recording
+                  ? "border-destructive bg-destructive/10 text-destructive"
+                  : "border-dashed border-border bg-muted hover:bg-accent/20 text-muted-foreground"
+              }`}
+            >
+              {recording ? (
+                <span className="w-3 h-3 rounded-full bg-destructive animate-pulse" aria-hidden="true" />
+              ) : (
+                <Mic className="w-6 h-6" />
+              )}
+              <span className="text-sm">
+                {recording ? "Arrêter l'enregistrement" : "Dicte ta recette au micro"}
+              </span>
+            </button>
+          )}
+        </div>
 
-        {/* Optional attribution for photos of a book/magazine page — lets us
-            credit the original author and identify these recipes if a
-            rights holder ever asks for one to be taken down. */}
+        <p className="mt-2 text-sm text-muted-foreground">
+          Colle (Ctrl+V) ou glisse une photo directement dans la zone ci-dessus.
+          {!user && " Connexion requise pour importer une photo ou dicter une recette."}
+        </p>
+
+        {/* Optional attribution for a photo or dictation sourced from a
+            book/magazine — lets us credit the original author and identify
+            these recipes if a rights holder ever asks for one to be taken
+            down. */}
         <input
           type="text"
           value={source}
           onChange={(e) => setSource(e.target.value)}
-          placeholder="Source de la photo (optionnel) — ex. Ottolenghi, Simple"
+          placeholder="Source (optionnel) — ex. Ottolenghi, Simple"
           disabled={loading}
           className="mt-3 w-full px-4 py-2.5 rounded-xl bg-card/90 border border-border text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
         />
