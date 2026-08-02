@@ -180,6 +180,20 @@ model PushSubscription {
   @@index([userId])
 }
 
+// Pseudo + avatar chosen at signup (see AvatarPseudoPicker.tsx) — no local
+// Users table, so this is keyed directly on the Supabase auth id like every
+// other userId column (see HouseholdMember's doc comment). Accounts created
+// before this feature existed are backfilled with a random pseudo/avatar by
+// scripts/backfillProfiles.ts; GET /api/profile/me self-heals the same way
+// for any straggler (e.g. a Google OAuth signup) that still has none.
+model Profile {
+  userId    String   @id
+  pseudo    String   @unique
+  avatarKey String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // Throttles the expensive path (Instagram fetch + AI) for anonymous callers
 // only — cache hits and authenticated users are never rate-limited here.
 model AnonymousProcessingLog {
@@ -269,6 +283,12 @@ model PlatingChallenge {
   endsAt          DateTime
   createdAt       DateTime            @default(now())
   submissions     PlatingSubmission[]
+  // Set the first time any request notices this challenge just closed —
+  // an atomic claim (see notifyIfJustRevealed in
+  // server/routes/platingChallenges.ts) so the "défi révélé" push only
+  // fires once even if several members load the page around the same time.
+  // Null means "not yet revealed" or "reveal push not sent yet".
+  revealNotifiedAt DateTime?
 
   @@index([householdId])
   @@index([savedRecipeId])

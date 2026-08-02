@@ -18,13 +18,20 @@ import {
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
 import { fetchMyHouseholds, shareInviteLink, type Household } from '@/services/householdService';
 import { fetchPendingChallengeCount } from '@/services/platingChallengeService';
+import { fetchMyProfile, type Profile } from '@/services/profileService';
 import { isAdminUser } from '@/lib/admin';
+import UserAvatar from '@/components/UserAvatar';
+import ProfileSheet from '@/components/ProfileSheet';
 
 // Below this scroll offset the hero image is still filling the header's
 // backdrop, so the "light" (white) styling stays legible without a
 // background. Past it, the header sits over plain page content and needs
 // to flip to the normal foreground styling plus an opaque backdrop.
 const HERO_SCROLL_THRESHOLD = 180;
+
+// On hero-less pages there's no image to sit over, so the header should
+// pick up its background as soon as content starts scrolling underneath it.
+const DEFAULT_SCROLL_THRESHOLD = 10;
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -54,6 +61,12 @@ const Header = () => {
   const { data: pendingChallengeCount = 0 } = useQuery<number>({
     queryKey: ['laser-croq', 'pending-count'],
     queryFn: fetchPendingChallengeCount,
+    enabled: !!user,
+  });
+
+  const { data: profile } = useQuery<Profile>({
+    queryKey: ['profile', 'me'],
+    queryFn: fetchMyProfile,
     enabled: !!user,
   });
 
@@ -111,16 +124,13 @@ const Header = () => {
   };
 
   useEffect(() => {
-    if (!hasHero) {
-      setScrolledPastHero(false);
-      return;
-    }
+    const threshold = hasHero ? HERO_SCROLL_THRESHOLD : DEFAULT_SCROLL_THRESHOLD;
     let ticking = false;
     const handleScroll = () => {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
-        setScrolledPastHero(window.scrollY > HERO_SCROLL_THRESHOLD);
+        setScrolledPastHero(window.scrollY > threshold);
         ticking = false;
       });
     };
@@ -156,7 +166,7 @@ const Header = () => {
       className={`fixed top-0 left-0 right-0 z-50 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 transition-colors duration-300 ${
         user ? 'md:hidden' : ''
       } ${
-        hasHero && scrolledPastHero
+        scrolledPastHero
           ? 'bg-background/90 backdrop-blur-sm border-b border-border'
           : ''
       }`}
@@ -219,6 +229,17 @@ const Header = () => {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="flex flex-col gap-6 pt-[max(3rem,env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)]">
+            {user && (
+              <ProfileSheet
+                profile={profile}
+                trigger={
+                  <button type="button" className="flex items-center gap-3 text-left">
+                    <UserAvatar avatarKey={profile?.avatarKey} pseudo={profile?.pseudo} className="w-10 h-10" />
+                    <span className="font-display font-semibold text-foreground truncate">{profile?.pseudo ?? user.email}</span>
+                  </button>
+                }
+              />
+            )}
             <SheetClose asChild>
               <Button asChild size="lg" className="w-full">
                 <Link to="/">Ajouter une recette</Link>

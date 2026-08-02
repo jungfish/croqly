@@ -3,7 +3,7 @@ import { IncomingForm } from 'formidable';
 import * as fs from 'fs';
 import { prisma } from '../lib/prisma.js';
 import { uploadPlatingSubmissionPhoto } from '../lib/storage.js';
-import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
+import { resolveProfiles } from '../lib/profiles.js';
 import { sendPushToUsers } from '../lib/webPush.js';
 import { logError } from '../lib/logger.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
@@ -46,25 +46,35 @@ function summarizePlatingReactions(reactions: { type: string; userId: string }[]
   return ALLOWED_PLATING_REACTIONS.map((type) => byType.get(type)).filter((r): r is PlatingReactionSummary => Boolean(r));
 }
 
-async function resolveEmails(userIds: string[]): Promise<Map<string, string>> {
-  const emailById = new Map<string, string>();
-  const supabaseAdmin = getSupabaseAdmin();
-  if (!supabaseAdmin) return emailById;
-  await Promise.all(
-    userIds.map(async (id) => {
-      const { data } = await supabaseAdmin.auth.admin.getUserById(id);
-      if (data?.user?.email) emailById.set(id, data.user.email);
-    })
-  );
-  return emailById;
-}
-
 function findHouseholdMembership(householdId: string, userId: string) {
   return prisma.householdMember.findUnique({ where: { householdId_userId: { householdId, userId } } });
 }
 
 function isChallengeOpen(endsAt: Date): boolean {
   return endsAt.getTime() > Date.now();
+}
+
+// There's no cron/scheduled job in this app, so a challenge's reveal is
+// detected lazily: whenever any member's request touches a challenge that
+// has just crossed from open to closed, this fires the "défi révélé" push
+// once. The updateMany with revealNotifiedAt: null as a filter is an atomic
+// claim — same trick as illustrationPending in server/routes/recipes.ts —
+// so if two members load the page at the same moment, only one of them
+// wins the race and sends the notification.
+async function notifyIfJustRevealed(challenge: { id: string; title: string; endsAt: Date; householdId: string; revealNotifiedAt: Date | null }) {
+  if (isChallengeOpen(challenge.endsAt) || challenge.revealNotifiedAt) return;
+
+  const { count } = await prisma.platingChallenge.updateMany({
+    where: { id: challenge.id, revealNotifiedAt: null },
+    data: { revealNotifiedAt: new Date() },
+  });
+  if (count === 0) return;
+
+  const members = await prisma.householdMember.findMany({ where: { householdId: challenge.householdId } });
+  sendPushToUsers(
+    members.map((m) => m.userId),
+    { title: 'Défi révélé !', body: `Découvre qui a gagné « ${challenge.title} » 🔫`, url: `/laser-croq/${challenge.id}` }
+  ).catch((error) => logError('Error sending reveal push notification', error));
 }
 
 const recipeRefSelect = { id: true, recipeId: true, recipe: { select: { title: true, illustrationThumb: true, illustration: true } } };
@@ -123,7 +133,13 @@ const listChallenges: RequestHandler<{ householdId: string }> = async (req, res)
     });
 
     const memberIds = Array.from(new Set(challenges.flatMap((c) => c.submissions.map((s) => s.userId))));
-    const emailById = await resolveEmails(memberIds);
+    const profileById = await resolveProfiles(memberIds);
+
+    // Fire-and-forget: don't hold up the response on the reveal-check/push,
+    // it's a side effect that shouldn't slow down loading the list.
+    for (const challenge of challenges) {
+      notifyIfJustRevealed(challenge).catch((error) => logError('Error checking challenge reveal', error));
+    }
 
     const cards = challenges.map((challenge) => {
       const open = isChallengeOpen(challenge.endsAt);
@@ -142,7 +158,9 @@ const listChallenges: RequestHandler<{ householdId: string }> = async (req, res)
         winner: winner
           ? {
               userId: winner.userId,
-              email: emailById.get(winner.userId) ?? null,
+              email: profileById.get(winner.userId)?.email ?? null,
+              pseudo: profileById.get(winner.userId)?.pseudo ?? null,
+              avatarKey: profileById.get(winner.userId)?.avatarKey ?? null,
               photoThumbUrl: winner.photoThumbUrl,
               votesCount: winner.votes.length,
             }
@@ -198,7 +216,7 @@ const listFeed: RequestHandler<{ householdId: string }> = async (req, res) => {
       (s) => s.userId === req.user!.id || !isChallengeOpen(s.challenge.endsAt) || myOwnChallengeIds.has(s.challengeId)
     );
 
-    const emailById = await resolveEmails(Array.from(new Set(revealed.map((s) => s.userId))));
+    const profileById = await resolveProfiles(Array.from(new Set(revealed.map((s) => s.userId))));
 
     res.json(
       revealed.map((s) => ({
@@ -207,7 +225,9 @@ const listFeed: RequestHandler<{ householdId: string }> = async (req, res) => {
         challengeTitle: s.challenge.title,
         recipe: serializeRecipeRef(s.challenge.savedRecipe),
         userId: s.userId,
-        email: emailById.get(s.userId) ?? null,
+        email: profileById.get(s.userId)?.email ?? null,
+        pseudo: profileById.get(s.userId)?.pseudo ?? null,
+        avatarKey: profileById.get(s.userId)?.avatarKey ?? null,
         photoUrl: s.photoUrl,
         photoThumbUrl: s.photoThumbUrl,
         caption: s.caption,
@@ -308,6 +328,8 @@ const getChallenge: RequestHandler<{ id: string }> = async (req, res) => {
     const membership = await findHouseholdMembership(challenge.householdId, req.user!.id);
     if (!membership) return res.status(403).json({ error: 'Not a member of this bande' });
 
+    notifyIfJustRevealed(challenge).catch((error) => logError('Error checking challenge reveal', error));
+
     const open = isChallengeOpen(challenge.endsAt);
     const myUserId = req.user!.id;
     const hasSubmitted = await prisma.platingSubmission.findUnique({
@@ -325,7 +347,7 @@ const getChallenge: RequestHandler<{ id: string }> = async (req, res) => {
       orderBy: { createdAt: 'asc' },
     });
 
-    const emailById = await resolveEmails(submissions.map((s) => s.userId));
+    const profileById = await resolveProfiles(submissions.map((s) => s.userId));
 
     res.json({
       id: challenge.id,
@@ -341,7 +363,9 @@ const getChallenge: RequestHandler<{ id: string }> = async (req, res) => {
         const base = {
           id: s.id,
           userId: s.userId,
-          email: emailById.get(s.userId) ?? null,
+          email: profileById.get(s.userId)?.email ?? null,
+          pseudo: profileById.get(s.userId)?.pseudo ?? null,
+          avatarKey: profileById.get(s.userId)?.avatarKey ?? null,
           isMine,
           votesCount: s.votes.length,
           votedByMe: s.votes.some((v) => v.userId === myUserId),
@@ -515,11 +539,13 @@ const addComment: RequestHandler<{ submissionId: string }> = async (req, res) =>
       data: { submissionId: submission.id, userId: req.user!.id, body: trimmed.slice(0, MAX_COMMENT_LENGTH) },
     });
 
-    const emailById = await resolveEmails([req.user!.id]);
+    const profile = (await resolveProfiles([req.user!.id])).get(comment.userId);
     res.status(201).json({
       id: comment.id,
       userId: comment.userId,
-      email: emailById.get(comment.userId) ?? null,
+      email: profile?.email ?? null,
+      pseudo: profile?.pseudo ?? null,
+      avatarKey: profile?.avatarKey ?? null,
       body: comment.body,
       createdAt: comment.createdAt,
     });
@@ -555,13 +581,15 @@ const listComments: RequestHandler<{ submissionId: string }> = async (req, res) 
       where: { submissionId: submission.id },
       orderBy: { createdAt: 'asc' },
     });
-    const emailById = await resolveEmails(Array.from(new Set(comments.map((c) => c.userId))));
+    const profileById = await resolveProfiles(Array.from(new Set(comments.map((c) => c.userId))));
 
     res.json(
       comments.map((c) => ({
         id: c.id,
         userId: c.userId,
-        email: emailById.get(c.userId) ?? null,
+        email: profileById.get(c.userId)?.email ?? null,
+        pseudo: profileById.get(c.userId)?.pseudo ?? null,
+        avatarKey: profileById.get(c.userId)?.avatarKey ?? null,
         body: c.body,
         createdAt: c.createdAt,
         isMine: c.userId === req.user!.id,

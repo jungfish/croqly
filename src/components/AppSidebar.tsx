@@ -10,7 +10,10 @@ import { Button } from '@/components/ui/button';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
 import { fetchMyHouseholds, shareInviteLink, type Household } from '@/services/householdService';
 import { fetchPendingChallengeCount } from '@/services/platingChallengeService';
+import { fetchMyProfile, type Profile } from '@/services/profileService';
 import { isAdminUser } from '@/lib/admin';
+import UserAvatar from '@/components/UserAvatar';
+import ProfileSheet from '@/components/ProfileSheet';
 
 const NAV_ITEMS = [
   { to: '/decouvrir', label: 'Découvrir', icon: Compass },
@@ -47,6 +50,12 @@ const AppSidebar = () => {
   const { data: pendingChallengeCount = 0 } = useQuery<number>({
     queryKey: ['laser-croq', 'pending-count'],
     queryFn: fetchPendingChallengeCount,
+    enabled: !!user,
+  });
+
+  const { data: profile } = useQuery<Profile>({
+    queryKey: ['profile', 'me'],
+    queryFn: fetchMyProfile,
     enabled: !!user,
   });
 
@@ -196,9 +205,19 @@ const AppSidebar = () => {
             {pushSubscribed ? 'Désactiver les notifs' : 'Activer les notifs'}
           </Button>
         )}
-        <p className="truncate px-3 pt-1 text-xs text-muted-foreground" title={user?.email ?? ''}>
-          {user?.email}
-        </p>
+        <ProfileSheet
+          profile={profile}
+          trigger={
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 pt-1 pb-1 rounded-lg hover:bg-accent transition-colors"
+              title={user?.email ?? ''}
+            >
+              <UserAvatar avatarKey={profile?.avatarKey} pseudo={profile?.pseudo} className="w-6 h-6" />
+              <p className="truncate text-xs text-muted-foreground">{profile?.pseudo ?? user?.email}</p>
+            </button>
+          }
+        />
         <button
           onClick={handleSignOut}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"

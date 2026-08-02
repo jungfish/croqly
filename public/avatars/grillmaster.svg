@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <style>.toon *{stroke:#241A14;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;}</style>
+  <g class="toon">
+    <rect x="76" y="152" width="48" height="30" rx="8" fill="#EFE2C8"/>
+    <circle cx="45" cy="120" r="13" fill="#C88F63"/>
+    <circle cx="155" cy="120" r="13" fill="#C88F63"/>
+    <circle cx="100" cy="116" r="56" fill="#C88F63"/>
+    <path d="M50,80 Q100,60 150,80 L144,100 Q100,84 56,100 Z" fill="#5A2A20"/>
+    <path d="M150,80 L168,92 L150,100 Z" fill="#5A2A20"/>
+    <line x1="62" y1="107" x2="48" y2="100" style="stroke:#B9790A" stroke-width="5"/>
+    <line x1="138" y1="107" x2="152" y2="100" style="stroke:#B9790A" stroke-width="5"/>
+    <line x1="98" y1="106" x2="102" y2="106" style="stroke:#B9790A" stroke-width="5"/>
+    <ellipse cx="81" cy="109" rx="20" ry="17" fill="#241A14" style="stroke:#B9790A;stroke-width:5"/>
+    <ellipse cx="119" cy="109" rx="20" ry="17" fill="#241A14" style="stroke:#B9790A;stroke-width:5"/>
+    <ellipse cx="75" cy="102" rx="4" ry="6" fill="#F7EEDD" opacity="0.4" stroke="none"/>
+    <ellipse cx="113" cy="102" rx="4" ry="6" fill="#F7EEDD" opacity="0.4" stroke="none"/>
+    <path d="M90,142 L110,142 L104,154 L96,154 Z" fill="#241A14"/>
+  </g>
+</svg>

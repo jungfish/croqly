@@ -35,7 +35,7 @@ export type PlatingChallengeCard = {
   isOpen: boolean;
   submissionsCount: number;
   hasSubmittedByMe: boolean;
-  winner: { userId: string; email: string | null; photoThumbUrl: string; votesCount: number } | null;
+  winner: { userId: string; email: string | null; pseudo: string | null; avatarKey: string | null; photoThumbUrl: string; votesCount: number } | null;
 };
 
 export type PlatingFeedItem = {
@@ -45,6 +45,8 @@ export type PlatingFeedItem = {
   recipe: PlatingRecipeRef | null;
   userId: string;
   email: string | null;
+  pseudo: string | null;
+  avatarKey: string | null;
   photoUrl: string;
   photoThumbUrl: string;
   caption: string | null;
@@ -62,6 +64,8 @@ export type LockedPlatingSubmission = {
   id: string;
   userId: string;
   email: string | null;
+  pseudo: string | null;
+  avatarKey: string | null;
   isMine: boolean;
   votesCount: number;
   votedByMe: boolean;
@@ -73,6 +77,8 @@ export type RevealedPlatingSubmission = {
   id: string;
   userId: string;
   email: string | null;
+  pseudo: string | null;
+  avatarKey: string | null;
   isMine: boolean;
   votesCount: number;
   votedByMe: boolean;
@@ -103,6 +109,8 @@ export type PlatingComment = {
   id: string;
   userId: string;
   email: string | null;
+  pseudo: string | null;
+  avatarKey: string | null;
   body: string;
   createdAt: string;
   isMine: boolean;

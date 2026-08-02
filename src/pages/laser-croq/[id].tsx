@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
@@ -16,6 +16,7 @@ import {
   Send,
   Trash2,
   Trophy,
+  X,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,9 +37,11 @@ import {
   type PlatingComment,
   type PlatingReactionSummary,
 } from "@/services/platingChallengeService";
+import UserAvatar from "@/components/UserAvatar";
 
-function memberLabel(email: string | null, isMine: boolean): string {
+function memberLabel(pseudo: string | null, email: string | null, isMine: boolean): string {
   if (isMine) return "Toi";
+  if (pseudo) return pseudo;
   return email ? email.split("@")[0] : "Membre";
 }
 
@@ -49,6 +52,55 @@ function timeLeftLabel(endsAt: string): string {
   if (hours < 24) return `Se termine dans ${hours}h`;
   return `Se termine dans ${Math.round(hours / 24)}j`;
 }
+
+const EXPLAINER_DISMISSED_KEY = "laser-croq-explainer-dismissed";
+
+// One-time explainer for the blind-reveal + vote mechanic — shown once
+// ever (persisted in localStorage, not per-défi) the first time someone
+// opens a challenge, since nothing else in the UI spells out why other
+// people's photos are locked or what the final swipe-deck slide is for.
+const RevealExplainer = () => {
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(EXPLAINER_DISMISSED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  if (dismissed) return null;
+
+  const handleDismiss = () => {
+    try {
+      localStorage.setItem(EXPLAINER_DISMISSED_KEY, "1");
+    } catch {
+      // Storage can be unavailable (private browsing, quota) — worst case
+      // the explainer just reappears next visit, not worth failing over.
+    }
+    setDismissed(true);
+  };
+
+  return (
+    <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+      <Zap className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+      <div className="flex-1 text-sm">
+        <p className="font-medium text-foreground mb-1">Comment ça marche ?</p>
+        <p className="text-muted-foreground">
+          Les dressages des autres restent flous tant que tu n'as pas envoyé le tien (ou que le défi n'est pas
+          terminé) — impossible de copier ! Une fois débloqués, swipe jusqu'au bout pour voter pour ton préféré.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={handleDismiss}
+        aria-label="Fermer"
+        className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+};
 
 // The submit/replace form for the caller's own dressage — shown instead of
 // a locked/revealed card in the grid, in the slot where their submission
@@ -153,9 +205,12 @@ const Comments = ({ submissionId }: { submissionId: string }) => {
     <div className="mt-3 pt-3 border-t border-border space-y-2">
       {isLoading && <p className="text-xs text-muted-foreground">Chargement…</p>}
       {comments.map((comment) => (
-        <p key={comment.id} className="text-sm">
-          <span className="font-medium text-foreground">{memberLabel(comment.email, comment.isMine)}</span>{" "}
-          <span className="text-muted-foreground">{comment.body}</span>
+        <p key={comment.id} className="flex items-start gap-1.5 text-sm">
+          <UserAvatar avatarKey={comment.avatarKey} pseudo={comment.pseudo} className="w-5 h-5 mt-0.5" />
+          <span>
+            <span className="font-medium text-foreground">{memberLabel(comment.pseudo, comment.email, comment.isMine)}</span>{" "}
+            <span className="text-muted-foreground">{comment.body}</span>
+          </span>
         </p>
       ))}
       <div className="flex items-center gap-2 pt-1">
@@ -236,19 +291,16 @@ const SubmissionCard = ({
         whileHover={{ scale: 1.015 }}
         whileTap={{ scale: 0.98 }}
       >
-        <div className={`overflow-hidden relative ${large ? "h-[28rem] sm:h-[34rem] bg-muted" : "h-56"}`}>
-          <img
-            src={submission.photoUrl}
-            alt={submission.caption ?? ""}
-            className={`w-full h-full ${large ? "object-contain" : "object-cover"}`}
-          />
+        <div className={`overflow-hidden relative ${large ? "h-[28rem] sm:h-[34rem]" : "h-56"}`}>
+          <img src={submission.photoUrl} alt={submission.caption ?? ""} className="w-full h-full object-cover" />
           {showConfetti && inView && <ConfettiBurst key={`confetti-${burstKey}`} />}
           <ReactionBurst key={`reactions-${burstKey}`} reactions={reactions} />
         </div>
         <div className={large ? "p-4" : "p-3"}>
           <div className="flex items-center justify-between gap-2 mb-1">
-            <span className={`font-medium text-foreground ${large ? "text-base" : "text-sm"}`}>
-              {memberLabel(submission.email, submission.isMine)}
+            <span className={`flex items-center gap-1.5 font-medium text-foreground ${large ? "text-base" : "text-sm"}`}>
+              <UserAvatar avatarKey={submission.avatarKey} pseudo={submission.pseudo} className={large ? "w-6 h-6" : "w-5 h-5"} />
+              {memberLabel(submission.pseudo, submission.email, submission.isMine)}
             </span>
             {showConfetti && (
               <span
@@ -321,6 +373,8 @@ const slideVariants = {
 // unlike the manual pointer-capture version this replaced.
 const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[] }) => {
   const [[index, direction], setIndexState] = useState<[number, number]>([0, 0]);
+  const [height, setHeight] = useState<number>();
+  const measureRef = useRef<HTMLDivElement>(null);
   const clamped = Math.max(0, Math.min(index, slides.length - 1));
 
   const goTo = (next: number, dir: number) => {
@@ -334,20 +388,34 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
     else if (info.offset.x > SWIPE_THRESHOLD || info.velocity.x > SWIPE_VELOCITY_THRESHOLD) goTo(clamped - 1, -1);
   };
 
+  // Measures the current slide's real height (photo + name + caption +
+  // vote/react/comment row — not just the photo) and sizes the wrapper to
+  // match, so the prev/next controls below always sit right after the
+  // actual card instead of a guessed height. Also re-measures if the slide's
+  // own content changes height (e.g. opening its comment thread). Each
+  // slide stays position:absolute inside this sized wrapper so the outgoing
+  // and incoming cards overlay exactly during the crossfade, instead of
+  // both sitting in flow — which used to make the next card visibly appear
+  // low (behind/below the still-exiting one) before snapping into place.
+  useLayoutEffect(() => {
+    const node = measureRef.current;
+    if (!node) return;
+    const update = () => setHeight(node.getBoundingClientRect().height);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [clamped]);
+
   if (slides.length === 0) return null;
 
   return (
     <div className="max-w-md mx-auto">
-      {/* min-h reserves space for the tallest slide (a large photo card) —
-          each slide is positioned absolute so the outgoing and incoming
-          cards overlay exactly instead of both sitting in normal document
-          flow, which used to make the next card visibly appear low (below
-          the still-exiting one) before snapping up once the old one
-          unmounted. */}
-      <div className="relative min-h-[28rem] sm:min-h-[34rem]" style={{ touchAction: "pan-y" }}>
+      <div className="relative transition-[height] duration-200" style={{ height, touchAction: "pan-y" }}>
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={slides[clamped].key}
+            ref={measureRef}
             custom={direction}
             variants={slideVariants}
             initial="enter"
@@ -420,7 +488,7 @@ const VoteSlide = ({ submissions, onVoted }: { submissions: RevealedSubmission[]
       // should just update the grid in place, not bounce you back to the
       // Laser Croq home.
       if (isNewChoice) {
-        toast.success(`Tu as choisi le dressage de ${memberLabel(submission.email, false)} ! 🔫`);
+        toast.success(`Tu as choisi le dressage de ${memberLabel(submission.pseudo, submission.email, false)} ! 🔫`);
         navigate("/laser-croq");
       }
     } catch (error) {
@@ -453,8 +521,9 @@ const VoteSlide = ({ submissions, onVoted }: { submissions: RevealedSubmission[]
             >
               <img src={submission.photoThumbUrl} alt="" className="w-full h-28 object-cover" />
               <div className="p-1.5 bg-card/90 flex items-center justify-between gap-1">
-                <span className="text-xs font-medium text-foreground truncate">
-                  {memberLabel(submission.email, submission.isMine)}
+                <span className="flex items-center gap-1 text-xs font-medium text-foreground truncate">
+                  <UserAvatar avatarKey={submission.avatarKey} pseudo={submission.pseudo} className="w-4 h-4" />
+                  {memberLabel(submission.pseudo, submission.email, submission.isMine)}
                 </span>
                 <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">
                   <Crown className="w-3 h-3" />
@@ -540,6 +609,8 @@ const ChallengeDetailPage = () => {
             </Button>
           )}
         </div>
+
+        <RevealExplainer />
 
         {challenge.recipe && (
           <Link

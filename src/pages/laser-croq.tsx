@@ -23,6 +23,7 @@ import {
   type PlatingReactionSummary,
 } from "@/services/platingChallengeService";
 import { useAuth } from "@/hooks/use-auth";
+import UserAvatar from "@/components/UserAvatar";
 
 // motion() needs a ref-forwarding component to attach its animated styles
 // to the actual DOM node — react-router's Link forwards its ref, so this
@@ -49,8 +50,9 @@ function toDatetimeLocalValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function memberLabel(email: string | null, isMe: boolean): string {
+function memberLabel(pseudo: string | null, email: string | null, isMe: boolean): string {
   if (isMe) return "Toi";
+  if (pseudo) return pseudo;
   return email ? email.split("@")[0] : "Membre";
 }
 
@@ -304,7 +306,8 @@ const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
             {challenge.winner && (
               <span className={`flex items-center gap-1 font-medium text-foreground ${inView ? "winner-pop" : "opacity-0"}`}>
                 <Trophy className="w-3.5 h-3.5 text-yolk" />
-                {memberLabel(challenge.winner.email, false)}
+                <UserAvatar avatarKey={challenge.winner.avatarKey} pseudo={challenge.winner.pseudo} className="w-4 h-4" />
+                {memberLabel(challenge.winner.pseudo, challenge.winner.email, false)}
               </span>
             )}
           </div>
@@ -367,7 +370,10 @@ const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boo
         <div className="p-4 pb-3">
           <p className="text-xs text-muted-foreground mb-1 truncate">{item.challengeTitle}</p>
           {item.caption && <p className="text-sm text-foreground truncate">{item.caption}</p>}
-          <p className="text-xs text-muted-foreground mt-1">Par {memberLabel(item.email, isMine)}</p>
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+            <UserAvatar avatarKey={item.avatarKey} pseudo={item.pseudo} className="w-4 h-4" />
+            Par {memberLabel(item.pseudo, item.email, isMine)}
+          </p>
         </div>
       </Link>
       <div className="px-4 pb-3 flex items-center gap-3">

@@ -1,6 +1,6 @@
 import { Router, RequestHandler } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
+import { resolveProfiles } from '../lib/profiles.js';
 import { logError } from '../lib/logger.js';
 
 const router = Router();
@@ -117,16 +117,7 @@ const getRecipes: RequestHandler = async (req, res) => {
     ]);
 
     const userIds = [...new Set(recipes.map((r) => r.createdByUserId).filter((id): id is string => !!id))];
-    const supabaseAdmin = getSupabaseAdmin();
-    const emailById = new Map<string, string>();
-    if (supabaseAdmin) {
-      await Promise.all(
-        userIds.map(async (id) => {
-          const { data } = await supabaseAdmin.auth.admin.getUserById(id);
-          if (data?.user?.email) emailById.set(id, data.user.email);
-        })
-      );
-    }
+    const profileById = await resolveProfiles(userIds);
 
     res.json({
       page,
@@ -138,7 +129,8 @@ const getRecipes: RequestHandler = async (req, res) => {
         platform: r.platform,
         createdAt: r.createdAt,
         creator: r.creator,
-        createdByEmail: r.createdByUserId ? emailById.get(r.createdByUserId) ?? null : null,
+        createdByEmail: r.createdByUserId ? profileById.get(r.createdByUserId)?.email ?? null : null,
+        createdByPseudo: r.createdByUserId ? profileById.get(r.createdByUserId)?.pseudo ?? null : null,
       })),
     });
   } catch (error) {

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { Router, RequestHandler } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
+import { resolveProfiles } from '../lib/profiles.js';
 import { sendPushToUsers } from '../lib/webPush.js';
 import { logError } from '../lib/logger.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
@@ -20,38 +20,29 @@ function isUniqueConstraintError(error: unknown): boolean {
   return typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002';
 }
 
-async function resolveEmails(userIds: string[]): Promise<Map<string, string>> {
-  const emailById = new Map<string, string>();
-  const supabaseAdmin = getSupabaseAdmin();
-  if (!supabaseAdmin) return emailById;
-  await Promise.all(
-    userIds.map(async (id) => {
-      const { data } = await supabaseAdmin.auth.admin.getUserById(id);
-      if (data?.user?.email) emailById.set(id, data.user.email);
-    })
-  );
-  return emailById;
-}
-
 type HouseholdWithMembers = { id: string; name: string | null; inviteCode: string; members: { userId: string; joinedAt: Date }[] };
 
-// Shapes a Household + its members (with emails resolved from Supabase auth,
-// same pattern as server/routes/admin.ts) into the API-facing form shared by
-// every endpoint below.
+// Shapes a Household + its members (email/pseudo/avatar resolved via
+// resolveProfiles) into the API-facing form shared by every endpoint below.
 async function serializeHousehold(household: HouseholdWithMembers, currentUserId: string) {
   const memberIds = household.members.map((m) => m.userId);
-  const emailById = await resolveEmails(memberIds);
+  const profileById = await resolveProfiles(memberIds);
   return {
     id: household.id,
     name: household.name,
     inviteCode: household.inviteCode,
     members: household.members
-      .map((m) => ({
-        userId: m.userId,
-        email: emailById.get(m.userId) ?? null,
-        joinedAt: m.joinedAt,
-        isMe: m.userId === currentUserId,
-      }))
+      .map((m) => {
+        const profile = profileById.get(m.userId);
+        return {
+          userId: m.userId,
+          email: profile?.email ?? null,
+          pseudo: profile?.pseudo ?? null,
+          avatarKey: profile?.avatarKey ?? null,
+          joinedAt: m.joinedAt,
+          isMe: m.userId === currentUserId,
+        };
+      })
       .sort((a, b) => (a.joinedAt < b.joinedAt ? -1 : 1)),
   };
 }

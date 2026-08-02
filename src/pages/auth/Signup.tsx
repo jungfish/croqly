@@ -5,7 +5,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { toFriendlyAuthError } from '@/lib/authErrors';
 import { authFetch } from '@/lib/apiClient';
 import { clearAnonRecipeIds } from '@/lib/anonRecipes';
+import { saveMyProfile } from '@/services/profileService';
+import type { AvatarKey } from '@/lib/avatars';
 import Logo from '@/components/Logo';
+import AvatarPseudoPicker from '@/components/AvatarPseudoPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,12 +21,21 @@ const Signup = () => {
   const state = location.state as { from?: string; pendingSaveRecipeIds?: string[] } | null;
   const from = state?.from ?? '/recipes';
 
+  // Step 2 (pseudo + avatar) only shows once the account itself exists — the
+  // session is usable right away (no email-confirmation wall), so this is
+  // just a second screen in the same flow rather than a separate route.
+  const [step, setStep] = useState<'account' | 'profile'>('account');
+
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const [pseudo, setPseudo] = useState('');
+  const [avatarKey, setAvatarKey] = useState<AvatarKey | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const handleCreateAccount = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     const { error } = await signUp(email, password, firstName.trim());
@@ -32,6 +44,11 @@ const Signup = () => {
       toast.error(toFriendlyAuthError(error));
       return;
     }
+    setPseudo(firstName.trim());
+    setStep('profile');
+  };
+
+  const finishSignup = async () => {
     // No email-confirmation wall — the session is usable right away. Never
     // make the visitor redo the action that sent them here.
     const pendingIds = state?.pendingSaveRecipeIds ?? [];
@@ -51,6 +68,49 @@ const Signup = () => {
     navigate(from, { replace: true });
   };
 
+  const handleCreateProfile = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!avatarKey) {
+      toast.error('Choisis un avatar pour continuer.');
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      await saveMyProfile(pseudo, avatarKey);
+      await finishSignup();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Impossible d\'enregistrer ton profil.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  if (step === 'profile') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 pt-20 pb-12 bg-background">
+        <Card className="w-full max-w-md glass-card border-none">
+          <CardHeader className="text-center items-center">
+            <Logo className="mb-2" />
+            <CardDescription>Choisis ton pseudo et ta tête de cuisine</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={handleCreateProfile} className="space-y-5">
+              <AvatarPseudoPicker
+                pseudo={pseudo}
+                onPseudoChange={setPseudo}
+                avatarKey={avatarKey}
+                onAvatarKeyChange={setAvatarKey}
+              />
+              <Button type="submit" className="w-full" disabled={savingProfile || !pseudo.trim() || !avatarKey}>
+                {savingProfile ? 'Enregistrement…' : 'Continuer'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 pt-20 pb-12 bg-background">
       <Card className="w-full max-w-md glass-card border-none">
@@ -59,7 +119,7 @@ const Signup = () => {
           <CardDescription>Crée un compte pour sauvegarder tes recettes</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleCreateAccount} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">Prénom</Label>
               <Input

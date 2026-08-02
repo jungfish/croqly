@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <style>.toon *{stroke:#241A14;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;}</style>
+  <g class="toon">
+    <rect x="76" y="152" width="48" height="30" rx="8" fill="#EFE2C8"/>
+    <path d="M80,152 L100,176 L120,152 Z" fill="#FBF8F2"/>
+    <path d="M92,150 L100,160 L108,150 L100,146 Z" fill="#3F6B45"/>
+    <circle cx="45" cy="120" r="13" fill="#F0C9A0"/>
+    <circle cx="155" cy="120" r="13" fill="#F0C9A0"/>
+    <circle cx="100" cy="116" r="56" fill="#F0C9A0"/>
+    <path d="M44,102 Q58,38 100,40 Q142,38 156,102 Q140,68 100,64 Q60,68 44,102 Z" fill="#241A14"/>
+    <path d="M62,72 Q100,54 138,72" fill="none" stroke="#B9790A" stroke-width="2.5" opacity="0.7"/>
+    <circle cx="80" cy="106" r="5.5" fill="#241A14" stroke="none"/>
+    <path d="M112,104 Q120,99 128,104" fill="none" stroke-width="4.5"/>
+    <path d="M72,132 Q80,126 88,131 M112,131 Q120,126 128,132" fill="none" stroke-width="4"/>
+    <circle cx="70" cy="131" r="2.5" fill="#241A14" stroke="none"/>
+    <circle cx="130" cy="131" r="2.5" fill="#241A14" stroke="none"/>
+    <path d="M87,142 Q99,148 111,140" fill="none" stroke-width="4.5"/>
+    <g stroke="none">
+      <circle cx="140" cy="128" r="7" fill="#C93F27"/>
+      <circle cx="147" cy="122" r="6" fill="#C93F27"/>
+      <circle cx="147" cy="134" r="6" fill="#C93F27"/>
+      <path d="M138,134 Q132,144 124,142" fill="none" stroke="#3F6B45" stroke-width="3"/>
+    </g>
+  </g>
+</svg>

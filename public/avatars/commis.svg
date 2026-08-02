@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <style>.toon *{stroke:#241A14;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;}</style>
+  <g class="toon">
+    <rect x="76" y="152" width="48" height="30" rx="8" fill="#EFE2C8"/>
+    <path d="M78,158 L100,168 L122,158" fill="none" stroke-width="4"/>
+    <circle cx="45" cy="122" r="13" fill="#F0C9A0"/>
+    <circle cx="155" cy="122" r="13" fill="#F0C9A0"/>
+    <circle cx="100" cy="118" r="56" fill="#F0C9A0"/>
+    <path d="M58,66 L100,28 L142,66 Q100,54 58,66 Z" fill="#FBF8F2"/>
+    <circle cx="80" cy="106" r="6.5" fill="#241A14" stroke="none"/>
+    <circle cx="120" cy="106" r="6.5" fill="#241A14" stroke="none"/>
+    <path d="M85,135 Q100,144 115,135" fill="none" stroke-width="5"/>
+    <ellipse cx="146" cy="98" rx="6" ry="9" fill="#8FC1E8" stroke-width="3" transform="rotate(20 146 98)"/>
+  </g>
+</svg>

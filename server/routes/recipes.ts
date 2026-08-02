@@ -12,7 +12,7 @@ import { isAnonymousLimitExceeded, recordAnonymousUsage } from '../lib/rateLimit
 import { sendPushToUsers } from '../lib/webPush.js';
 import { logError } from '../lib/logger.js';
 import { requireAuth } from '../middleware/supabaseAuth.js';
-import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
+import { resolveProfiles } from '../lib/profiles.js';
 
 const router = Router();
 
@@ -262,23 +262,16 @@ const getHousehold: RequestHandler<{ id: string }> = async (req, res) => {
       orderBy: { savedAt: 'desc' },
     });
 
-    const emailById = new Map<string, string>();
-    const supabaseAdmin = getSupabaseAdmin();
-    if (supabaseAdmin) {
-      await Promise.all(
-        memberIds.map(async (id) => {
-          const { data } = await supabaseAdmin.auth.admin.getUserById(id);
-          if (data?.user?.email) emailById.set(id, data.user.email);
-        })
-      );
-    }
+    const profileById = await resolveProfiles(memberIds);
 
     res.json(
       saved.map((s) => ({
         ...parseRecipe(s.recipe),
         savedRecipeId: s.id,
         savedByUserId: s.userId,
-        savedByEmail: emailById.get(s.userId) ?? null,
+        savedByEmail: profileById.get(s.userId)?.email ?? null,
+        savedByPseudo: profileById.get(s.userId)?.pseudo ?? null,
+        savedByAvatarKey: profileById.get(s.userId)?.avatarKey ?? null,
         savedByMe: s.userId === req.user!.id,
         savedAt: s.savedAt,
         reactions: summarizeReactions(s.reactions, req.user!.id),

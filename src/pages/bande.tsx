@@ -21,6 +21,7 @@ import { createChallenge } from "@/services/platingChallengeService";
 import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
 import { memberLabel, isRecentlySaved, handleInviteClick } from "@/lib/bandeUtils";
+import UserAvatar from "@/components/UserAvatar";
 
 // Quick "défier en dressage" shortcut from a recipe card — skips the
 // Laser Croq creation sheet entirely by launching a 3-day challenge
@@ -251,8 +252,9 @@ const BandePage = () => {
                               </span>
                             </div>
                             <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>
-                            <span className="text-xs text-muted-foreground">
-                              Ajouté par {memberLabel(recipe.savedByEmail, recipe.savedByUserId === user?.id)}
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <UserAvatar avatarKey={recipe.savedByAvatarKey} pseudo={recipe.savedByPseudo} className="w-4 h-4" />
+                              Ajouté par {memberLabel(recipe.savedByPseudo, recipe.savedByEmail, recipe.savedByUserId === user?.id)}
                             </span>
                           </div>
                         </Link>

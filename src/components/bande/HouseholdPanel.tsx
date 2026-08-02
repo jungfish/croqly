@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { renameHousehold, leaveHousehold, regenerateInviteCode, type Household } from "@/services/householdService";
 import { memberLabel, handleInviteClick } from "@/lib/bandeUtils";
+import UserAvatar from "@/components/UserAvatar";
 
 // Condensed header bar for the currently-selected bande: name (editable),
 // member count, an "Inviter" sheet (code + share link + member list), and
@@ -168,8 +169,12 @@ const HouseholdPanel = ({
               </p>
               <div className="flex flex-wrap gap-2">
                 {household.members.map((member) => (
-                  <span key={member.userId} className="px-3 py-1 rounded-full bg-muted text-sm text-foreground">
-                    {memberLabel(member.email, member.isMe)}
+                  <span
+                    key={member.userId}
+                    className="flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full bg-muted text-sm text-foreground"
+                  >
+                    <UserAvatar avatarKey={member.avatarKey} pseudo={member.pseudo} className="w-5 h-5" />
+                    {memberLabel(member.pseudo, member.email, member.isMe)}
                   </span>
                 ))}
               </div>

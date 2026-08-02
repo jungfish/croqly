@@ -5,7 +5,7 @@ import { parseIngredientLine, canonicalizeName } from '../lib/ingredientParsing.
 import { toBaseUnit, formatLabel } from '../lib/unitConversion.js';
 import { isPantryStaple } from '../lib/pantryStaples.js';
 import { categorizeIngredient, IngredientCategory } from '../lib/ingredientCategory.js';
-import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
+import { resolveProfile } from '../lib/profiles.js';
 import { logError } from '../lib/logger.js';
 
 const router = Router();
@@ -92,13 +92,6 @@ function fetchList(userId: string) {
 async function resolveListOwnerId(userId: string): Promise<string> {
   const incoming = await prisma.shoppingListShare.findFirst({ where: { sharedWithUserId: userId } });
   return incoming?.ownerUserId ?? userId;
-}
-
-async function resolveEmail(userId: string): Promise<string | null> {
-  const supabaseAdmin = getSupabaseAdmin();
-  if (!supabaseAdmin) return null;
-  const { data } = await supabaseAdmin.auth.admin.getUserById(userId);
-  return data?.user?.email ?? null;
 }
 
 const getList: RequestHandler = async (req, res) => {
@@ -236,14 +229,18 @@ const getShareStatus: RequestHandler = async (req, res) => {
       prisma.shoppingListShare.findFirst({ where: { sharedWithUserId: userId } }),
     ]);
 
-    const [sharedWithEmail, viewingSharedFromEmail] = await Promise.all([
-      outgoing ? resolveEmail(outgoing.sharedWithUserId) : Promise.resolve(null),
-      incoming ? resolveEmail(incoming.ownerUserId) : Promise.resolve(null),
+    const [sharedWithProfile, viewingSharedFromProfile] = await Promise.all([
+      outgoing ? resolveProfile(outgoing.sharedWithUserId) : Promise.resolve(null),
+      incoming ? resolveProfile(incoming.ownerUserId) : Promise.resolve(null),
     ]);
 
     res.json({
-      sharedWith: outgoing ? { userId: outgoing.sharedWithUserId, email: sharedWithEmail } : null,
-      viewingSharedFrom: incoming ? { userId: incoming.ownerUserId, email: viewingSharedFromEmail } : null,
+      sharedWith: outgoing
+        ? { userId: outgoing.sharedWithUserId, email: sharedWithProfile?.email ?? null, pseudo: sharedWithProfile?.pseudo ?? null, avatarKey: sharedWithProfile?.avatarKey ?? null }
+        : null,
+      viewingSharedFrom: incoming
+        ? { userId: incoming.ownerUserId, email: viewingSharedFromProfile?.email ?? null, pseudo: viewingSharedFromProfile?.pseudo ?? null, avatarKey: viewingSharedFromProfile?.avatarKey ?? null }
+        : null,
     });
   } catch (error) {
     logError('Error fetching shopping list share status', error);

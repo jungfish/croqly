@@ -1,10 +1,13 @@
 import { toast } from 'sonner';
 import { shareInviteLink } from '@/services/householdService';
 
-// Shows a member's email prefix rather than the full address — enough to
-// recognize "who's who" in a small group without spelling out emails.
-export function memberLabel(email: string | null, isMe: boolean): string {
+// Prefers the chosen pseudo (see Profile, src/lib/avatars.ts); falls back to
+// the email prefix for any straggler account whose profile hasn't been
+// resolved yet — enough to recognize "who's who" in a small group without
+// spelling out emails.
+export function memberLabel(pseudo: string | null, email: string | null, isMe: boolean): string {
   if (isMe) return 'Toi';
+  if (pseudo) return pseudo;
   if (!email) return 'Membre';
   return email.split('@')[0];
 }

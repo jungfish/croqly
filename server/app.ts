@@ -15,6 +15,7 @@ import platingChallengesRoutes from './routes/platingChallenges.js';
 import chatRoutes from './routes/chat.js';
 import adminRoutes from './routes/admin.js';
 import pushRoutes from './routes/push.js';
+import profileRoutes from './routes/profile.js';
 import { prisma } from './lib/prisma.js';
 import { logError } from './lib/logger.js';
 import { renderSeoHtml } from './lib/renderSeoHtml.js';
@@ -58,6 +59,7 @@ app.use('/api/plating-challenges', platingChallengesRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/profile', profileRoutes);
 
 app.get('/api/test', (_req, res) => {
   res.json({ message: 'API is working!' });

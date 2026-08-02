@@ -4,6 +4,8 @@ import { authFetch } from '@/lib/apiClient';
 export type HouseholdMember = {
   userId: string;
   email: string | null;
+  pseudo: string | null;
+  avatarKey: string | null;
   joinedAt: string;
   isMe: boolean;
 };
@@ -31,6 +33,8 @@ export type HouseholdRecipe = Recipe & {
   savedRecipeId: string;
   savedByUserId: string;
   savedByEmail: string | null;
+  savedByPseudo: string | null;
+  savedByAvatarKey: string | null;
   savedAt: string;
   reactions: ReactionSummary[];
 };
