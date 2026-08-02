@@ -41,27 +41,39 @@ const performOCR: RequestHandler = async (req, res) => {
 
   try {
     const [, files] = await form.parse(req);
-    const file = Array.isArray(files.image) ? files.image[0] : files.image;
-    if (!file) return res.status(400).json({ error: 'No image file provided' });
+    const uploaded = files.image ? (Array.isArray(files.image) ? files.image : [files.image]) : [];
+    if (!uploaded.length) return res.status(400).json({ error: 'No image file provided' });
 
-    const fileBuffer = await fs.promises.readFile(file.filepath);
-    const base64Image = fileBuffer.toString('base64');
+    const imageParts = await Promise.all(
+      uploaded.map(async (file) => {
+        const fileBuffer = await fs.promises.readFile(file.filepath);
+        return {
+          type: 'image_url' as const,
+          image_url: { url: `data:${file.mimetype};base64,${fileBuffer.toString('base64')}` },
+        };
+      })
+    );
 
     const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-5.6-luna',
-      max_completion_tokens: 500,
+      // Generous headroom: a dense cookbook page (title, times, two ingredient
+      // lists, several numbered steps) plus any reasoning tokens the model
+      // spends before answering can otherwise exhaust a tight cap, leaving an
+      // empty/truncated transcription that silently produces a hallucinated
+      // generic recipe downstream.
+      max_completion_tokens: 4000,
       messages: [
         {
           role: 'user',
           content: [
-            { type: 'text', text: 'Please read and extract all text from this image.' },
-            { type: 'image_url', image_url: { url: `data:${file.mimetype};base64,${base64Image}` } },
+            { type: 'text', text: 'Please read and extract all text from this image (or images, if there are several pages of the same recipe).' },
+            ...imageParts,
           ],
         },
       ],
     });
 
-    await fs.promises.unlink(file.filepath);
+    await Promise.all(uploaded.map((file) => fs.promises.unlink(file.filepath)));
 
     await logAiUsage({
       action: 'recipe_ocr',
