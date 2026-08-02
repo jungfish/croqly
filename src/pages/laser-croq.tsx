@@ -254,13 +254,13 @@ const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
   const [ref, inView] = useInViewOnce<HTMLAnchorElement>();
 
   return (
-    <div className={challenge.winner && inView ? "laser-ring rounded-xl" : ""}>
+    <div className={`h-full ${challenge.winner && inView ? "laser-ring rounded-xl" : ""}`}>
       <Link
         ref={ref}
         to={`/laser-croq/${challenge.id}`}
-        className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border block"
+        className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border flex flex-col h-full"
       >
-        <div className="h-36 overflow-hidden relative bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 flex items-center justify-center">
+        <div className="h-36 shrink-0 overflow-hidden relative bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 flex items-center justify-center">
           {challenge.recipe?.thumb ? (
             <img
               src={challenge.recipe.thumb}
@@ -283,10 +283,10 @@ const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
             </span>
           )}
         </div>
-        <div className="p-4">
+        <div className="p-4 flex flex-col flex-1">
           <h3 className="font-display font-semibold text-foreground mb-1 truncate">{challenge.title}</h3>
           {challenge.recipe && <p className="text-xs text-muted-foreground truncate mb-2">{challenge.recipe.title}</p>}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
             <span>
               {challenge.submissionsCount} dressage{challenge.submissionsCount > 1 ? "s" : ""}
             </span>

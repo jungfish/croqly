@@ -229,7 +229,7 @@ const BandePage = () => {
                     {recipes.map((recipe) => (
                       <div
                         key={`${recipe.id}-${recipe.savedByUserId}`}
-                        className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border"
+                        className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border flex flex-col h-full"
                       >
                         <Link to={`/recipe/${recipe.id}`} className="block">
                           <div className="h-48 overflow-hidden relative">
@@ -256,7 +256,7 @@ const BandePage = () => {
                             </span>
                           </div>
                         </Link>
-                        <div className="px-4 pb-4 bg-card/50 backdrop-blur-sm flex items-center justify-between gap-2 flex-wrap">
+                        <div className="px-4 pb-4 bg-card/50 backdrop-blur-sm flex items-center justify-between gap-2 flex-wrap mt-auto">
                           <ReactionBar householdId={selected.id} savedRecipeId={recipe.savedRecipeId} reactions={recipe.reactions} />
                           <DefyButton householdId={selected.id} recipe={recipe} />
                         </div>

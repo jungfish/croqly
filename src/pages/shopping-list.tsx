@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { ShoppingCart, Trash2, Share2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   fetchShoppingList,
   addManualItemToShoppingList,
@@ -134,7 +135,7 @@ const ShoppingListPage = () => {
   const [newItemText, setNewItemText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
-  const { data: items = [] } = useQuery<ShoppingListItem[]>({
+  const { data: items = [], isPending: itemsLoading } = useQuery<ShoppingListItem[]>({
     queryKey: ['shopping-list'],
     queryFn: fetchShoppingList,
   });
@@ -269,7 +270,24 @@ const ShoppingListPage = () => {
           </div>
         )}
 
-        {items.length === 0 ? (
+        {itemsLoading ? (
+          <div className="space-y-6">
+            <div>
+              <Skeleton className="h-4 w-24 mb-2" />
+              <ul className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-card/70 backdrop-blur-sm border border-border shadow-sm"
+                  >
+                    <Skeleton className="w-5 h-5 rounded shrink-0" />
+                    <Skeleton className="h-4 flex-1" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ) : items.length === 0 ? (
           <div className="flex flex-col items-center gap-4 text-center py-16 text-muted-foreground">
             <ShoppingCart className="w-10 h-10" />
             <p>Ta liste de courses est vide pour l'instant.</p>

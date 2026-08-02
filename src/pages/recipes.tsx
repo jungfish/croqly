@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import RecipeImage from "@/components/RecipeImage";
+import GridCardSkeleton from "@/components/GridCardSkeleton";
 import { UtensilsCrossed, Search, Check, Trash2 } from "lucide-react";
 import type { Recipe } from "@/types/recipe";
 import { authFetch } from "@/lib/apiClient";
@@ -29,7 +30,7 @@ const RecipesPage = () => {
   const [addingToList, setAddingToList] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data: recipes = [], isError: isRecipesError } = useQuery<Recipe[]>({
+  const { data: recipes = [], isPending: recipesLoading, isError: isRecipesError } = useQuery<Recipe[]>({
     queryKey: ['recipes', 'mine', debouncedSearch, selectedCategory],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -142,6 +143,15 @@ const RecipesPage = () => {
         </div>
 
         {/* Recipes Grid */}
+        {recipesLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <GridCardSkeleton key={i} imageHeight="h-48" />
+            ))}
+          </div>
+        )}
+
+        {!recipesLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {recipes.map((recipe) => (
             <Link
@@ -195,8 +205,9 @@ const RecipesPage = () => {
             </Link>
           ))}
         </div>
+        )}
 
-        {recipes.length === 0 && !hasActiveFilter && (
+        {!recipesLoading && recipes.length === 0 && !hasActiveFilter && (
           <div className="flex flex-col items-center gap-4 text-center py-16 text-muted-foreground">
             <UtensilsCrossed className="w-10 h-10" />
             <p>Tu n'as encore sauvegardé aucune recette.</p>
@@ -209,7 +220,7 @@ const RecipesPage = () => {
           </div>
         )}
 
-        {recipes.length === 0 && hasActiveFilter && (
+        {!recipesLoading && recipes.length === 0 && hasActiveFilter && (
           <div className="text-center py-12 text-muted-foreground">
             Rien ne correspond à cette recherche — essaie une autre catégorie ou un autre mot-clé.
           </div>

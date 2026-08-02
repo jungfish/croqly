@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import RecipePreview from "@/components/RecipePreview";
+import GridCardSkeleton from "@/components/GridCardSkeleton";
 import { UtensilsCrossed, Search } from "lucide-react";
 import type { Recipe } from "@/types/recipe";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ const DecouvrirPage = () => {
   const debouncedSearch = useDebouncedValue(search);
   const hasActiveFilter = selectedCategory !== "Toutes" || debouncedSearch.trim().length > 0;
 
-  const { data: recipes = [], isError: isRecipesError } = useQuery<Recipe[]>({
+  const { data: recipes = [], isPending: recipesLoading, isError: isRecipesError } = useQuery<Recipe[]>({
     queryKey: ['recipes', 'all', debouncedSearch, selectedCategory],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -87,13 +88,26 @@ const DecouvrirPage = () => {
         {/* Recipes Grid — same card component as the home page's "Fraîchement
             croquées" feed, so the hover treatment (zoom + gradient overlay)
             is identical between the two. */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {recipes.map((recipe) => (
-            <RecipePreview key={recipe.id} recipe={recipe} />
-          ))}
-        </div>
+        {recipesLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <GridCardSkeleton
+                key={i}
+                aspectRatio="aspect-[4/3]"
+                wrapperClassName="rounded-xl bg-card shadow-md"
+                showContent={false}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {recipes.map((recipe) => (
+              <RecipePreview key={recipe.id} recipe={recipe} />
+            ))}
+          </div>
+        )}
 
-        {recipes.length === 0 && !hasActiveFilter && (
+        {!recipesLoading && recipes.length === 0 && !hasActiveFilter && (
           <div className="flex flex-col items-center gap-4 text-center py-16 text-muted-foreground">
             <UtensilsCrossed className="w-10 h-10" />
             <p>Aucune recette n'a encore été croquée.</p>
@@ -106,7 +120,7 @@ const DecouvrirPage = () => {
           </div>
         )}
 
-        {recipes.length === 0 && hasActiveFilter && (
+        {!recipesLoading && recipes.length === 0 && hasActiveFilter && (
           <div className="text-center py-12 text-muted-foreground">
             Rien ne correspond à cette recherche — essaie une autre catégorie ou un autre mot-clé.
           </div>
