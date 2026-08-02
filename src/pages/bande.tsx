@@ -253,7 +253,7 @@ const BandePage = () => {
                             </div>
                             <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>
                             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <UserAvatar avatarKey={recipe.savedByAvatarKey} pseudo={recipe.savedByPseudo} className="w-4 h-4" />
+                              <UserAvatar avatarKey={recipe.savedByAvatarKey} pseudo={recipe.savedByPseudo} className="w-6 h-6" />
                               Ajouté par {memberLabel(recipe.savedByPseudo, recipe.savedByEmail, recipe.savedByUserId === user?.id)}
                             </span>
                           </div>

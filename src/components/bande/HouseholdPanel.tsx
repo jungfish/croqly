@@ -173,7 +173,7 @@ const HouseholdPanel = ({
                     key={member.userId}
                     className="flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full bg-muted text-sm text-foreground"
                   >
-                    <UserAvatar avatarKey={member.avatarKey} pseudo={member.pseudo} className="w-5 h-5" />
+                    <UserAvatar avatarKey={member.avatarKey} pseudo={member.pseudo} className="w-7 h-7" />
                     {memberLabel(member.pseudo, member.email, member.isMe)}
                   </span>
                 ))}

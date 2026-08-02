@@ -213,7 +213,7 @@ const AppSidebar = () => {
               className="flex w-full items-center gap-2 px-3 pt-1 pb-1 rounded-lg hover:bg-accent transition-colors"
               title={user?.email ?? ''}
             >
-              <UserAvatar avatarKey={profile?.avatarKey} pseudo={profile?.pseudo} className="w-6 h-6" />
+              <UserAvatar avatarKey={profile?.avatarKey} pseudo={profile?.pseudo} className="w-8 h-8" />
               <p className="truncate text-xs text-muted-foreground">{profile?.pseudo ?? user?.email}</p>
             </button>
           }

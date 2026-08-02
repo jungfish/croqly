@@ -206,7 +206,7 @@ const Comments = ({ submissionId }: { submissionId: string }) => {
       {isLoading && <p className="text-xs text-muted-foreground">Chargement…</p>}
       {comments.map((comment) => (
         <p key={comment.id} className="flex items-start gap-1.5 text-sm">
-          <UserAvatar avatarKey={comment.avatarKey} pseudo={comment.pseudo} className="w-5 h-5 mt-0.5" />
+          <UserAvatar avatarKey={comment.avatarKey} pseudo={comment.pseudo} className="w-7 h-7 mt-0.5" />
           <span>
             <span className="font-medium text-foreground">{memberLabel(comment.pseudo, comment.email, comment.isMine)}</span>{" "}
             <span className="text-muted-foreground">{comment.body}</span>
@@ -299,7 +299,7 @@ const SubmissionCard = ({
         <div className={large ? "p-4" : "p-3"}>
           <div className="flex items-center justify-between gap-2 mb-1">
             <span className={`flex items-center gap-1.5 font-medium text-foreground ${large ? "text-base" : "text-sm"}`}>
-              <UserAvatar avatarKey={submission.avatarKey} pseudo={submission.pseudo} className={large ? "w-6 h-6" : "w-5 h-5"} />
+              <UserAvatar avatarKey={submission.avatarKey} pseudo={submission.pseudo} className={large ? "w-10 h-10" : "w-8 h-8"} />
               {memberLabel(submission.pseudo, submission.email, submission.isMine)}
             </span>
             {showConfetti && (
@@ -522,7 +522,7 @@ const VoteSlide = ({ submissions, onVoted }: { submissions: RevealedSubmission[]
               <img src={submission.photoThumbUrl} alt="" className="w-full h-28 object-cover" />
               <div className="p-1.5 bg-card/90 flex items-center justify-between gap-1">
                 <span className="flex items-center gap-1 text-xs font-medium text-foreground truncate">
-                  <UserAvatar avatarKey={submission.avatarKey} pseudo={submission.pseudo} className="w-4 h-4" />
+                  <UserAvatar avatarKey={submission.avatarKey} pseudo={submission.pseudo} className="w-5 h-5" />
                   {memberLabel(submission.pseudo, submission.email, submission.isMine)}
                 </span>
                 <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">

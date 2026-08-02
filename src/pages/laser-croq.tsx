@@ -306,7 +306,7 @@ const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
             {challenge.winner && (
               <span className={`flex items-center gap-1 font-medium text-foreground ${inView ? "winner-pop" : "opacity-0"}`}>
                 <Trophy className="w-3.5 h-3.5 text-yolk" />
-                <UserAvatar avatarKey={challenge.winner.avatarKey} pseudo={challenge.winner.pseudo} className="w-4 h-4" />
+                <UserAvatar avatarKey={challenge.winner.avatarKey} pseudo={challenge.winner.pseudo} className="w-6 h-6" />
                 {memberLabel(challenge.winner.pseudo, challenge.winner.email, false)}
               </span>
             )}
@@ -371,7 +371,7 @@ const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boo
           <p className="text-xs text-muted-foreground mb-1 truncate">{item.challengeTitle}</p>
           {item.caption && <p className="text-sm text-foreground truncate">{item.caption}</p>}
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-            <UserAvatar avatarKey={item.avatarKey} pseudo={item.pseudo} className="w-4 h-4" />
+            <UserAvatar avatarKey={item.avatarKey} pseudo={item.pseudo} className="w-6 h-6" />
             Par {memberLabel(item.pseudo, item.email, isMine)}
           </p>
         </div>
