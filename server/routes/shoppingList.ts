@@ -23,7 +23,7 @@ interface MergeLine {
 function linesFromRecipe(recipeId: string, ingredients: string): MergeLine[] {
   const rawLines: string[] = JSON.parse(ingredients || '[]');
   return rawLines
-    .map((raw) => {
+    .map((raw): MergeLine | null => {
       const parsed = parseIngredientLine(raw);
       const name = canonicalizeName(parsed.name);
       if (!name || isPantryStaple(name)) return null;

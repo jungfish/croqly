@@ -43,3 +43,4 @@ prisma/*.db-journal
 .swarm
 ruvector.db
 *.tsbuildinfo
+.playwright-mcp/

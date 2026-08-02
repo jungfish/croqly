@@ -84,7 +84,11 @@ const Header = () => {
   const shouldBeLight = hasHero && !scrolledPastHero;
   const linkClass = `${shouldBeLight ? 'text-white hover:text-white/80' : 'text-foreground/70 hover:text-foreground'} transition-colors`;
 
-  const navLinks = (
+  // Signed-out visitors only get the pages they can actually use without an
+  // account — the auth-gated links (Mes Recettes, Bande, Liste de courses)
+  // would just bounce them to /login, so they're clutter here and are
+  // reserved for the signed-in nav below.
+  const publicNavLinks = (
     <>
       <Link to="/" className={linkClass}>
         Accueil
@@ -95,43 +99,14 @@ const Header = () => {
       <Link to="/assistant" className={linkClass}>
         Croq
       </Link>
-      <Link to="/recipes" className={linkClass}>
-        Mes Recettes
-      </Link>
-      <Link to="/foyer" className={linkClass}>
-        Foyer
-      </Link>
-      <Link to="/shopping-list" className={`${linkClass} relative inline-flex items-center gap-1.5`}>
-        Liste de courses
-        {remainingCount > 0 && (
-          <span
-            className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
-            aria-label={`${remainingCount} article${remainingCount > 1 ? 's' : ''} à acheter`}
-          >
-            {remainingCount}
-          </span>
-        )}
-      </Link>
-      {showAdminLink && (
-        <Link to="/admin" className={linkClass}>
-          Admin
-        </Link>
-      )}
-      {user ? (
-        <button onClick={handleSignOut} className={linkClass}>
-          Déconnexion
-        </button>
-      ) : (
-        <Link to="/login" className={linkClass}>
-          Connexion
-        </Link>
-      )}
     </>
   );
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 transition-colors duration-300 ${
+        user ? 'md:hidden' : ''
+      } ${
         hasHero && scrolledPastHero
           ? 'bg-background/90 backdrop-blur-sm border-b border-border'
           : ''
@@ -145,21 +120,31 @@ const Header = () => {
           />
         </Link>
 
-        {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-6">
-          {navLinks}
-          {showInstall && (
-            <Button
-              variant={shouldBeLight ? 'outline' : 'default'}
-              size="sm"
-              onClick={handleInstallClick}
-              className={shouldBeLight ? 'border-white/40 text-white hover:bg-white/10 hover:text-white' : ''}
-            >
-              <Download className="w-4 h-4" />
-              Installer l'app
+        {/* Desktop nav — logged-in users get the AppSidebar instead, so this
+            (and the header itself) is md:hidden once a session exists; only
+            the signed-out, account-creation-focused version ever shows. */}
+        {!user && (
+          <div className="hidden md:flex items-center gap-6">
+            {publicNavLinks}
+            <Link to="/login" className={linkClass}>
+              Connexion
+            </Link>
+            <Button asChild size="sm">
+              <Link to="/signup">Créer un compte</Link>
             </Button>
-          )}
-        </div>
+            {showInstall && (
+              <Button
+                variant={shouldBeLight ? 'outline' : 'default'}
+                size="sm"
+                onClick={handleInstallClick}
+                className={shouldBeLight ? 'border-white/40 text-white hover:bg-white/10 hover:text-white' : ''}
+              >
+                <Download className="w-4 h-4" />
+                Installer l'app
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Mobile nav — a real drawer instead of squeezing links into the bar */}
         <Sheet>
@@ -197,51 +182,66 @@ const Header = () => {
                 Croq
               </Link>
             </SheetClose>
-            <SheetClose asChild>
-              <Link to="/recipes" className="text-lg text-foreground/80 hover:text-foreground">
-                Mes Recettes
-              </Link>
-            </SheetClose>
-            <SheetClose asChild>
-              <Link to="/foyer" className="text-lg text-foreground/80 hover:text-foreground">
-                Foyer
-              </Link>
-            </SheetClose>
-            <SheetClose asChild>
-              <Link to="/shopping-list" className="text-lg text-foreground/80 hover:text-foreground inline-flex items-center gap-2">
-                Liste de courses
-                {remainingCount > 0 && (
-                  <span
-                    className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
-                    aria-label={`${remainingCount} article${remainingCount > 1 ? 's' : ''} à acheter`}
-                  >
-                    {remainingCount}
-                  </span>
-                )}
-              </Link>
-            </SheetClose>
-            {showAdminLink && (
-              <SheetClose asChild>
-                <Link to="/admin" className="text-lg text-foreground/80 hover:text-foreground">
-                  Admin
-                </Link>
-              </SheetClose>
-            )}
+
             {user ? (
-              <SheetClose asChild>
-                <button onClick={handleSignOut} className="text-lg text-left text-foreground/80 hover:text-foreground">
-                  Déconnexion
-                </button>
-              </SheetClose>
+              <>
+                <SheetClose asChild>
+                  <Link to="/recipes" className="text-lg text-foreground/80 hover:text-foreground">
+                    Mes Recettes
+                  </Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link to="/bande" className="text-lg text-foreground/80 hover:text-foreground">
+                    Bande
+                  </Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link to="/shopping-list" className="text-lg text-foreground/80 hover:text-foreground inline-flex items-center gap-2">
+                    Liste de courses
+                    {remainingCount > 0 && (
+                      <span
+                        className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
+                        aria-label={`${remainingCount} article${remainingCount > 1 ? 's' : ''} à acheter`}
+                      >
+                        {remainingCount}
+                      </span>
+                    )}
+                  </Link>
+                </SheetClose>
+                {showAdminLink && (
+                  <SheetClose asChild>
+                    <Link to="/admin" className="text-lg text-foreground/80 hover:text-foreground">
+                      Admin
+                    </Link>
+                  </SheetClose>
+                )}
+                <SheetClose asChild>
+                  <button onClick={handleSignOut} className="text-lg text-left text-foreground/80 hover:text-foreground">
+                    Déconnexion
+                  </button>
+                </SheetClose>
+              </>
             ) : (
-              <SheetClose asChild>
-                <Link to="/login" className="text-lg text-foreground/80 hover:text-foreground">
-                  Connexion
-                </Link>
-              </SheetClose>
+              <>
+                <SheetClose asChild>
+                  <Link to="/login" className="text-lg text-foreground/80 hover:text-foreground">
+                    Connexion
+                  </Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button asChild size="lg" className="w-full">
+                    <Link to="/signup">Créer un compte</Link>
+                  </Button>
+                </SheetClose>
+              </>
             )}
+
             {showInstall && (
-              <Button onClick={handleInstallClick} className="mt-2">
+              <Button
+                variant={user ? 'default' : 'outline'}
+                onClick={handleInstallClick}
+                className="mt-2"
+              >
                 <Download className="w-4 h-4" />
                 Installer l'app
               </Button>

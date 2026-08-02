@@ -211,7 +211,8 @@ const getMine: RequestHandler = async (req, res) => {
   }
 };
 
-// "Foyer" — recipes saved by any member of the caller's household, joined
+// "Bande" (user-facing name for a household) — recipes saved by any member
+// of the caller's household, joined
 // through HouseholdMember -> SavedRecipe. Same shape as getMine but widens
 // the userId filter from "just me" to "everyone in my household", and
 // attributes each card to whoever saved it (email resolved from Supabase

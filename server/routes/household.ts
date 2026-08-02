@@ -72,7 +72,7 @@ const getMyHousehold: RequestHandler = async (req, res) => {
 const createHousehold: RequestHandler = async (req, res) => {
   try {
     const existing = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
-    if (existing) return res.status(409).json({ error: 'Tu fais déjà partie d’un foyer.' });
+    if (existing) return res.status(409).json({ error: 'Tu fais déjà partie d’une bande.' });
 
     const { name } = req.body as { name?: string };
 
@@ -112,7 +112,7 @@ const joinHousehold: RequestHandler = async (req, res) => {
 
     const existing = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
     if (existing) {
-      return res.status(409).json({ error: 'Tu fais déjà partie d’un foyer — quitte-le avant d’en rejoindre un autre.' });
+      return res.status(409).json({ error: 'Tu fais déjà partie d’une bande — quitte-la avant d’en rejoindre une autre.' });
     }
 
     const household = await prisma.household.findUnique({ where: { inviteCode: code.trim().toUpperCase() } });
@@ -131,7 +131,7 @@ const joinHousehold: RequestHandler = async (req, res) => {
 const leaveHousehold: RequestHandler = async (req, res) => {
   try {
     const membership = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
-    if (!membership) return res.status(404).json({ error: 'Tu ne fais partie d’aucun foyer.' });
+    if (!membership) return res.status(404).json({ error: 'Tu ne fais partie d’aucune bande.' });
 
     await prisma.householdMember.delete({ where: { userId: req.user!.id } });
     const remaining = await prisma.householdMember.count({ where: { householdId: membership.householdId } });
@@ -147,7 +147,7 @@ const leaveHousehold: RequestHandler = async (req, res) => {
 const renameHousehold: RequestHandler = async (req, res) => {
   try {
     const membership = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
-    if (!membership) return res.status(404).json({ error: 'Tu ne fais partie d’aucun foyer.' });
+    if (!membership) return res.status(404).json({ error: 'Tu ne fais partie d’aucune bande.' });
 
     const { name } = req.body as { name?: string };
     const household = await prisma.household.update({
@@ -166,7 +166,7 @@ const renameHousehold: RequestHandler = async (req, res) => {
 const regenerateCode: RequestHandler = async (req, res) => {
   try {
     const membership = await prisma.householdMember.findUnique({ where: { userId: req.user!.id } });
-    if (!membership) return res.status(404).json({ error: 'Tu ne fais partie d’aucun foyer.' });
+    if (!membership) return res.status(404).json({ error: 'Tu ne fais partie d’aucune bande.' });
 
     for (let attempt = 0; attempt < 5; attempt++) {
       try {

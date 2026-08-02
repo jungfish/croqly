@@ -153,10 +153,10 @@ const RecipesPage = () => {
                 />
               </div>
               <div className="p-4 bg-card/50 backdrop-blur-sm">
-                <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>
-                <span className="inline-block px-3 py-1 bg-card/70 backdrop-blur-sm rounded-full text-sm text-foreground shadow-sm">
+                <span className="inline-block px-3 py-1 mb-2 bg-card/70 backdrop-blur-sm rounded-full text-sm text-foreground shadow-sm">
                   {recipe.category}
                 </span>
+                <h2 className="text-xl font-display font-semibold text-foreground">{recipe.title}</h2>
               </div>
             </Link>
           ))}

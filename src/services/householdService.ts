@@ -82,3 +82,27 @@ export async function regenerateInviteCode(): Promise<string> {
   const { inviteCode } = await response.json();
   return inviteCode;
 }
+
+// Shared by every "Inviter" entry point (the panel's button, the empty-state
+// nudge) so the invite copy/link only lives in one place. navigator.share
+// opens the native share sheet (WhatsApp, Messages...) so inviting someone
+// doesn't require reading a code aloud — same pattern as ShareButton.tsx.
+// Falls back to a plain clipboard copy on desktop/unsupported browsers.
+export async function shareInviteLink(inviteCode: string): Promise<'shared' | 'copied' | 'cancelled'> {
+  const url = `${window.location.origin}/bande?join=${inviteCode}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'Rejoins ma bande sur Croqly',
+        text: `Rejoins ma bande sur Croqly avec le code ${inviteCode}`,
+        url,
+      });
+      return 'shared';
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') return 'cancelled';
+      throw error;
+    }
+  }
+  await navigator.clipboard.writeText(url);
+  return 'copied';
+}

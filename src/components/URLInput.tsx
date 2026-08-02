@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, FormEvent, DragEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Upload, ImageDown, Instagram, Mic } from "lucide-react";
+import { Upload, ImageDown, Instagram, Mic, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { processRecipeFromInstagram, processRecipeFromUrl } from "@/services/recipeService";
@@ -28,6 +28,7 @@ const URLInput = () => {
   const [currentStep, setCurrentStep] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [mode, setMode] = useState<'link' | 'photo' | 'audio'>('link');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const micSupported = typeof window !== 'undefined' && 'MediaRecorder' in window && Boolean(navigator.mediaDevices?.getUserMedia);
@@ -269,6 +270,38 @@ const URLInput = () => {
     if (imageFiles.length) handleImageUpload(imageFiles);
   };
 
+  // Optional attribution for a photo or dictation sourced from a book/
+  // magazine — lets us credit the original author and identify these
+  // recipes if a rights holder ever asks for one to be taken down. Shared
+  // by the photo and audio tabs; irrelevant to the link tab, which doesn't
+  // use it. Rendered ABOVE the dropzone/record trigger in both, not below:
+  // selecting a photo or stopping a recording kicks off the import
+  // immediately, so a source field placed after it was unreachable in
+  // practice — by the time it was visible, the value it'd feed into had
+  // already been read. A persistent label (not just placeholder text) also
+  // keeps it visible once filled in, instead of disappearing into the input.
+  const sourceField = (
+    <div className="mb-3 text-left">
+      <label htmlFor="recipe-source" className="block text-sm font-medium text-foreground mb-1">
+        Source <span className="font-normal text-muted-foreground">(optionnel)</span>
+      </label>
+      <input
+        id="recipe-source"
+        type="text"
+        value={source}
+        onChange={(e) => setSource(e.target.value)}
+        placeholder="ex. Ottolenghi, Simple"
+        disabled={loading}
+        className="w-full px-4 py-2.5 rounded-xl bg-card/90 border border-border text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+      />
+    </div>
+  );
+
+  const tabClass = (active: boolean) =>
+    `flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+      active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+    }`;
+
   return (
     <div className="w-full max-w-2xl mx-auto text-center">
       <div className="mb-12">
@@ -278,63 +311,89 @@ const URLInput = () => {
       </div>
 
       <div className="glass-card rounded-2xl shadow-xl p-8">
-        <form onSubmit={handleSubmit}>
-          <div className="relative">
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Colle le lien de ta recette Instagram ou TikTok ici…"
-              className="w-full pl-20 pr-12 py-4 rounded-xl bg-card/90 border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2 text-muted-foreground">
-              <Instagram className="w-5 h-5" />
-              <TikTokIcon className="w-5 h-5" />
-            </div>
-          </div>
-          <button
-            type="submit"
-            disabled={loading || !url}
-            className="mt-4 w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Transformer en recette
+        {/* One import method visible at a time instead of stacking all
+            three — the URL field, photo dropzone, and mic recorder were
+            competing for attention in a single tall block. */}
+        <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted mb-6">
+          <button type="button" onClick={() => setMode('link')} className={tabClass(mode === 'link')}>
+            <Link2 className="w-4 h-4" />
+            Lien
           </button>
-        </form>
-
-        <div className="mt-4 text-muted-foreground font-medium">ou</div>
-
-        {/* Two manual-import options side by side — photo (existing) and
-            dictated audio (new). Same card treatment so neither reads as the
-            "main" alternative to pasting a link. */}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`flex flex-col items-center justify-center gap-2 px-4 py-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors text-center ${
-              isDragging ? "border-primary bg-accent/20 text-primary" : "border-border bg-muted hover:bg-accent/20 text-muted-foreground"
-            }`}
-          >
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => e.target.files && handleImageUpload(Array.from(e.target.files))}
-              disabled={loading}
-            />
-            {isDragging ? <ImageDown className="w-6 h-6" /> : <Upload className="w-6 h-6" />}
-            <span className="text-sm">
-              {isDragging ? "Lâche l'image ici" : "Photo d'une recette (livre, magazine…)"}
-            </span>
-          </label>
-
+          <button type="button" onClick={() => setMode('photo')} className={tabClass(mode === 'photo')}>
+            <Upload className="w-4 h-4" />
+            Photo
+          </button>
           {micSupported && (
+            <button type="button" onClick={() => setMode('audio')} className={tabClass(mode === 'audio')}>
+              <Mic className="w-4 h-4" />
+              Micro
+            </button>
+          )}
+        </div>
+
+        {mode === 'link' && (
+          <form onSubmit={handleSubmit}>
+            <div className="relative">
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="Colle le lien de ta recette Instagram ou TikTok ici…"
+                className="w-full pl-20 pr-12 py-4 rounded-xl bg-card/90 border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2 text-muted-foreground">
+                <Instagram className="w-5 h-5" />
+                <TikTokIcon className="w-5 h-5" />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !url}
+              className="mt-4 w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium shadow-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Transformer en recette
+            </button>
+          </form>
+        )}
+
+        {mode === 'photo' && (
+          <div>
+            {sourceField}
+            <label
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`flex flex-col items-center justify-center gap-2 px-4 py-10 rounded-xl border-2 border-dashed cursor-pointer transition-colors text-center ${
+                isDragging ? "border-primary bg-accent/20 text-primary" : "border-border bg-muted hover:bg-accent/20 text-muted-foreground"
+              }`}
+            >
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files && handleImageUpload(Array.from(e.target.files))}
+                disabled={loading}
+              />
+              {isDragging ? <ImageDown className="w-7 h-7" /> : <Upload className="w-7 h-7" />}
+              <span className="text-sm">
+                {isDragging ? "Lâche l'image ici" : "Glisse une photo, colle-la (Ctrl+V), ou clique ici"}
+              </span>
+            </label>
+            {!user && (
+              <p className="mt-2 text-xs text-muted-foreground">Connexion requise pour importer une photo.</p>
+            )}
+          </div>
+        )}
+
+        {mode === 'audio' && (
+          <div>
+            {sourceField}
             <button
               type="button"
               onClick={handleToggleRecording}
               disabled={loading && !recording}
-              className={`flex flex-col items-center justify-center gap-2 px-4 py-6 rounded-xl border-2 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`w-full flex flex-col items-center justify-center gap-2 px-4 py-10 rounded-xl border-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 recording
                   ? "border-destructive bg-destructive/10 text-destructive"
                   : "border-dashed border-border bg-muted hover:bg-accent/20 text-muted-foreground"
@@ -343,32 +402,17 @@ const URLInput = () => {
               {recording ? (
                 <span className="w-3 h-3 rounded-full bg-destructive animate-pulse" aria-hidden="true" />
               ) : (
-                <Mic className="w-6 h-6" />
+                <Mic className="w-7 h-7" />
               )}
               <span className="text-sm">
                 {recording ? "Arrêter l'enregistrement" : "Dicte ta recette au micro"}
               </span>
             </button>
-          )}
-        </div>
-
-        <p className="mt-2 text-sm text-muted-foreground">
-          Colle (Ctrl+V) ou glisse une photo directement dans la zone ci-dessus.
-          {!user && " Connexion requise pour importer une photo ou dicter une recette."}
-        </p>
-
-        {/* Optional attribution for a photo or dictation sourced from a
-            book/magazine — lets us credit the original author and identify
-            these recipes if a rights holder ever asks for one to be taken
-            down. */}
-        <input
-          type="text"
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
-          placeholder="Source (optionnel) — ex. Ottolenghi, Simple"
-          disabled={loading}
-          className="mt-3 w-full px-4 py-2.5 rounded-xl bg-card/90 border border-border text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-        />
+            {!user && (
+              <p className="mt-2 text-xs text-muted-foreground">Connexion requise pour dicter une recette.</p>
+            )}
+          </div>
+        )}
 
         {loading && (
           <div className="mt-4 flex items-center justify-center gap-3 text-muted-foreground">

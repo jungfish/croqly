@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import {
   leaveHousehold,
   renameHousehold,
   regenerateInviteCode,
+  shareInviteLink,
   type Household,
   type HouseholdRecipe,
 } from "@/services/householdService";
@@ -22,11 +23,22 @@ import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
 
 // Shows a member's email prefix rather than the full address — enough to
-// recognize "who's who" in a family-sized group without spelling out emails.
+// recognize "who's who" in a small group without spelling out emails.
 function memberLabel(email: string | null, isMe: boolean): string {
   if (isMe) return "Toi";
   if (!email) return "Membre";
   return email.split("@")[0];
+}
+
+// Shared by every "Inviter" entry point (the panel button, the solo-bande
+// nudge, the empty-recipes CTA) so the toast/error handling only lives once.
+async function handleInviteClick(inviteCode: string) {
+  try {
+    const result = await shareInviteLink(inviteCode);
+    if (result === "copied") toast.success("Lien d'invitation copié !");
+  } catch {
+    toast.error("Impossible de partager. Réessaie dans un instant.");
+  }
 }
 
 const CreateOrJoinPanel = ({ onDone, initialCode }: { onDone: () => void; initialCode?: string }) => {
@@ -39,10 +51,10 @@ const CreateOrJoinPanel = ({ onDone, initialCode }: { onDone: () => void; initia
     setCreating(true);
     try {
       await createHousehold(name.trim() || undefined);
-      toast.success("Foyer créé !");
+      toast.success("Bande créée !");
       onDone();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de créer le foyer.");
+      toast.error(error instanceof Error ? error.message : "Impossible de créer la bande.");
     } finally {
       setCreating(false);
     }
@@ -53,10 +65,10 @@ const CreateOrJoinPanel = ({ onDone, initialCode }: { onDone: () => void; initia
     setJoining(true);
     try {
       await joinHousehold(code.trim());
-      toast.success("Tu as rejoint le foyer !");
+      toast.success("Tu as rejoint la bande !");
       onDone();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de rejoindre ce foyer.");
+      toast.error(error instanceof Error ? error.message : "Impossible de rejoindre cette bande.");
     } finally {
       setJoining(false);
     }
@@ -65,35 +77,35 @@ const CreateOrJoinPanel = ({ onDone, initialCode }: { onDone: () => void; initia
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
       <div className="rounded-xl border border-border bg-card/70 backdrop-blur-sm p-6 shadow-lg">
-        <h2 className="text-lg font-display font-semibold mb-1">Créer un foyer</h2>
+        <h2 className="text-lg font-display font-semibold mb-1">Créer une bande</h2>
         <p className="text-sm text-muted-foreground mb-4">
           Invite ensuite les autres avec un code à partager.
         </p>
-        <Label htmlFor="household-name" className="sr-only">
-          Nom du foyer
+        <Label htmlFor="bande-name" className="sr-only">
+          Nom de la bande
         </Label>
         <Input
-          id="household-name"
+          id="bande-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Nom du foyer (optionnel)"
+          placeholder="Nom de la bande (optionnel)"
           className="mb-3"
         />
         <Button onClick={handleCreate} disabled={creating} className="w-full">
-          {creating ? "Création…" : "Créer mon foyer"}
+          {creating ? "Création…" : "Créer ma bande"}
         </Button>
       </div>
 
       <div className="rounded-xl border border-border bg-card/70 backdrop-blur-sm p-6 shadow-lg">
-        <h2 className="text-lg font-display font-semibold mb-1">Rejoindre un foyer</h2>
+        <h2 className="text-lg font-display font-semibold mb-1">Rejoindre une bande</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Demande le code à un membre du foyer.
+          Demande le code à un membre de la bande.
         </p>
-        <Label htmlFor="household-code" className="sr-only">
+        <Label htmlFor="bande-code" className="sr-only">
           Code d'invitation
         </Label>
         <Input
-          id="household-code"
+          id="bande-code"
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           placeholder="Ex. AB3D9K"
@@ -133,29 +145,6 @@ const HouseholdPanel = ({
     }
   };
 
-  // navigator.share opens the native share sheet (WhatsApp, Messages...) so
-  // inviting someone doesn't require reading a code aloud — same pattern as
-  // ShareButton.tsx. Falls back to a plain clipboard copy on desktop.
-  const handleInvite = async () => {
-    const url = `${window.location.origin}/foyer?join=${inviteCode}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Rejoins mon foyer sur Croqly",
-          text: `Rejoins mon foyer sur Croqly avec le code ${inviteCode}`,
-          url,
-        });
-      } catch (error) {
-        if ((error as Error)?.name !== "AbortError") {
-          toast.error("Impossible de partager. Réessaie dans un instant.");
-        }
-      }
-      return;
-    }
-    await navigator.clipboard.writeText(url);
-    toast.success("Lien d'invitation copié !");
-  };
-
   const startEditingName = () => {
     setNameDraft(household.name ?? "");
     setEditingName(true);
@@ -165,11 +154,11 @@ const HouseholdPanel = ({
     setSavingName(true);
     try {
       await renameHousehold(nameDraft.trim());
-      toast.success("Nom du foyer mis à jour.");
+      toast.success("Nom de la bande mis à jour.");
       setEditingName(false);
       onRenamed();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de renommer le foyer.");
+      toast.error(error instanceof Error ? error.message : "Impossible de renommer la bande.");
     } finally {
       setSavingName(false);
     }
@@ -179,10 +168,10 @@ const HouseholdPanel = ({
     setLeaving(true);
     try {
       await leaveHousehold();
-      toast.success("Tu as quitté le foyer.");
+      toast.success("Tu as quitté la bande.");
       onLeft();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de quitter le foyer.");
+      toast.error(error instanceof Error ? error.message : "Impossible de quitter la bande.");
     } finally {
       setLeaving(false);
     }
@@ -201,6 +190,8 @@ const HouseholdPanel = ({
     }
   };
 
+  const isSolo = household.members.length === 1;
+
   return (
     <div className="rounded-xl border border-border bg-card/70 backdrop-blur-sm p-6 shadow-lg max-w-2xl mx-auto mb-10">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
@@ -210,7 +201,7 @@ const HouseholdPanel = ({
             <Input
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
-              placeholder="Nom du foyer"
+              placeholder="Nom de la bande"
               className="h-8"
               autoFocus
               onKeyDown={(e) => {
@@ -228,10 +219,10 @@ const HouseholdPanel = ({
         ) : (
           <h2 className="text-lg font-display font-semibold flex items-center gap-2">
             <Users className="w-5 h-5" />
-            {household.name || "Mon foyer"}
+            {household.name || "Ma bande"}
             <button
               onClick={startEditingName}
-              aria-label="Renommer le foyer"
+              aria-label="Renommer la bande"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <Pencil className="w-4 h-4" />
@@ -254,14 +245,14 @@ const HouseholdPanel = ({
           <Button variant="outline" size="icon" onClick={handleRegenerate} disabled={regenerating} aria-label="Régénérer le code">
             <RefreshCw className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`} />
           </Button>
-          <Button variant="outline" size="sm" onClick={handleInvite} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => handleInviteClick(inviteCode)} className="gap-2">
             <Share2 className="w-4 h-4" />
             Inviter
           </Button>
         </div>
       </div>
 
-      <div>
+      <div className="mb-4">
         <p className="text-sm text-muted-foreground mb-2">
           {household.members.length} membre{household.members.length > 1 ? "s" : ""}
         </p>
@@ -276,18 +267,42 @@ const HouseholdPanel = ({
           ))}
         </div>
       </div>
+
+      {/* Growth loop trigger #1: a solo bande has zero value (nobody else's
+          recipes to see), so this is the highest-intent moment to nudge an
+          invite — right after creating it, and every time the creator comes
+          back before anyone's joined. */}
+      {isSolo && (
+        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm text-foreground">
+            Ta bande est vide pour l'instant — invite ta famille ou tes potes pour voir leurs recettes ici aussi.
+          </p>
+          <Button size="sm" onClick={() => handleInviteClick(inviteCode)} className="gap-2 shrink-0">
+            <Share2 className="w-4 h-4" />
+            Inviter du monde
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
 
-const FoyerPage = () => {
+const BandePage = () => {
   const { user } = useAuth();
   const firstName = getFirstName(user);
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
-  // Prefills the join code when arriving via an invite link shared from
-  // HouseholdPanel's "Inviter" button (/foyer?join=CODE) — see handleInvite.
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Joining via an invite link shared from HouseholdPanel's "Inviter" button
+  // (/bande?join=CODE) — see shareInviteLink in householdService.ts.
   const joinCodeFromLink = searchParams.get("join")?.toUpperCase();
+  // Auto-joins instead of just prefilling the "Rejoindre" field: leaving it
+  // as a manual step meant people landing on this page via the link would
+  // see "Créer une bande" sitting right next to it and tap that instead,
+  // ending up with a brand new bande rather than the one they were invited to.
+  const [linkJoinState, setLinkJoinState] = useState<"idle" | "joining" | "failed">(
+    joinCodeFromLink ? "joining" : "idle"
+  );
+  const linkJoinAttempted = useRef(false);
 
   const { data: household, isLoading: householdLoading } = useQuery<Household | null>({
     queryKey: ["household", "me"],
@@ -305,6 +320,21 @@ const FoyerPage = () => {
     queryClient.invalidateQueries({ queryKey: ["recipes", "household"] });
   };
 
+  useEffect(() => {
+    if (householdLoading || household || !joinCodeFromLink || linkJoinAttempted.current) return;
+    linkJoinAttempted.current = true;
+    joinHousehold(joinCodeFromLink)
+      .then(() => {
+        toast.success("Tu as rejoint la bande !");
+        setSearchParams({}, { replace: true });
+        refreshHousehold();
+      })
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : "Impossible de rejoindre cette bande.");
+        setLinkJoinState("failed");
+      });
+  }, [householdLoading, household, joinCodeFromLink]);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-8 pt-28">
@@ -313,17 +343,21 @@ const FoyerPage = () => {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="font-display text-3xl sm:text-4xl text-foreground mb-2">Mon Foyer</h1>
+            <h1 className="font-display text-3xl sm:text-4xl text-foreground mb-2">Ma Bande</h1>
             <p className="text-muted-foreground">
               {firstName ? `Salut ${firstName}, ` : ""}
-              voici les recettes croquées par ton foyer.
+              voici les recettes croquées par ta bande.
             </p>
           </div>
         </div>
 
-        {householdLoading && <div className="text-center text-muted-foreground py-12">Chargement…</div>}
+        {(householdLoading || (!household && linkJoinState === "joining")) && (
+          <div className="text-center text-muted-foreground py-12">
+            {householdLoading ? "Chargement…" : "Connexion à ta bande…"}
+          </div>
+        )}
 
-        {!householdLoading && !household && (
+        {!householdLoading && !household && linkJoinState !== "joining" && (
           <CreateOrJoinPanel onDone={refreshHousehold} initialCode={joinCodeFromLink} />
         )}
 
@@ -333,14 +367,23 @@ const FoyerPage = () => {
 
             {isRecipesError && (
               <div className="text-center text-muted-foreground py-8">
-                Impossible de charger les recettes du foyer. Réessaie dans un instant.
+                Impossible de charger les recettes de la bande. Réessaie dans un instant.
               </div>
             )}
 
             {!isRecipesError && recipes.length === 0 && (
               <div className="flex flex-col items-center gap-4 text-center py-16 text-muted-foreground">
                 <UtensilsCrossed className="w-10 h-10" />
-                <p>Personne n'a encore ajouté de recette dans ce foyer.</p>
+                <p>Personne n'a encore ajouté de recette dans cette bande.</p>
+                {/* Growth loop trigger #2: same nudge, surfaced again at the
+                    point where the emptiness is most visible — the recipe
+                    grid itself, not just the panel above it. */}
+                {household.members.length === 1 && (
+                  <Button onClick={() => handleInviteClick(household.inviteCode)} className="gap-2">
+                    <Share2 className="w-4 h-4" />
+                    Inviter du monde
+                  </Button>
+                )}
               </div>
             )}
 
@@ -381,4 +424,4 @@ const FoyerPage = () => {
   );
 };
 
-export default FoyerPage;
+export default BandePage;

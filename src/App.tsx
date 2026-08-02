@@ -9,18 +9,19 @@ import ChatPage from "@/pages/chat";
 import RecipesList from "@/pages/recipes";
 import RecipeView from "@/pages/recipe/[id]";
 import ShoppingListPage from "@/pages/shopping-list";
-import FoyerPage from "@/pages/foyer";
+import BandePage from "@/pages/bande";
 import CreatorHub from "@/pages/createur/[handle]";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import NotFound from "./pages/NotFound";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import AppSidebar from '@/components/AppSidebar';
 import InstallPwaBanner from '@/components/InstallPwaBanner';
 import RequireAuth from '@/components/RequireAuth';
 import RequireAdmin from '@/components/RequireAdmin';
 import AdminDashboard from '@/pages/admin';
-import { AuthProvider } from '@/hooks/use-auth';
+import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { HeroProvider } from '@/hooks/use-hero';
 import { PwaInstallProvider } from '@/hooks/use-pwa-install';
 
@@ -33,10 +34,12 @@ const FULL_SCREEN_ROUTES = ["/assistant"];
 
 const AppShell = () => {
   const location = useLocation();
+  const { user } = useAuth();
   const isFullScreen = FULL_SCREEN_ROUTES.includes(location.pathname);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className={`min-h-screen flex flex-col bg-background ${user ? 'md:pl-64' : ''}`}>
+      {user && <AppSidebar />}
       <Header />
       <main className="flex-1">
         <Routes>
@@ -51,7 +54,7 @@ const AppShell = () => {
           {/* Protected: only "my recipes" needs an identity */}
           <Route element={<RequireAuth />}>
             <Route path="/recipes" element={<RecipesList />} />
-            <Route path="/foyer" element={<FoyerPage />} />
+            <Route path="/bande" element={<BandePage />} />
             <Route path="/shopping-list" element={<ShoppingListPage />} />
           </Route>
           <Route element={<RequireAdmin />}>
@@ -60,10 +63,12 @@ const AppShell = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {!isFullScreen && <Footer />}
+      {/* Signed-in shell reads as a desktop app (sidebar + no footer);
+          the marketing footer stays for logged-out visitors. */}
+      {!isFullScreen && !user && <Footer />}
       <Toaster />
       <Sonner />
-      <InstallPwaBanner />
+      {!user && <InstallPwaBanner />}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Send, Refrigerator, X } from "lucide-react";
+import { Send, Refrigerator, X, UtensilsCrossed, Copy, RotateCcw } from "lucide-react";
 import RecipePreview from "@/components/RecipePreview";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,15 @@ const ChatPage = () => {
     sendMessage(input.trim());
   };
 
+  const handleCopy = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success("Copié !");
+    } catch {
+      toast.error("Impossible de copier.");
+    }
+  };
+
   const openFridgeMode = () => {
     setFridgeMode(true);
     setTimeout(() => fridgeInputRef.current?.focus(), 0);
@@ -123,158 +132,183 @@ const ChatPage = () => {
     sendMessage(composeFridgeMessage(finalIngredients));
   };
 
+  const composer = fridgeMode ? (
+    <form onSubmit={handleFridgeSubmit} className="w-full">
+      <div className="flex flex-wrap items-center gap-2 p-2 rounded-full bg-white dark:bg-card border border-border shadow-md">
+        <Refrigerator className="w-4 h-4 ml-2 text-primary shrink-0" />
+        {fridgeIngredients.map((ingredient) => (
+          <span
+            key={ingredient}
+            className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium"
+          >
+            {ingredient}
+            <button
+              type="button"
+              onClick={() => removeFridgeIngredient(ingredient)}
+              aria-label={`Retirer ${ingredient}`}
+              className="rounded-full hover:bg-primary/20 p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </span>
+        ))}
+        <Input
+          ref={fridgeInputRef}
+          value={fridgeInput}
+          onChange={(e) => setFridgeInput(e.target.value)}
+          onKeyDown={handleFridgeKeyDown}
+          onBlur={addFridgeIngredient}
+          placeholder={fridgeIngredients.length === 0 ? "Ex : œufs, farine, lait…" : "Ajouter un ingrédient"}
+          disabled={isSending}
+          className="flex-1 min-w-[140px] border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-8 px-2 bg-transparent"
+        />
+        <Button type="button" variant="ghost" size="icon" onClick={closeFridgeMode} aria-label="Annuler le mode frigo" className="rounded-full shrink-0">
+          <X className="w-4 h-4" />
+        </Button>
+        <Button
+          type="submit"
+          disabled={isSending || (fridgeIngredients.length === 0 && !fridgeInput.trim())}
+          size="icon"
+          className="rounded-full shrink-0"
+          aria-label="Chercher des recettes"
+        >
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+    </form>
+  ) : (
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className="flex items-center gap-1 rounded-full bg-white dark:bg-card border border-border shadow-md pl-5 pr-2 py-2">
+        <Input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Demande une recette à Croq…"
+          disabled={isSending}
+          className="flex-1 border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent px-0 h-8"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={openFridgeMode}
+          disabled={isSending}
+          aria-label="Mode frigo"
+          title="Mode frigo"
+          className="rounded-full shrink-0"
+        >
+          <Refrigerator className="w-4 h-4" />
+        </Button>
+        <Button type="submit" disabled={isSending || !input.trim()} size="icon" className="rounded-full shrink-0" aria-label="Envoyer">
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+    </form>
+  );
+
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-background">
-      <div className="flex-1 min-h-0 flex flex-col container mx-auto px-8 pt-28 pb-[max(2rem,env(safe-area-inset-bottom))] max-w-2xl">
-        <div className="flex flex-col items-center text-center gap-2 mb-6 shrink-0">
-          <CroqMark className="w-10 h-10" />
-          <div>
-            <h1 className="font-display text-2xl text-foreground">Croq</h1>
-            <p className="text-muted-foreground">
-              Dis-moi ce dont tu as envie, je te propose des recettes déjà croquées par la communauté.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 mb-4 pr-1">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center gap-4 text-center py-12 text-muted-foreground">
-              <p>Essaie par exemple :</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {SUGGESTIONS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => sendMessage(suggestion)}
-                    className="px-3 py-1.5 rounded-full border border-border bg-card text-sm text-foreground hover:bg-accent hover:border-primary/40 transition-colors"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={openFridgeMode}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary/40 bg-primary/10 text-sm text-primary font-medium hover:bg-primary/20 transition-colors"
-                >
-                  <Refrigerator className="w-3.5 h-3.5" />
-                  Mode frigo — dis-moi ce que tu as
-                </button>
-              </div>
+      <div className="flex-1 min-h-0 flex flex-col container mx-auto px-4 sm:px-8 pt-28 pb-[max(1.5rem,env(safe-area-inset-bottom))] max-w-2xl">
+        {messages.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-6">
+            <CroqMark className="w-9 h-9" />
+            <div className="text-center">
+              <h1 className="font-display text-2xl sm:text-3xl text-foreground">Qu'est-ce qu'on cuisine aujourd'hui ?</h1>
+              <p className="text-muted-foreground mt-1">Des recettes déjà croquées par la communauté.</p>
             </div>
-          )}
 
-          {messages.map((message, i) => (
-            <div key={i} className={`flex flex-col gap-1 ${message.role === "user" ? "items-end" : "items-start"}`}>
-              {message.role === "assistant" && (
-                <div className="flex items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground">
-                  <CroqMark className="w-3.5 h-3.5" />
-                  Croq
+            <div className="w-full max-w-xl">{composer}</div>
+
+            <div className="flex flex-col w-full max-w-xl">
+              {SUGGESTIONS.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => sendMessage(suggestion)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-muted-foreground hover:bg-card hover:text-foreground transition-colors"
+                >
+                  <UtensilsCrossed className="w-4 h-4 shrink-0" />
+                  {suggestion}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={openFridgeMode}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-muted-foreground hover:bg-card hover:text-foreground transition-colors"
+              >
+                <Refrigerator className="w-4 h-4 shrink-0" />
+                Mode frigo — dis-moi ce que tu as
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-6 pb-4 pr-1">
+              {messages.map((message, i) => {
+                const precedingUser = message.role === "assistant" ? messages[i - 1] : undefined;
+                return (
+                  <div key={i} className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}>
+                    {message.role === "user" ? (
+                      <div className="max-w-[80%] rounded-3xl px-4 py-2.5 bg-white dark:bg-muted text-foreground shadow-sm">
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    ) : (
+                      <div className="w-full">
+                        <p className="whitespace-pre-wrap text-foreground">{message.content}</p>
+                        {message.recipes && message.recipes.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+                            {message.recipes.map((recipe) => (
+                              <RecipePreview key={recipe.id} recipe={recipe} />
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 mt-2 -ml-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(message.content)}
+                            aria-label="Copier la réponse"
+                            title="Copier"
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          {precedingUser?.role === "user" && (
+                            <button
+                              type="button"
+                              onClick={() => sendMessage(precedingUser.content)}
+                              disabled={isSending}
+                              aria-label="Redemander"
+                              title="Redemander"
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-colors disabled:opacity-50"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {isSending && (
+                <div className="flex items-center gap-1.5 py-1">
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" />
                 </div>
               )}
-              <div
-                className={`rounded-2xl px-4 py-3 ${
-                  message.role === "user"
-                    ? "max-w-[85%] bg-primary text-primary-foreground"
-                    : "w-full bg-card border border-border"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{message.content}</p>
-                {message.recipes && message.recipes.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
-                    {message.recipes.map((recipe) => (
-                      <RecipePreview key={recipe.id} recipe={recipe} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
 
-          {isSending && (
-            <div className="flex flex-col gap-1 items-start">
-              <div className="flex items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground">
-                <CroqMark className="w-3.5 h-3.5" />
-                Croq
-              </div>
-              <div className="rounded-2xl px-4 py-3 bg-card border border-border flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" />
-              </div>
+              <div ref={bottomRef} />
             </div>
-          )}
 
-          <div ref={bottomRef} />
-        </div>
-
-        {fridgeMode ? (
-          <form onSubmit={handleFridgeSubmit} className="shrink-0 pt-4">
-            <div className="flex flex-wrap items-center gap-2 p-2 rounded-xl bg-card border border-border">
-              <Refrigerator className="w-4 h-4 ml-1 text-primary shrink-0" />
-              {fridgeIngredients.map((ingredient) => (
-                <span
-                  key={ingredient}
-                  className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium"
-                >
-                  {ingredient}
-                  <button
-                    type="button"
-                    onClick={() => removeFridgeIngredient(ingredient)}
-                    aria-label={`Retirer ${ingredient}`}
-                    className="rounded-full hover:bg-primary/20 p-0.5"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
-              <Input
-                ref={fridgeInputRef}
-                value={fridgeInput}
-                onChange={(e) => setFridgeInput(e.target.value)}
-                onKeyDown={handleFridgeKeyDown}
-                onBlur={addFridgeIngredient}
-                placeholder={fridgeIngredients.length === 0 ? "Ex : œufs, farine, lait…" : "Ajouter un ingrédient"}
-                disabled={isSending}
-                className="flex-1 min-w-[140px] border-none shadow-none focus-visible:ring-0 h-8 px-2"
-              />
-              <Button type="button" variant="ghost" size="icon" onClick={closeFridgeMode} aria-label="Annuler le mode frigo">
-                <X className="w-4 h-4" />
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSending || (fridgeIngredients.length === 0 && !fridgeInput.trim())}
-                size="icon"
-                aria-label="Chercher des recettes"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
+            <div className="shrink-0 pt-2">
+              {composer}
+              <p className="text-center text-xs text-muted-foreground/70 pt-2">
+                Croq peut se tromper. Vérifie les infos importantes.
+              </p>
             </div>
-          </form>
-        ) : (
-          <form onSubmit={handleSubmit} className="flex gap-2 shrink-0 pt-4">
-            <Input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Qu'est-ce qui te ferait plaisir ?"
-              disabled={isSending}
-              className="bg-card"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={openFridgeMode}
-              disabled={isSending}
-              aria-label="Mode frigo"
-              title="Mode frigo"
-            >
-              <Refrigerator className="w-4 h-4" />
-            </Button>
-            <Button type="submit" disabled={isSending || !input.trim()} size="icon" aria-label="Envoyer">
-              <Send className="w-4 h-4" />
-            </Button>
-          </form>
+          </>
         )}
       </div>
     </div>
