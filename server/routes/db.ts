@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { buildEmbeddingInput, embed, storeRecipeEmbedding } from '../lib/embeddings.js';
 import { buildRecipeSearchWhere } from '../lib/recipeSearch.js';
 import { logError } from '../lib/logger.js';
+import { requireAuth } from '../middleware/supabaseAuth.js';
 
 const router = Router();
 
@@ -104,7 +105,12 @@ const createOrUpdateRecipe: RequestHandler = async (req, res) => {
       prepTime: recipe.prepTime,
       cookTime: recipe.cookTime,
       totalTime: recipe.totalTime,
-      servings: recipe.servings
+      servings: recipe.servings,
+      // This route is exclusively the photo/OCR-upload persist path (see
+      // requireAuth below), so req.user is always set — every photo import
+      // is tied to an account, unlike the URL-import flow which allows
+      // anonymous callers (see server/routes/recipes.ts fromUrl).
+      createdByUserId: req.user!.id,
     };
 
     let savedRecipe;
@@ -156,6 +162,9 @@ router.put('/:id', async (req, res) => {
 
 router.get('/', getAllRecipes);
 router.get('/:id', getRecipeById);
-router.post('/', createOrUpdateRecipe);
+// Exclusively the photo/OCR-upload persist path (see saveRecipe in
+// src/services/databaseService.ts) — requireAuth guarantees createdByUserId
+// above is always set, so every photo import is traceable to an account.
+router.post('/', requireAuth, createOrUpdateRecipe);
 
 export default router; 

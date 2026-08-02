@@ -5,6 +5,7 @@ import { getOpenAI } from '../lib/openaiClient.js';
 import { interpretRecipe, generateIllustration } from '../lib/aiInterpretation.js';
 import { logError } from '../lib/logger.js';
 import { logAiUsage } from '../lib/aiUsageLog.js';
+import { requireAuth } from '../middleware/supabaseAuth.js';
 
 const router = Router();
 
@@ -91,8 +92,12 @@ const performOCR: RequestHandler = async (req, res) => {
   }
 };
 
-router.post('/interpret', interpretHandler);
-router.post('/illustrate', illustrateHandler);
-router.post('/ocr', performOCR);
+// All three are exclusively used by the photo-upload (OCR) path (see
+// comments above) — requiring auth here means every recipe imported from a
+// photo is always traceable to an account (see Recipe.createdByUserId in
+// server/routes/db.ts), never an anonymous upload.
+router.post('/interpret', requireAuth, interpretHandler);
+router.post('/illustrate', requireAuth, illustrateHandler);
+router.post('/ocr', requireAuth, performOCR);
 
 export default router;

@@ -1,11 +1,12 @@
 import { useState, useEffect, FormEvent, DragEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Upload, ImageDown, Instagram } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { processRecipeFromInstagram, processRecipeFromUrl } from "@/services/recipeService";
 import { useAuth } from "@/hooks/use-auth";
 import { recordAnonRecipeView, getAnonRecipeIds } from "@/lib/anonRecipes";
+import { authFetch } from "@/lib/apiClient";
 
 // lucide-react has no TikTok mark — inlined from Simple Icons (CC0).
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -18,6 +19,7 @@ const SOCIAL_URL_REGEX = /^https?:\/\/(www\.)?(instagram\.com\/(reel|p)\/|(vm\.|
 
 const URLInput = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [url, setUrl] = useState("");
@@ -98,6 +100,14 @@ const URLInput = () => {
 
   const handleImageUpload = async (files: File[]) => {
     if (!files.length) return;
+    // Importing from a photo ties the recipe to an account for attribution
+    // (see server/routes/ai.ts, server/routes/db.ts) — unlike the URL flow,
+    // it's never anonymous.
+    if (!user) {
+      toast.error("Connecte-toi pour importer une recette depuis une photo.");
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
     setLoading(true);
     try {
       setCurrentStep(processingSteps.EXTRACT);
@@ -107,7 +117,7 @@ const URLInput = () => {
         formData.append('image', file);
       });
 
-      const response = await fetch('/api/ai/ocr', {
+      const response = await authFetch('/api/ai/ocr', {
         method: 'POST',
         body: formData
       });
@@ -121,8 +131,6 @@ const URLInput = () => {
 
       setCurrentStep(processingSteps.ANALYZE);
       const recipe = await processRecipeFromInstagram('', data.text, undefined, undefined, undefined, source.trim() || undefined);
-
-      if (!user && recipe.id) recordAnonRecipeView(recipe.id);
 
       queryClient.setQueryData(['recipe', recipe.id], recipe);
 
@@ -230,6 +238,12 @@ const URLInput = () => {
             <span>{isDragging ? "Lâche l'image ici" : "Importe, colle (Ctrl+V) ou glisse tes photos de recette ici"}</span>
           </div>
         </label>
+
+        {!user && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Connexion requise pour importer une photo.
+          </p>
+        )}
 
         {/* Optional attribution for photos of a book/magazine page — lets us
             credit the original author and identify these recipes if a

@@ -1,14 +1,17 @@
 // All AI calls happen server-side — this just talks to our own /api/ai/*
 // endpoints. No provider API keys ever live in browser code.
 import type { Recipe } from '@/types/recipe';
+import { authFetch } from '@/lib/apiClient';
 
 type InterpretedRecipe = Pick<
   Recipe,
   'title' | 'category' | 'ingredients' | 'instructions' | 'prepTime' | 'cookTime' | 'totalTime' | 'servings'
 >;
 
+// These endpoints require auth (photo-import path only — see
+// server/routes/ai.ts) so every import is traceable to an account.
 export async function interpretRecipe(caption: string, transcription: string): Promise<InterpretedRecipe> {
-  const response = await fetch('/api/ai/interpret', {
+  const response = await authFetch('/api/ai/interpret', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ caption, transcription }),
@@ -22,7 +25,7 @@ export async function generateRecipeImage(
   ingredients: string[]
 ): Promise<{ illustration: string; illustrationThumb: string }> {
   try {
-    const response = await fetch('/api/ai/illustrate', {
+    const response = await authFetch('/api/ai/illustrate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, ingredients }),

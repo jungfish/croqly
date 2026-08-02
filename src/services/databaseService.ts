@@ -1,9 +1,12 @@
 import type { Recipe as RecipeType } from '@/types/recipe';
+import { authFetch } from '@/lib/apiClient';
 
+// Requires auth (photo-import path only — see server/routes/db.ts) so every
+// imported recipe is traceable to an account.
 export async function saveRecipe(recipe: RecipeType) {
   try {
     console.log('Saving recipe with data:', recipe);
-    const response = await fetch('/api/db', {
+    const response = await authFetch('/api/db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(recipe),
