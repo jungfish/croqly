@@ -28,6 +28,7 @@ export type HouseholdRecipe = Recipe & {
   savedRecipeId: string;
   savedByUserId: string;
   savedByEmail: string | null;
+  savedAt: string;
   reactions: ReactionSummary[];
 };
 

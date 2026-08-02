@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Recipe, Creator } from '@/types/recipe';
-import { UtensilsCrossed, ListOrdered, Clock, Instagram, Music2, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart, Trash2, Play, X } from 'lucide-react';
+import { UtensilsCrossed, ListOrdered, Clock, Instagram, Music2, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ParallaxHero from '@/components/ParallaxHero';
 import InstagramEmbed from '@/components/InstagramEmbed';
@@ -27,20 +27,6 @@ const RecipePage = () => {
   const [saved, setSaved] = useState(false);
   const [addingToList, setAddingToList] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [videoModalOpen, setVideoModalOpen] = useState(false);
-
-  // Instagram's oEmbed widget doesn't play Reels inline — clicking it hands
-  // off to instagram.com. This closes the app on every tap, so a play-button
-  // overlay intercepts the click first and plays our own downloaded copy
-  // (recipe.videoUrl) in an in-app modal instead of letting it through.
-  useEffect(() => {
-    if (!videoModalOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setVideoModalOpen(false);
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [videoModalOpen]);
 
   const { data: recipe, isLoading: loading, isError } = useQuery<Recipe>({
     // A recipe just created via processRecipeFromUrl is pre-populated under
@@ -413,21 +399,6 @@ const RecipePage = () => {
                   <div className="instagram-embed-crop relative w-full max-w-sm mx-auto bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 pb-6 mb-4">
                     <InstagramEmbed url={recipe.url} />
                     <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent rounded-b-xl pointer-events-none" />
-                    {/* Sits above the embed and swallows every click so none
-                        of them reach Instagram's iframe (its clicks can't be
-                        intercepted once inside — it's cross-origin). */}
-                    {recipe.videoUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setVideoModalOpen(true)}
-                        aria-label="Lire la vidéo"
-                        className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-black/0 hover:bg-black/10 transition-colors"
-                      >
-                        <span className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center">
-                          <Play className="w-6 h-6 text-white fill-white ml-0.5" />
-                        </span>
-                      </button>
-                    )}
                   </div>
                 ) : (
                   <div className="aspect-[9/16] w-full max-w-xs mx-auto max-h-[70vh] bg-card/70 backdrop-blur-sm rounded-xl shadow-lg border border-border p-3 mb-4">
@@ -603,30 +574,6 @@ const RecipePage = () => {
           </div>
         )}
       </div>
-
-      {videoModalOpen && recipe.videoUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setVideoModalOpen(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setVideoModalOpen(false)}
-            aria-label="Fermer la vidéo"
-            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          <video
-            controls
-            autoPlay
-            playsInline
-            className="max-h-[85vh] max-w-full rounded-lg"
-            src={recipe.videoUrl}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
     </div>
   );
 };

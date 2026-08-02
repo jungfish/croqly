@@ -228,17 +228,6 @@ const Header = () => {
                     )}
                   </Link>
                 </SheetClose>
-                {household && (
-                  <SheetClose asChild>
-                    <button
-                      onClick={handleInviteClick}
-                      className="text-lg text-left text-foreground/80 hover:text-foreground inline-flex items-center gap-2"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Inviter à la bande
-                    </button>
-                  </SheetClose>
-                )}
                 {showAdminLink && (
                   <SheetClose asChild>
                     <Link to="/admin" className="text-lg text-foreground/80 hover:text-foreground">
@@ -276,6 +265,15 @@ const Header = () => {
                 <Download className="w-4 h-4" />
                 Installer l'app
               </Button>
+            )}
+
+            {household && (
+              <SheetClose asChild>
+                <Button onClick={handleInviteClick} className="mt-auto gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  Inviter à la bande
+                </Button>
+              </SheetClose>
             )}
           </SheetContent>
         </Sheet>

@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, Copy, LogOut, UtensilsCrossed, RefreshCw, Share2, Pencil, Check, X, Smile } from "lucide-react";
+import { Users, Copy, LogOut, UtensilsCrossed, RefreshCw, Share2, Pencil, Check, X, Smile, UserPlus } from "lucide-react";
 import RecipeImage from "@/components/RecipeImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import {
   fetchMyHousehold,
   fetchHouseholdRecipes,
@@ -31,6 +32,15 @@ function memberLabel(email: string | null, isMe: boolean): string {
   if (isMe) return "Toi";
   if (!email) return "Membre";
   return email.split("@")[0];
+}
+
+// Recipes list is already ordered by savedAt desc (see /api/recipes/household),
+// so newest-first is a given — this badge just makes "someone in the bande
+// just added this" visible at a glance instead of requiring a mental diff
+// against the last visit.
+const NEW_BADGE_WINDOW_MS = 48 * 60 * 60 * 1000;
+function isRecentlySaved(savedAt: string): boolean {
+  return Date.now() - new Date(savedAt).getTime() < NEW_BADGE_WINDOW_MS;
 }
 
 // Shared by every "Inviter" entry point (the panel button, the solo-bande
@@ -264,96 +274,107 @@ const HouseholdPanel = ({
   const isSolo = household.members.length === 1;
 
   return (
-    <div className="rounded-xl border border-border bg-card/70 backdrop-blur-sm p-6 shadow-lg max-w-2xl mx-auto mb-10">
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        {editingName ? (
-          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-            <Users className="w-5 h-5 shrink-0" />
-            <Input
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              placeholder="Nom de la bande"
-              className="h-8"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveName();
-                if (e.key === "Escape") setEditingName(false);
-              }}
-            />
-            <Button variant="ghost" size="icon" onClick={handleSaveName} disabled={savingName} aria-label="Enregistrer">
-              <Check className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setEditingName(false)} disabled={savingName} aria-label="Annuler">
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        ) : (
-          <h2 className="text-lg font-display font-semibold flex items-center gap-2">
-            <Users className="w-5 h-5" />
+    <div className="flex items-center justify-between flex-wrap gap-3 max-w-4xl mx-auto mb-6 px-4 py-3 rounded-xl border border-border bg-card/70 backdrop-blur-sm shadow-sm">
+      {editingName ? (
+        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          <Users className="w-5 h-5 shrink-0 text-muted-foreground" />
+          <Input
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            placeholder="Nom de la bande"
+            className="h-8"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSaveName();
+              if (e.key === "Escape") setEditingName(false);
+            }}
+          />
+          <Button variant="ghost" size="icon" onClick={handleSaveName} disabled={savingName} aria-label="Enregistrer">
+            <Check className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setEditingName(false)} disabled={savingName} aria-label="Annuler">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="font-display font-semibold flex items-center gap-2 truncate">
+            <Users className="w-5 h-5 text-muted-foreground shrink-0" />
             {household.name || "Ma bande"}
-            <button
-              onClick={startEditingName}
-              aria-label="Renommer la bande"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
           </h2>
-        )}
+          <button
+            onClick={startEditingName}
+            aria-label="Renommer la bande"
+            className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+          <span className="text-sm text-muted-foreground shrink-0">
+            · {household.members.length} membre{household.members.length > 1 ? "s" : ""}
+          </span>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Growth loop trigger #1: a solo bande has zero value (nobody else's
+            recipes to see), so this stays the primary action — right after
+            creating it, and every time the creator comes back before anyone's
+            joined — but as a single button rather than a standalone panel. */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button size="sm" variant={isSolo ? "default" : "outline"} className="gap-2">
+              <UserPlus className="w-4 h-4" />
+              Inviter
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right">
+            <SheetHeader>
+              <SheetTitle>Inviter dans "{household.name || "Ma bande"}"</SheetTitle>
+              <SheetDescription>
+                Partage le code ou le lien ci-dessous pour ajouter quelqu'un à ta bande.
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-6">
+              <p className="text-sm text-muted-foreground mb-2">Code d'invitation</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <code className="px-3 py-2 rounded-lg bg-muted font-mono text-lg tracking-widest">{inviteCode}</code>
+                <Button variant="outline" size="icon" onClick={handleCopyCode} aria-label="Copier le code">
+                  <Copy className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleRegenerate} disabled={regenerating} aria-label="Régénérer le code">
+                  <RefreshCw className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
+              <Button onClick={() => handleInviteClick(inviteCode)} className="gap-2 w-full mt-3">
+                <Share2 className="w-4 h-4" />
+                Partager le lien d'invitation
+              </Button>
+            </div>
+
+            <div className="mt-6">
+              <p className="text-sm text-muted-foreground mb-2">
+                {household.members.length} membre{household.members.length > 1 ? "s" : ""}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {household.members.map((member) => (
+                  <span
+                    key={member.userId}
+                    className="px-3 py-1 rounded-full bg-muted text-sm text-foreground"
+                  >
+                    {memberLabel(member.email, member.isMe)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+
         <Button variant="ghost" size="sm" onClick={handleLeave} disabled={leaving} className="text-muted-foreground">
           <LogOut className="w-4 h-4" />
           {leaving ? "..." : "Quitter"}
         </Button>
       </div>
-
-      <div className="mb-4">
-        <p className="text-sm text-muted-foreground mb-2">Code d'invitation — partage-le pour ajouter du monde</p>
-        <div className="flex items-center gap-2 flex-wrap">
-          <code className="px-3 py-2 rounded-lg bg-muted font-mono text-lg tracking-widest">{inviteCode}</code>
-          <Button variant="outline" size="icon" onClick={handleCopyCode} aria-label="Copier le code">
-            <Copy className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={handleRegenerate} disabled={regenerating} aria-label="Régénérer le code">
-            <RefreshCw className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`} />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleInviteClick(inviteCode)} className="gap-2">
-            <Share2 className="w-4 h-4" />
-            Inviter
-          </Button>
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <p className="text-sm text-muted-foreground mb-2">
-          {household.members.length} membre{household.members.length > 1 ? "s" : ""}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {household.members.map((member) => (
-            <span
-              key={member.userId}
-              className="px-3 py-1 rounded-full bg-card border border-border text-sm text-foreground"
-            >
-              {memberLabel(member.email, member.isMe)}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Growth loop trigger #1: a solo bande has zero value (nobody else's
-          recipes to see), so this is the highest-intent moment to nudge an
-          invite — right after creating it, and every time the creator comes
-          back before anyone's joined. */}
-      {isSolo && (
-        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-sm text-foreground">
-            Ta bande est vide pour l'instant — invite ta famille ou tes potes pour voir leurs recettes ici aussi.
-          </p>
-          <Button size="sm" onClick={() => handleInviteClick(inviteCode)} className="gap-2 shrink-0">
-            <Share2 className="w-4 h-4" />
-            Inviter du monde
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
@@ -466,12 +487,17 @@ const BandePage = () => {
                     className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border"
                   >
                     <Link to={`/recipe/${recipe.id}`} className="block">
-                      <div className="h-48 overflow-hidden">
+                      <div className="h-48 overflow-hidden relative">
                         <RecipeImage
                           recipe={recipe}
                           sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                           className="group-hover:scale-105"
                         />
+                        {isRecentlySaved(recipe.savedAt) && (
+                          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-sm">
+                            Nouveau
+                          </span>
+                        )}
                       </div>
                       <div className="p-4 pb-3 bg-card/50 backdrop-blur-sm">
                         <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>

@@ -110,15 +110,6 @@ const AppSidebar = () => {
             </span>
           )}
         </Link>
-        {household && (
-          <button
-            onClick={handleInviteClick}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
-          >
-            <UserPlus className="w-4 h-4 shrink-0" />
-            Inviter à la bande
-          </button>
-        )}
         {showAdminLink && (
           <Link to="/admin" className={linkClass('/admin')}>
             <ShieldCheck className="w-4 h-4 shrink-0" />
@@ -128,6 +119,12 @@ const AppSidebar = () => {
       </nav>
 
       <div className="px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 space-y-1 border-t border-border">
+        {household && (
+          <Button onClick={handleInviteClick} className="w-full justify-start gap-3">
+            <UserPlus className="w-4 h-4 shrink-0" />
+            Inviter à la bande
+          </Button>
+        )}
         {showInstall && (
           <Button variant="outline" size="sm" onClick={handleInstallClick} className="w-full justify-start gap-3">
             <Download className="w-4 h-4" />

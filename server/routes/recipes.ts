@@ -273,6 +273,7 @@ const getHousehold: RequestHandler = async (req, res) => {
         savedByUserId: s.userId,
         savedByEmail: emailById.get(s.userId) ?? null,
         savedByMe: s.userId === req.user!.id,
+        savedAt: s.savedAt,
         reactions: summarizeReactions(s.reactions, req.user!.id),
       }))
     );
