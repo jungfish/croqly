@@ -1,12 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Home, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, LogOut, Download } from 'lucide-react';
+import { Home, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, LogOut, Download, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
+import { fetchMyHousehold, shareInviteLink, type Household } from '@/services/householdService';
 import { isAdminUser } from '@/lib/admin';
 
 const NAV_ITEMS = [
@@ -31,8 +32,28 @@ const AppSidebar = () => {
     enabled: !!user,
   });
   const remainingCount = shoppingListItems.filter((item) => !item.checked).length;
+
+  const { data: household } = useQuery<Household | null>({
+    queryKey: ['household', 'me'],
+    queryFn: fetchMyHousehold,
+    enabled: !!user,
+  });
+
   const showAdminLink = isAdminUser(user);
   const showInstall = !isStandalone && (canInstall || isIOS);
+
+  // Standing growth-loop entry point (distinct from the nudges on /bande
+  // itself, see bande.tsx) — surfaces the invite action wherever the user
+  // happens to be in the app, not just when they land on the Bande page.
+  const handleInviteClick = async () => {
+    if (!household) return;
+    try {
+      const result = await shareInviteLink(household.inviteCode);
+      if (result === 'copied') toast.success("Lien d'invitation copié !");
+    } catch {
+      toast.error('Impossible de partager. Réessaie dans un instant.');
+    }
+  };
 
   const isActive = (to: string) => (to === '/' ? location.pathname === '/' : location.pathname.startsWith(to));
 
@@ -89,6 +110,15 @@ const AppSidebar = () => {
             </span>
           )}
         </Link>
+        {household && (
+          <button
+            onClick={handleInviteClick}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
+          >
+            <UserPlus className="w-4 h-4 shrink-0" />
+            Inviter à la bande
+          </button>
+        )}
         {showAdminLink && (
           <Link to="/admin" className={linkClass('/admin')}>
             <ShieldCheck className="w-4 h-4 shrink-0" />

@@ -58,18 +58,21 @@ const URLInput = () => {
 
     setLoading(true);
     const timers: ReturnType<typeof setTimeout>[] = [];
+    // The toast (not local state) is what tracks progress across navigation —
+    // Toaster lives above <Routes> in App.tsx, so it keeps updating by id even
+    // after this component unmounts.
+    const toastId = toast.loading(URL_STEPS[0].label);
     try {
       setCurrentStep(URL_STEPS[0].label);
       URL_STEPS.slice(1).forEach(({ label, atMs }) => {
-        timers.push(setTimeout(() => setCurrentStep(label), atMs));
+        timers.push(setTimeout(() => {
+          setCurrentStep(label);
+          toast.loading(label, { id: toastId });
+        }, atMs));
       });
 
       const recipe = await processRecipeFromUrl(url);
       timers.forEach(clearTimeout);
-
-      if (recipe.cached) {
-        toast.success("Cette recette a déjà été extraite — résultat instantané.");
-      }
 
       // Anonymous visitors can hit the daily import limit before ever
       // clicking "Save" on a given recipe — track the id client-side so it
@@ -77,24 +80,34 @@ const URLInput = () => {
       if (!user && recipe.id) recordAnonRecipeView(recipe.id);
 
       // Pre-populate the detail page's query so it doesn't refetch something
-      // that was just created/looked up. A client-side navigate (not a full
-      // page reload) is what makes this pre-population actually useful.
+      // that was just created/looked up — useful whether the user clicks
+      // through from the toast now or later.
       queryClient.setQueryData(['recipe', recipe.id], recipe);
 
-      setCurrentStep(processingSteps.SAVE);
-      navigate(`/recipe/${recipe.id}`);
+      toast.success(
+        recipe.cached ? "Cette recette a déjà été extraite — résultat instantané." : "Recette prête !",
+        {
+          id: toastId,
+          duration: 10000,
+          action: {
+            label: 'Voir la recette',
+            onClick: () => navigate(`/recipe/${recipe.id}`),
+          },
+        }
+      );
     } catch (error) {
       console.error('Error processing URL:', error);
       if (error instanceof Error && error.message.includes('limit')) {
         const pendingSaveRecipeIds = getAnonRecipeIds();
         toast.error("Limite quotidienne atteinte — crée un compte pour continuer.", {
+          id: toastId,
           action: {
             label: 'Créer un compte',
             onClick: () => navigate('/signup', { state: { pendingSaveRecipeIds } }),
           },
         });
       } else {
-        toast.error("Pas de recette repérable dans ce lien. Réessaie avec un reel de cuisine, ou importe des photos de la recette ci-dessous.");
+        toast.error("Pas de recette repérable dans ce lien. Réessaie avec un reel de cuisine, ou importe des photos de la recette ci-dessous.", { id: toastId });
       }
     } finally {
       timers.forEach(clearTimeout);
@@ -114,6 +127,7 @@ const URLInput = () => {
       return;
     }
     setLoading(true);
+    const toastId = toast.loading(processingSteps.EXTRACT);
     try {
       setCurrentStep(processingSteps.EXTRACT);
 
@@ -135,15 +149,22 @@ const URLInput = () => {
       const data = await response.json();
 
       setCurrentStep(processingSteps.ANALYZE);
+      toast.loading(processingSteps.ANALYZE, { id: toastId });
       const recipe = await processRecipeFromInstagram('', data.text, undefined, undefined, undefined, source.trim() || undefined);
 
       queryClient.setQueryData(['recipe', recipe.id], recipe);
 
-      setCurrentStep(processingSteps.SAVE);
-      navigate(`/recipe/${recipe.id}`);
+      toast.success("Recette prête !", {
+        id: toastId,
+        duration: 10000,
+        action: {
+          label: 'Voir la recette',
+          onClick: () => navigate(`/recipe/${recipe.id}`),
+        },
+      });
     } catch (error) {
       console.error('Error processing images:', error);
-      toast.error("Ces photos ne laissent pas voir de recette. Réessaie avec des photos plus nettes.");
+      toast.error("Ces photos ne laissent pas voir de recette. Réessaie avec des photos plus nettes.", { id: toastId });
     } finally {
       setLoading(false);
       setCurrentStep('');
@@ -156,6 +177,7 @@ const URLInput = () => {
   // transcript standing in for it).
   const handleAudioUpload = async (blob: Blob) => {
     setLoading(true);
+    const toastId = toast.loading("Transcription de ta dictée...");
     try {
       setCurrentStep("Transcription de ta dictée...");
 
@@ -175,15 +197,22 @@ const URLInput = () => {
       const { text } = await response.json();
 
       setCurrentStep(processingSteps.ANALYZE);
+      toast.loading(processingSteps.ANALYZE, { id: toastId });
       const recipe = await processRecipeFromInstagram('', text, undefined, undefined, undefined, source.trim() || undefined);
 
       queryClient.setQueryData(['recipe', recipe.id], recipe);
 
-      setCurrentStep(processingSteps.SAVE);
-      navigate(`/recipe/${recipe.id}`);
+      toast.success("Recette prête !", {
+        id: toastId,
+        duration: 10000,
+        action: {
+          label: 'Voir la recette',
+          onClick: () => navigate(`/recipe/${recipe.id}`),
+        },
+      });
     } catch (error) {
       console.error('Error processing audio:', error);
-      toast.error("Cette dictée n'est pas assez claire. Réessaie en énonçant les ingrédients et les étapes une par une.");
+      toast.error("Cette dictée n'est pas assez claire. Réessaie en énonçant les ingrédients et les étapes une par une.", { id: toastId });
     } finally {
       setLoading(false);
       setCurrentStep('');

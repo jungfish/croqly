@@ -211,3 +211,18 @@ model ShoppingListItem {
   @@unique([userId, name, unit])
   @@index([userId])
 }
+
+// Lets a shopping list be worked on together with one other bande member —
+// the owner picks exactly one co-member to share with (see
+// resolveListOwnerId in server/routes/shoppingList.ts, which redirects the
+// recipient's list reads/writes to the owner's items). ownerUserId is unique
+// since a list can only be shared with one person at a time; by default (no
+// row here) a list is private to its owner.
+model ShoppingListShare {
+  id               String   @id @default(cuid())
+  ownerUserId      String   @unique
+  sharedWithUserId String
+  createdAt        DateTime @default(now())
+
+  @@index([sharedWithUserId])
+}

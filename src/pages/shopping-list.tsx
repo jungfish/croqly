@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ShoppingCart, Trash2 } from 'lucide-react';
+import { ShoppingCart, Trash2, Share2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,12 +12,110 @@ import {
   deleteShoppingListItem,
   clearCheckedItems,
   clearAllItems,
+  fetchShoppingListShareStatus,
+  shareShoppingListWith,
+  unshareShoppingList,
   type ShoppingListItem,
+  type ShoppingListShareStatus,
 } from '@/services/shoppingListService';
+import { fetchMyHousehold, type Household } from '@/services/householdService';
 import { useAuth } from '@/hooks/use-auth';
 import { getFirstName } from '@/lib/getFirstName';
 import { emojiForIngredient } from '@/lib/ingredientEmoji';
 import { iconForCategory, sortByCategory } from '@/lib/shoppingListCategories';
+
+// Shows a member's email prefix rather than the full address — matches
+// memberLabel in bande.tsx, enough to recognize "who's who" here too.
+function memberLabel(email: string | null): string {
+  return email ? email.split('@')[0] : 'Ce membre';
+}
+
+// Only rendered once the caller has a bande with at least one other member —
+// solo bandes have nobody to share with. Shows either "you're viewing X's
+// shared list" (nothing to configure here) or the sharing controls for the
+// caller's own list.
+const ShareListPanel = ({ household }: { household: Household }) => {
+  const queryClient = useQueryClient();
+  const [pending, setPending] = useState(false);
+
+  const { data: shareStatus } = useQuery<ShoppingListShareStatus>({
+    queryKey: ['shopping-list', 'share'],
+    queryFn: fetchShoppingListShareStatus,
+  });
+
+  const otherMembers = household.members.filter((m) => !m.isMe);
+  if (otherMembers.length === 0) return null;
+
+  const handleShare = async (userId: string) => {
+    setPending(true);
+    try {
+      await shareShoppingListWith(userId);
+      await queryClient.invalidateQueries({ queryKey: ['shopping-list', 'share'] });
+      toast.success('Liste partagée !');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Impossible de partager la liste.');
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleUnshare = async () => {
+    setPending(true);
+    try {
+      await unshareShoppingList();
+      await queryClient.invalidateQueries({ queryKey: ['shopping-list', 'share'] });
+      toast.success('Liste de courses redevenue privée.');
+    } catch {
+      toast.error('Impossible de retirer le partage.');
+    } finally {
+      setPending(false);
+    }
+  };
+
+  if (shareStatus?.viewingSharedFrom) {
+    return (
+      <div className="mb-6 p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm text-foreground flex items-center gap-2">
+        <Share2 className="w-4 h-4 shrink-0 text-primary" />
+        Tu vois la liste partagée par {memberLabel(shareStatus.viewingSharedFrom.email)}.
+      </div>
+    );
+  }
+
+  if (shareStatus?.sharedWith) {
+    return (
+      <div className="mb-6 p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-center justify-between gap-3 flex-wrap text-sm">
+        <span className="flex items-center gap-2 text-foreground">
+          <Share2 className="w-4 h-4 shrink-0 text-primary" />
+          Partagée avec {memberLabel(shareStatus.sharedWith.email)}
+        </span>
+        <Button variant="ghost" size="sm" onClick={handleUnshare} disabled={pending} className="gap-1.5 text-muted-foreground">
+          <X className="w-3.5 h-3.5" />
+          Ne plus partager
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6 flex items-center gap-2 flex-wrap text-sm">
+      <span className="flex items-center gap-2 text-muted-foreground">
+        <Share2 className="w-4 h-4 shrink-0" />
+        Partager avec :
+      </span>
+      {otherMembers.map((member) => (
+        <Button
+          key={member.userId}
+          variant="outline"
+          size="sm"
+          disabled={pending}
+          onClick={() => handleShare(member.userId)}
+        >
+          {memberLabel(member.email)}
+        </Button>
+      ))}
+    </div>
+  );
+};
 
 const ShoppingListPage = () => {
   const { user } = useAuth();
@@ -30,6 +128,11 @@ const ShoppingListPage = () => {
   const { data: items = [] } = useQuery<ShoppingListItem[]>({
     queryKey: ['shopping-list'],
     queryFn: fetchShoppingList,
+  });
+
+  const { data: household } = useQuery<Household | null>({
+    queryKey: ['household', 'me'],
+    queryFn: fetchMyHousehold,
   });
 
   const setPending = (id: string, pending: boolean) => {
@@ -127,6 +230,8 @@ const ShoppingListPage = () => {
             </p>
           </div>
         </div>
+
+        {household && <ShareListPanel household={household} />}
 
         <form onSubmit={handleAddItem} className="mb-1 flex gap-2">
           <Input

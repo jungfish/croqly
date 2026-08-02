@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Menu, Download } from 'lucide-react';
+import { Menu, Download, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { useHero } from '@/hooks/use-hero';
@@ -15,6 +15,7 @@ import {
   SheetClose,
 } from '@/components/ui/sheet';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
+import { fetchMyHousehold, shareInviteLink, type Household } from '@/services/householdService';
 import { isAdminUser } from '@/lib/admin';
 
 // Below this scroll offset the hero image is still filling the header's
@@ -38,6 +39,25 @@ const Header = () => {
   });
   const remainingCount = shoppingListItems.filter((item) => !item.checked).length;
   const showAdminLink = isAdminUser(user);
+
+  const { data: household } = useQuery<Household | null>({
+    queryKey: ['household', 'me'],
+    queryFn: fetchMyHousehold,
+    enabled: !!user,
+  });
+
+  // Standing growth-loop entry point (distinct from the nudges on /bande
+  // itself, see bande.tsx) — surfaces the invite action wherever the user
+  // happens to be in the app, not just when they land on the Bande page.
+  const handleInviteClick = async () => {
+    if (!household) return;
+    try {
+      const result = await shareInviteLink(household.inviteCode);
+      if (result === 'copied') toast.success("Lien d'invitation copié !");
+    } catch {
+      toast.error('Impossible de partager. Réessaie dans un instant.');
+    }
+  };
 
   const showInstall = !isStandalone && (canInstall || isIOS);
   const handleInstallClick = async () => {
@@ -208,6 +228,17 @@ const Header = () => {
                     )}
                   </Link>
                 </SheetClose>
+                {household && (
+                  <SheetClose asChild>
+                    <button
+                      onClick={handleInviteClick}
+                      className="text-lg text-left text-foreground/80 hover:text-foreground inline-flex items-center gap-2"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Inviter à la bande
+                    </button>
+                  </SheetClose>
+                )}
                 {showAdminLink && (
                   <SheetClose asChild>
                     <Link to="/admin" className="text-lg text-foreground/80 hover:text-foreground">

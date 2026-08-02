@@ -66,3 +66,35 @@ export async function clearAllItems(): Promise<void> {
   const response = await authFetch('/api/shopping-list', { method: 'DELETE' });
   if (!response.ok) throw new Error('Failed to clear shopping list');
 }
+
+export type ShoppingListSharePerson = { userId: string; email: string | null };
+
+export type ShoppingListShareStatus = {
+  // Who the current user has shared their own list with, if anyone.
+  sharedWith: ShoppingListSharePerson | null;
+  // Whose list the current user is working off of instead of their own,
+  // because that person shared it with them.
+  viewingSharedFrom: ShoppingListSharePerson | null;
+};
+
+export async function fetchShoppingListShareStatus(): Promise<ShoppingListShareStatus> {
+  const response = await authFetch('/api/shopping-list/share');
+  return parseOrThrow(response, 'Failed to fetch share status');
+}
+
+export async function shareShoppingListWith(userId: string): Promise<void> {
+  const response = await authFetch('/api/shopping-list/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to share shopping list');
+  }
+}
+
+export async function unshareShoppingList(): Promise<void> {
+  const response = await authFetch('/api/shopping-list/share', { method: 'DELETE' });
+  if (!response.ok) throw new Error('Failed to unshare shopping list');
+}

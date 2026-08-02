@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Recipe, Creator } from '@/types/recipe';
-import { UtensilsCrossed, ListOrdered, Clock, Instagram, Music2, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart } from 'lucide-react';
+import { UtensilsCrossed, ListOrdered, Clock, Instagram, Music2, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ParallaxHero from '@/components/ParallaxHero';
 import InstagramEmbed from '@/components/InstagramEmbed';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import ShareButton from '@/components/ShareButton';
 import { useAuth } from '@/hooks/use-auth';
 import { authFetch } from '@/lib/apiClient';
-import { generateIllustrationForRecipe } from '@/services/recipeService';
+import { generateIllustrationForRecipe, deleteSavedRecipe } from '@/services/recipeService';
 import { addRecipeToShoppingList } from '@/services/shoppingListService';
 import { emojiForIngredient } from '@/lib/ingredientEmoji';
 import { getFirstName } from '@/lib/getFirstName';
@@ -26,6 +26,7 @@ const RecipePage = () => {
   const [servingMultiplier, setServingMultiplier] = useState(1);
   const [saved, setSaved] = useState(false);
   const [addingToList, setAddingToList] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: recipe, isLoading: loading, isError } = useQuery<Recipe>({
     // A recipe just created via processRecipeFromUrl is pre-populated under
@@ -151,6 +152,21 @@ const RecipePage = () => {
       toast.success('Ajoutée à tes recettes.');
     } catch {
       toast.error("Impossible d'ajouter cette recette. Réessaie dans un instant.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!recipe) return;
+    if (!window.confirm(`Supprimer "${recipe.title}" de tes recettes ?`)) return;
+    setDeleting(true);
+    try {
+      await deleteSavedRecipe(recipe.id!);
+      queryClient.removeQueries({ queryKey: ['recipe', recipe.id] });
+      toast.success('Recette supprimée.');
+      navigate('/recipes');
+    } catch {
+      toast.error("Impossible de supprimer cette recette. Réessaie dans un instant.");
+      setDeleting(false);
     }
   };
 
@@ -330,6 +346,19 @@ const RecipePage = () => {
               <span className={`col-start-1 row-start-1 ${saved ? '' : 'invisible'}`}>Dans mes recettes</span>
             </span>
           </Button>
+          {saved && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleDelete}
+              disabled={deleting}
+              aria-label="Supprimer cette recette"
+              className="gap-2 shrink-0 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">{deleting ? 'Suppression…' : 'Supprimer'}</span>
+            </Button>
+          )}
         </div>
 
         {/* Creator credit and "see the original reel" live together — they're

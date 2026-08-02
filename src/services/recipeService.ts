@@ -33,6 +33,13 @@ export async function generateIllustrationForRecipe(
   return illustration ? { illustration, illustrationThumb } : null;
 }
 
+// Removes a recipe from the caller's own "Mes recettes" — see the DELETE
+// /:id/save handler for why this never deletes the shared Recipe itself.
+export async function deleteSavedRecipe(recipeId: string): Promise<void> {
+  const response = await authFetch(`/api/recipes/${recipeId}/save`, { method: 'DELETE' });
+  if (!response.ok) throw new Error('Failed to delete recipe');
+}
+
 export async function processRecipeFromInstagram(
   caption?: string,
   transcription?: string,
