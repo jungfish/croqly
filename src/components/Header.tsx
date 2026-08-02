@@ -138,9 +138,6 @@ const Header = () => {
   // reserved for the signed-in nav below.
   const publicNavLinks = (
     <>
-      <Link to="/" className={linkClass}>
-        Accueil
-      </Link>
       <Link to="/decouvrir" className={linkClass}>
         Découvrir
       </Link>
@@ -177,6 +174,9 @@ const Header = () => {
             the signed-out, account-creation-focused version ever shows. */}
         {!user && (
           <div className="hidden md:flex items-center gap-6">
+            <Button asChild size="sm">
+              <Link to="/">Accueil</Link>
+            </Button>
             {publicNavLinks}
             <Link to="/login" className={linkClass}>
               Connexion
@@ -220,9 +220,9 @@ const Header = () => {
           </SheetTrigger>
           <SheetContent side="right" className="flex flex-col gap-6 pt-[max(3rem,env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)]">
             <SheetClose asChild>
-              <Link to="/" className="text-lg text-foreground/80 hover:text-foreground">
-                Accueil
-              </Link>
+              <Button asChild size="lg" className="w-full">
+                <Link to="/">Accueil</Link>
+              </Button>
             </SheetClose>
             <SheetClose asChild>
               <Link to="/decouvrir" className="text-lg text-foreground/80 hover:text-foreground">

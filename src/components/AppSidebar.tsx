@@ -13,7 +13,6 @@ import { fetchPendingChallengeCount } from '@/services/platingChallengeService';
 import { isAdminUser } from '@/lib/admin';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Accueil', icon: Home },
   { to: '/decouvrir', label: 'Découvrir', icon: Compass },
   { to: '/assistant', label: 'Croq', icon: MessageCircle, badge: 'IA' },
   { to: '/recipes', label: 'Mes Recettes', icon: BookOpen },
@@ -122,6 +121,12 @@ const AppSidebar = () => {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 space-y-1">
+        <Button asChild className="w-full justify-start gap-3 mb-2">
+          <Link to="/">
+            <Home className="w-4 h-4 shrink-0" />
+            Accueil
+          </Link>
+        </Button>
         {NAV_ITEMS.map(({ to, label, icon: Icon, badge }) => (
           <Link key={to} to={to} className={linkClass(to)}>
             <Icon className="w-4 h-4 shrink-0" />
