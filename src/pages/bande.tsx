@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, Copy, LogOut, UtensilsCrossed, RefreshCw, Share2, Pencil, Check, X } from "lucide-react";
+import { Users, Copy, LogOut, UtensilsCrossed, RefreshCw, Share2, Pencil, Check, X, Smile } from "lucide-react";
 import RecipeImage from "@/components/RecipeImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +16,11 @@ import {
   renameHousehold,
   regenerateInviteCode,
   shareInviteLink,
+  toggleReaction,
+  REACTION_EMOJIS,
   type Household,
   type HouseholdRecipe,
+  type ReactionSummary,
 } from "@/services/householdService";
 import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
@@ -40,6 +43,74 @@ async function handleInviteClick(inviteCode: string) {
     toast.error("Impossible de partager. Réessaie dans un instant.");
   }
 }
+
+// Slack-style reactions on a bande's shared recipes: existing reaction pills
+// (highlighted if the caller already picked that emoji) plus a "+" opening
+// the curated picker. Lives outside the card's <Link> (see recipes.map
+// below) so tapping a pill/emoji never triggers navigation.
+const ReactionBar = ({ savedRecipeId, reactions }: { savedRecipeId: string; reactions: ReactionSummary[] }) => {
+  const queryClient = useQueryClient();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  const handlePick = async (emoji: string) => {
+    setPickerOpen(false);
+    setPending(true);
+    try {
+      const updated = await toggleReaction(savedRecipeId, emoji);
+      queryClient.setQueryData<HouseholdRecipe[]>(["recipes", "household"], (current) =>
+        current?.map((r) => (r.savedRecipeId === savedRecipeId ? { ...r, reactions: updated } : r))
+      );
+    } catch {
+      toast.error("Impossible d'enregistrer ta réaction. Réessaie dans un instant.");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {reactions.map((r) => (
+        <button
+          key={r.emoji}
+          onClick={() => handlePick(r.emoji)}
+          disabled={pending}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors ${
+            r.reactedByMe
+              ? "bg-primary/10 border-primary/40 text-primary"
+              : "bg-card border-border text-foreground hover:bg-muted"
+          }`}
+        >
+          <span>{r.emoji}</span>
+          <span>{r.count}</span>
+        </button>
+      ))}
+      <div className="relative">
+        <button
+          onClick={() => setPickerOpen((prev) => !prev)}
+          disabled={pending}
+          aria-label="Ajouter une réaction"
+          className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+        >
+          <Smile className="w-3.5 h-3.5" />
+        </button>
+        {pickerOpen && (
+          <div className="absolute z-10 bottom-full left-0 mb-1 flex gap-0.5 p-1.5 rounded-full bg-popover border border-border shadow-lg">
+            {REACTION_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => handlePick(emoji)}
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-muted text-base"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const CreateOrJoinPanel = ({ onDone, initialCode }: { onDone: () => void; initialCode?: string }) => {
   const [name, setName] = useState("");
@@ -390,30 +461,34 @@ const BandePage = () => {
             {recipes.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {recipes.map((recipe) => (
-                  <Link
+                  <div
                     key={`${recipe.id}-${recipe.savedByUserId}`}
-                    to={`/recipe/${recipe.id}`}
-                    className="group relative block overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border"
+                    className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border border-border"
                   >
-                    <div className="h-48 overflow-hidden">
-                      <RecipeImage
-                        recipe={recipe}
-                        sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                        className="group-hover:scale-105"
-                      />
-                    </div>
-                    <div className="p-4 bg-card/50 backdrop-blur-sm">
-                      <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span className="inline-block px-3 py-1 bg-card/70 backdrop-blur-sm rounded-full text-sm text-foreground shadow-sm">
-                          {recipe.category}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          Ajouté par {memberLabel(recipe.savedByEmail, recipe.savedByUserId === user?.id)}
-                        </span>
+                    <Link to={`/recipe/${recipe.id}`} className="block">
+                      <div className="h-48 overflow-hidden">
+                        <RecipeImage
+                          recipe={recipe}
+                          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                          className="group-hover:scale-105"
+                        />
                       </div>
+                      <div className="p-4 pb-3 bg-card/50 backdrop-blur-sm">
+                        <h2 className="text-xl font-display font-semibold mb-2 text-foreground">{recipe.title}</h2>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="inline-block px-3 py-1 bg-card/70 backdrop-blur-sm rounded-full text-sm text-foreground shadow-sm">
+                            {recipe.category}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            Ajouté par {memberLabel(recipe.savedByEmail, recipe.savedByUserId === user?.id)}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="px-4 pb-4 bg-card/50 backdrop-blur-sm">
+                      <ReactionBar savedRecipeId={recipe.savedRecipeId} reactions={recipe.reactions} />
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}

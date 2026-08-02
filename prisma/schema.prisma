@@ -101,14 +101,32 @@ model Creator {
 }
 
 model SavedRecipe {
-  id       String   @id @default(cuid())
-  userId   String
-  recipeId String
-  recipe   Recipe   @relation(fields: [recipeId], references: [id])
-  savedAt  DateTime @default(now())
+  id        String     @id @default(cuid())
+  userId    String
+  recipeId  String
+  recipe    Recipe     @relation(fields: [recipeId], references: [id])
+  savedAt   DateTime   @default(now())
+  reactions Reaction[]
 
   @@unique([userId, recipeId])
   @@index([userId])
+}
+
+// A Slack-style emoji reaction on a specific SavedRecipe "card" — scoped to
+// the SavedRecipe row (not the shared/global Recipe) so a reaction never
+// leaks across households: Recipe rows are a platform-wide cache and could
+// be saved by members of unrelated households, but a SavedRecipe only ever
+// shows up in its owner's bande feed (see GET /api/recipes/household).
+model Reaction {
+  id            String      @id @default(cuid())
+  savedRecipeId String
+  savedRecipe   SavedRecipe @relation(fields: [savedRecipeId], references: [id], onDelete: Cascade)
+  userId        String
+  emoji         String
+  createdAt     DateTime    @default(now())
+
+  @@unique([savedRecipeId, userId, emoji])
+  @@index([savedRecipeId])
 }
 
 // A small group of users (e.g. a family) who can see each other's saved

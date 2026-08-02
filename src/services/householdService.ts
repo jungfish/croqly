@@ -15,11 +15,20 @@ export type Household = {
   members: HouseholdMember[];
 };
 
+// Slack-style curated set for reactions on a bande's shared recipes — kept
+// in sync with ALLOWED_REACTION_EMOJIS in server/routes/recipes.ts, which is
+// the actual source of truth/validation (this copy is UI-only).
+export const REACTION_EMOJIS = ['😋', '🤤', '😍', '👍', '🔥', '❤️'] as const;
+
+export type ReactionSummary = { emoji: string; count: number; reactedByMe: boolean };
+
 // A recipe returned by GET /api/recipes/household, attributed to whoever in
 // the household saved it.
 export type HouseholdRecipe = Recipe & {
+  savedRecipeId: string;
   savedByUserId: string;
   savedByEmail: string | null;
+  reactions: ReactionSummary[];
 };
 
 async function parseErrorOr(response: Response, fallback: string): Promise<never> {
@@ -38,6 +47,17 @@ export async function fetchHouseholdRecipes(): Promise<HouseholdRecipe[]> {
   const response = await authFetch('/api/recipes/household');
   if (!response.ok) return parseErrorOr(response, 'Failed to fetch household recipes');
   return response.json();
+}
+
+export async function toggleReaction(savedRecipeId: string, emoji: string): Promise<ReactionSummary[]> {
+  const response = await authFetch(`/api/recipes/saved/${savedRecipeId}/reactions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ emoji }),
+  });
+  if (!response.ok) return parseErrorOr(response, 'Failed to toggle reaction');
+  const { reactions } = await response.json();
+  return reactions;
 }
 
 export async function createHousehold(name?: string): Promise<Household> {

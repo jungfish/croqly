@@ -15,6 +15,29 @@ import { getSupabaseAdmin } from '../lib/supabaseAdmin.js';
 
 const router = Router();
 
+// Slack-style curated set for reactions on a bande's shared recipes — kept
+// small and food-themed rather than a full emoji picker. Validated
+// server-side (see toggleReaction) so a client can't store arbitrary text.
+const ALLOWED_REACTION_EMOJIS = ['😋', '🤤', '😍', '👍', '🔥', '❤️'];
+
+type ReactionSummary = { emoji: string; count: number; reactedByMe: boolean };
+
+function summarizeReactions(reactions: { emoji: string; userId: string }[], currentUserId: string | undefined): ReactionSummary[] {
+  const byEmoji = new Map<string, ReactionSummary>();
+  for (const reaction of reactions) {
+    const existing = byEmoji.get(reaction.emoji);
+    if (existing) {
+      existing.count += 1;
+      existing.reactedByMe ||= reaction.userId === currentUserId;
+    } else {
+      byEmoji.set(reaction.emoji, { emoji: reaction.emoji, count: 1, reactedByMe: reaction.userId === currentUserId });
+    }
+  }
+  // Stable order matching the picker, not insertion order, so the pill row
+  // doesn't reshuffle every time someone in the bande reacts.
+  return ALLOWED_REACTION_EMOJIS.map((emoji) => byEmoji.get(emoji)).filter((r): r is ReactionSummary => Boolean(r));
+}
+
 type CreatorRef = { platform: 'instagram' | 'tiktok'; handle: string; displayName: string | null; avatarUrl: string | null } | null;
 
 function parseRecipe<T extends { ingredients: string; instructions: string; creator?: CreatorRef }>(recipe: T) {
@@ -228,7 +251,7 @@ const getHousehold: RequestHandler = async (req, res) => {
     const { search, category } = req.query as { search?: string; category?: string };
     const saved = await prisma.savedRecipe.findMany({
       where: { userId: { in: memberIds }, recipe: buildRecipeSearchWhere({ search, category }) },
-      include: { recipe: { include: { creator: true } } },
+      include: { recipe: { include: { creator: true } }, reactions: true },
       orderBy: { savedAt: 'desc' },
     });
 
@@ -246,14 +269,59 @@ const getHousehold: RequestHandler = async (req, res) => {
     res.json(
       saved.map((s) => ({
         ...parseRecipe(s.recipe),
+        savedRecipeId: s.id,
         savedByUserId: s.userId,
         savedByEmail: emailById.get(s.userId) ?? null,
         savedByMe: s.userId === req.user!.id,
+        reactions: summarizeReactions(s.reactions, req.user!.id),
       }))
     );
   } catch (error) {
     logError('Error fetching household recipes', error);
     res.status(500).json({ error: 'Failed to fetch household recipes' });
+  }
+};
+
+// Toggles the caller's reaction (add if absent, remove if already set) on a
+// specific SavedRecipe card. Gated to household-mates of whoever saved it
+// (or the saver themself) — SavedRecipe ids aren't otherwise access-
+// controlled, so this is the only check keeping reactions scoped to people
+// who can actually see this card in their bande feed.
+const toggleReaction: RequestHandler<{ id: string }> = async (req, res) => {
+  try {
+    const { emoji } = req.body as { emoji?: string };
+    if (!emoji || !ALLOWED_REACTION_EMOJIS.includes(emoji)) {
+      return res.status(400).json({ error: 'Invalid emoji' });
+    }
+
+    const savedRecipe = await prisma.savedRecipe.findUnique({ where: { id: req.params.id } });
+    if (!savedRecipe) return res.status(404).json({ error: 'Recipe not found' });
+
+    if (savedRecipe.userId !== req.user!.id) {
+      const [reactorMembership, ownerMembership] = await Promise.all([
+        prisma.householdMember.findUnique({ where: { userId: req.user!.id } }),
+        prisma.householdMember.findUnique({ where: { userId: savedRecipe.userId } }),
+      ]);
+      if (!reactorMembership || reactorMembership.householdId !== ownerMembership?.householdId) {
+        return res.status(403).json({ error: 'Not allowed to react to this recipe' });
+      }
+    }
+
+    const existing = await prisma.reaction.findUnique({
+      where: { savedRecipeId_userId_emoji: { savedRecipeId: savedRecipe.id, userId: req.user!.id, emoji } },
+    });
+
+    if (existing) {
+      await prisma.reaction.delete({ where: { id: existing.id } });
+    } else {
+      await prisma.reaction.create({ data: { savedRecipeId: savedRecipe.id, userId: req.user!.id, emoji } });
+    }
+
+    const reactions = await prisma.reaction.findMany({ where: { savedRecipeId: savedRecipe.id } });
+    res.json({ reactions: summarizeReactions(reactions, req.user!.id) });
+  } catch (error) {
+    logError('Error toggling reaction', error);
+    res.status(500).json({ error: 'Failed to toggle reaction' });
   }
 };
 
@@ -277,10 +345,27 @@ const saveExisting: RequestHandler<{ id: string }> = async (req, res) => {
   }
 };
 
+// Removes the recipe from the caller's own "Mes recettes" — only deletes
+// their SavedRecipe row (and, via cascade, their Reactions on it), never the
+// underlying Recipe: it's a platform-wide cache that other users may have
+// saved too. deleteMany (not delete) so a repeat/stale call is a no-op
+// instead of a 404.
+const deleteSavedRecipe: RequestHandler<{ id: string }> = async (req, res) => {
+  try {
+    await prisma.savedRecipe.deleteMany({ where: { recipeId: req.params.id, userId: req.user!.id } });
+    res.json({ deleted: true });
+  } catch (error) {
+    logError('Error deleting saved recipe', error);
+    res.status(500).json({ error: 'Failed to delete recipe' });
+  }
+};
+
 router.post('/from-url', fromUrl);
 router.get('/mine', requireAuth, getMine);
 router.get('/household', requireAuth, getHousehold);
+router.post('/saved/:id/reactions', requireAuth, toggleReaction);
 router.post('/:id/save', requireAuth, saveExisting);
+router.delete('/:id/save', requireAuth, deleteSavedRecipe);
 router.post('/:id/illustration', generateRecipeIllustration);
 
 export default router;
