@@ -21,9 +21,9 @@ export function isRecentlySaved(savedAt: string): boolean {
 // Shared by every "Inviter" entry point (the switcher's "+", the panel
 // button, the solo-bande nudge, the empty-recipes CTA) so the toast/error
 // handling only lives once.
-export async function handleInviteClick(inviteCode: string) {
+export async function handleInviteClick(inviteCode: string, householdName?: string | null) {
   try {
-    const result = await shareInviteLink(inviteCode);
+    const result = await shareInviteLink(inviteCode, householdName);
     if (result === 'copied') toast.success("Lien d'invitation copié !");
   } catch {
     toast.error('Impossible de partager. Réessaie dans un instant.');

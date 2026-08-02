@@ -10,6 +10,8 @@ import RecipesList from "@/pages/recipes";
 import RecipeView from "@/pages/recipe/[id]";
 import ShoppingListPage from "@/pages/shopping-list";
 import BandePage from "@/pages/bande";
+import LaserCroqPage from "@/pages/laser-croq";
+import LaserCroqChallengePage from "@/pages/laser-croq/[id]";
 import CreatorHub from "@/pages/createur/[handle]";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
@@ -55,6 +57,8 @@ const AppShell = () => {
           <Route element={<RequireAuth />}>
             <Route path="/recipes" element={<RecipesList />} />
             <Route path="/bande" element={<BandePage />} />
+            <Route path="/laser-croq" element={<LaserCroqPage />} />
+            <Route path="/laser-croq/:id" element={<LaserCroqChallengePage />} />
             <Route path="/shopping-list" element={<ShoppingListPage />} />
           </Route>
           <Route element={<RequireAdmin />}>

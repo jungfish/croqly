@@ -11,6 +11,7 @@ import recipesRoutes from './routes/recipes.js';
 import creatorsRoutes from './routes/creators.js';
 import householdRoutes from './routes/household.js';
 import shoppingListRoutes from './routes/shoppingList.js';
+import platingChallengesRoutes from './routes/platingChallenges.js';
 import chatRoutes from './routes/chat.js';
 import adminRoutes from './routes/admin.js';
 import { prisma } from './lib/prisma.js';
@@ -52,6 +53,7 @@ app.use('/api/recipes', recipesRoutes);
 app.use('/api/creators', creatorsRoutes);
 app.use('/api/household', householdRoutes);
 app.use('/api/shopping-list', shoppingListRoutes);
+app.use('/api/plating-challenges', platingChallengesRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
 

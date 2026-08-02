@@ -101,12 +101,13 @@ model Creator {
 }
 
 model SavedRecipe {
-  id        String     @id @default(cuid())
-  userId    String
-  recipeId  String
-  recipe    Recipe     @relation(fields: [recipeId], references: [id])
-  savedAt   DateTime   @default(now())
-  reactions Reaction[]
+  id                String             @id @default(cuid())
+  userId            String
+  recipeId          String
+  recipe            Recipe             @relation(fields: [recipeId], references: [id])
+  savedAt           DateTime           @default(now())
+  reactions         Reaction[]
+  platingChallenges PlatingChallenge[]
 
   @@unique([userId, recipeId])
   @@index([userId])
@@ -138,12 +139,13 @@ model Reaction {
 // friends); joined via a short, shareable inviteCode rather than an
 // email-based invite flow.
 model Household {
-  id         String            @id @default(cuid())
-  name       String?
-  inviteCode String            @unique
-  createdAt  DateTime          @default(now())
-  members    HouseholdMember[]
-  reactions  Reaction[]
+  id                String             @id @default(cuid())
+  name              String?
+  inviteCode        String             @unique
+  createdAt         DateTime           @default(now())
+  members           HouseholdMember[]
+  reactions         Reaction[]
+  platingChallenges PlatingChallenge[]
 }
 
 // One row per (household, user) pair. A user can belong to multiple
@@ -232,4 +234,71 @@ model ShoppingListShare {
   createdAt        DateTime @default(now())
 
   @@index([sharedWithUserId])
+}
+
+// "Laser Croq" — a gamified plating ("dressage") challenge inside one
+// specific bande: members photograph their own version of a dish and the
+// bande crowns a winner via PlatingVote. Not required to be based on a
+// saved recipe (see savedRecipeId) — a challenge can just be a freeform
+// theme like "Dressage du dimanche" with no recipe attached at all.
+model PlatingChallenge {
+  id              String              @id @default(cuid())
+  householdId     String
+  household       Household           @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  title           String
+  savedRecipeId   String?
+  savedRecipe     SavedRecipe?        @relation(fields: [savedRecipeId], references: [id], onDelete: SetNull)
+  createdByUserId String
+  endsAt          DateTime
+  createdAt       DateTime            @default(now())
+  submissions     PlatingSubmission[]
+
+  @@index([householdId])
+  @@index([savedRecipeId])
+}
+
+// One member's photographed dressage for a challenge — one per (challenge,
+// user); resubmitting replaces the existing photo/caption rather than
+// adding a second entry, so the feed never shows the same cook twice for
+// the same challenge.
+model PlatingSubmission {
+  id            String           @id @default(cuid())
+  challengeId   String
+  challenge     PlatingChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  userId        String
+  photoUrl      String
+  photoThumbUrl String
+  caption       String?
+  createdAt     DateTime         @default(now())
+  votes         PlatingVote[]
+  comments      PlatingComment[]
+
+  @@unique([challengeId, userId])
+  @@index([challengeId])
+}
+
+// A "crown" vote for best dressage — toggle semantics like Reaction, one
+// vote per (submission, voter). A voter can crown more than one submission.
+model PlatingVote {
+  id           String            @id @default(cuid())
+  submissionId String
+  submission   PlatingSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  userId       String
+  createdAt    DateTime          @default(now())
+
+  @@unique([submissionId, userId])
+  @@index([submissionId])
+}
+
+// Freeform banter on a dressage submission — the running commentary a
+// bande uses to roast/compliment each other's plating.
+model PlatingComment {
+  id           String            @id @default(cuid())
+  submissionId String
+  submission   PlatingSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  userId       String
+  body         String
+  createdAt    DateTime          @default(now())
+
+  @@index([submissionId])
 }

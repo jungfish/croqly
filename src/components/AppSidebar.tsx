@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Home, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, LogOut, Download, UserPlus } from 'lucide-react';
+import { Home, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, LogOut, Download, UserPlus, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
@@ -13,9 +13,10 @@ import { isAdminUser } from '@/lib/admin';
 const NAV_ITEMS = [
   { to: '/', label: 'Accueil', icon: Home },
   { to: '/decouvrir', label: 'Découvrir', icon: Compass },
-  { to: '/assistant', label: 'Croq', icon: MessageCircle },
+  { to: '/assistant', label: 'Croq', icon: MessageCircle, badge: 'IA' },
   { to: '/recipes', label: 'Mes Recettes', icon: BookOpen },
   { to: '/bande', label: 'Bande', icon: Users },
+  { to: '/laser-croq', label: 'Laser Croq', icon: Zap },
 ];
 
 // Desktop-only app shell nav (Notion/Linear style) shown once a session
@@ -51,7 +52,7 @@ const AppSidebar = () => {
   const handleInviteClick = async () => {
     if (households.length !== 1) return;
     try {
-      const result = await shareInviteLink(households[0].inviteCode);
+      const result = await shareInviteLink(households[0].inviteCode, households[0].name);
       if (result === 'copied') toast.success("Lien d'invitation copié !");
     } catch {
       toast.error('Impossible de partager. Réessaie dans un instant.');
@@ -96,10 +97,15 @@ const AppSidebar = () => {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 space-y-1">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+        {NAV_ITEMS.map(({ to, label, icon: Icon, badge }) => (
           <Link key={to} to={to} className={linkClass(to)}>
             <Icon className="w-4 h-4 shrink-0" />
             {label}
+            {badge && (
+              <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                {badge}
+              </span>
+            )}
           </Link>
         ))}
         <Link to="/shopping-list" className={`${linkClass('/shopping-list')} justify-between`}>

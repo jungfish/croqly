@@ -116,13 +116,18 @@ export async function regenerateInviteCode(householdId: string): Promise<string>
 // opens the native share sheet (WhatsApp, Messages...) so inviting someone
 // doesn't require reading a code aloud — same pattern as ShareButton.tsx.
 // Falls back to a plain clipboard copy on desktop/unsupported browsers.
-export async function shareInviteLink(inviteCode: string): Promise<'shared' | 'copied' | 'cancelled'> {
+export async function shareInviteLink(
+  inviteCode: string,
+  householdName?: string | null,
+): Promise<'shared' | 'copied' | 'cancelled'> {
   const url = `${window.location.origin}/bande?join=${inviteCode}`;
+  const name = householdName || 'Ma bande';
+  const text = `Rejoins la bande ${name} sur Croqly ! Colle un lien Instagram, Croqly le transforme en recette prête à croquer.`;
   if (navigator.share) {
     try {
       await navigator.share({
         title: 'Rejoins ma bande sur Croqly',
-        text: `Rejoins ma bande sur Croqly avec le code ${inviteCode}`,
+        text,
         url,
       });
       return 'shared';
@@ -131,6 +136,6 @@ export async function shareInviteLink(inviteCode: string): Promise<'shared' | 'c
       throw error;
     }
   }
-  await navigator.clipboard.writeText(url);
+  await navigator.clipboard.writeText(`${text}\n${url}`);
   return 'copied';
 }

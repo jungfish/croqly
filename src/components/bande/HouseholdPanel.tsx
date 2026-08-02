@@ -156,7 +156,7 @@ const HouseholdPanel = ({
                   <RefreshCw className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`} />
                 </Button>
               </div>
-              <Button onClick={() => handleInviteClick(inviteCode)} className="gap-2 w-full mt-3">
+              <Button onClick={() => handleInviteClick(inviteCode, household.name)} className="gap-2 w-full mt-3">
                 <Share2 className="w-4 h-4" />
                 Partager le lien d'invitation
               </Button>

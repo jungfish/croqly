@@ -55,7 +55,7 @@ const Header = () => {
   const handleInviteClick = async () => {
     if (households.length !== 1) return;
     try {
-      const result = await shareInviteLink(households[0].inviteCode);
+      const result = await shareInviteLink(households[0].inviteCode, households[0].name);
       if (result === 'copied') toast.success("Lien d'invitation copié !");
     } catch {
       toast.error('Impossible de partager. Réessaie dans un instant.');
@@ -119,8 +119,11 @@ const Header = () => {
       <Link to="/decouvrir" className={linkClass}>
         Découvrir
       </Link>
-      <Link to="/assistant" className={linkClass}>
+      <Link to="/assistant" className={`${linkClass} inline-flex items-center gap-1.5`}>
         Croq
+        <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+          IA
+        </span>
       </Link>
     </>
   );
@@ -201,8 +204,11 @@ const Header = () => {
               </Link>
             </SheetClose>
             <SheetClose asChild>
-              <Link to="/assistant" className="text-lg text-foreground/80 hover:text-foreground">
+              <Link to="/assistant" className="text-lg text-foreground/80 hover:text-foreground inline-flex items-center gap-2">
                 Croq
+                <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                  IA
+                </span>
               </Link>
             </SheetClose>
 
@@ -216,6 +222,11 @@ const Header = () => {
                 <SheetClose asChild>
                   <Link to="/bande" className="text-lg text-foreground/80 hover:text-foreground">
                     Bande
+                  </Link>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Link to="/laser-croq" className="text-lg text-foreground/80 hover:text-foreground">
+                    Laser Croq
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
