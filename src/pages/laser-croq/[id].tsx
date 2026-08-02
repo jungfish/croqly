@@ -5,6 +5,7 @@ import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { toast } from "sonner";
 import {
   Camera,
+  Check,
   ChevronLeft,
   ChevronRight,
   Crown,
@@ -231,7 +232,7 @@ const SubmissionCard = ({
     <div className={showConfetti && inView ? "laser-ring rounded-xl" : ""}>
       <motion.div
         ref={ref}
-        className={`fun-border relative rounded-xl overflow-hidden border border-border bg-card/70 backdrop-blur-sm shadow-sm ${large ? "shadow-xl" : ""}`}
+        className={`relative rounded-xl overflow-hidden border border-border bg-card/70 backdrop-blur-sm shadow-sm ${large ? "shadow-xl" : ""}`}
         whileHover={{ scale: 1.015 }}
         whileTap={{ scale: 0.98 }}
       >
@@ -383,6 +384,75 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
   );
 };
 
+type RevealedSubmission = Extract<PlatingSubmission, { locked: false }>;
+
+// Final slide of the focus deck, after everyone's dressage — a compact poll
+// to pick a single favorite. Single-choice UX built on top of the existing
+// per-submission toggle-vote endpoint: picking a new photo un-votes your
+// previous pick first, so tapping around always leaves exactly one crown
+// with your name on it instead of stacking votes across submissions.
+const VoteSlide = ({ submissions, onVoted }: { submissions: RevealedSubmission[]; onVoted: () => void }) => {
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const myVoteId = submissions.find((s) => s.votedByMe)?.id ?? null;
+
+  const handleSelect = async (submission: RevealedSubmission) => {
+    if (submission.isMine || pendingId) return;
+    setPendingId(submission.id);
+    try {
+      if (myVoteId && myVoteId !== submission.id) await toggleVote(myVoteId);
+      await toggleVote(submission.id);
+      onVoted();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Impossible d'enregistrer ton vote.");
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card/70 backdrop-blur-sm shadow-sm p-5">
+      <div className="text-center mb-5">
+        <p className="text-3xl mb-1">🔫✨</p>
+        <h3 className="font-display text-xl font-semibold text-foreground">Laquelle est la plus laser ?</h3>
+        <p className="text-sm text-muted-foreground mt-1">Choisis ton dressage préféré de la bande.</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {submissions.map((submission) => {
+          const selected = submission.votedByMe;
+          return (
+            <button
+              key={submission.id}
+              type="button"
+              onClick={() => handleSelect(submission)}
+              disabled={submission.isMine || pendingId === submission.id}
+              title={submission.isMine ? "Tu ne peux pas voter pour ton propre dressage" : "Choisir ce dressage"}
+              className={`relative rounded-lg overflow-hidden border-2 transition-all disabled:opacity-60 ${
+                selected ? "border-primary ring-2 ring-primary/40" : "border-border hover:border-primary/50"
+              }`}
+            >
+              <img src={submission.photoThumbUrl} alt="" className="w-full h-28 object-cover" />
+              <div className="p-1.5 bg-card/90 flex items-center justify-between gap-1">
+                <span className="text-xs font-medium text-foreground truncate">
+                  {memberLabel(submission.email, submission.isMine)}
+                </span>
+                <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">
+                  <Crown className="w-3 h-3" />
+                  {submission.votesCount}
+                </span>
+              </div>
+              {selected && (
+                <span className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
+                  <Check className="w-3 h-3" />
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const ChallengeDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -395,6 +465,12 @@ const ChallengeDetailPage = () => {
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["laser-croq", "challenge", id] });
+
+  const handleVoted = () => {
+    refresh();
+    queryClient.invalidateQueries({ queryKey: ["laser-croq", "feed"] });
+    queryClient.invalidateQueries({ queryKey: ["laser-croq", "challenges"] });
+  };
 
   const handleDeleteSubmission = async () => {
     if (!id || !window.confirm("Retirer ton dressage de ce défi ?")) return;
@@ -418,10 +494,10 @@ const ChallengeDetailPage = () => {
     );
   }
 
+  const revealedSubmissions = challenge.submissions.filter((s): s is RevealedSubmission => !s.locked);
+
   const topVotedId = !challenge.isOpen
-    ? [...challenge.submissions]
-        .filter((s): s is Extract<PlatingSubmission, { locked: false }> => !s.locked)
-        .sort((a, b) => b.votesCount - a.votesCount)[0]?.id
+    ? [...revealedSubmissions].sort((a, b) => b.votesCount - a.votesCount)[0]?.id
     : null;
 
   return (
@@ -504,6 +580,9 @@ const ChallengeDetailPage = () => {
                   />
                 ),
               })),
+              ...(revealedSubmissions.length >= 2
+                ? [{ key: "vote-slide", node: <VoteSlide submissions={revealedSubmissions} onVoted={handleVoted} /> }]
+                : []),
             ]}
           />
         ) : (

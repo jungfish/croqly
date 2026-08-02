@@ -264,7 +264,7 @@ const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
       <MotionLink
         ref={ref}
         to={`/laser-croq/${challenge.id}`}
-        className="fun-border group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg border border-border flex flex-col h-full"
+        className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg border border-border flex flex-col h-full"
         initial={{ opacity: 0, y: 16, scale: 0.94 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         whileHover={{ scale: 1.03, rotate: -1, boxShadow: "0 20px 30px -10px rgb(0 0 0 / 0.25)" }}
@@ -347,7 +347,7 @@ const DressageFeedCard = ({ item, isMine }: { item: PlatingFeedItem; isMine: boo
   return (
     <motion.div
       ref={ref}
-      className="fun-border group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg border border-border"
+      className="group relative overflow-hidden rounded-xl bg-card/70 backdrop-blur-sm shadow-lg border border-border"
       initial={{ opacity: 0, y: 16, scale: 0.94 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       whileHover={{ scale: 1.03, rotate: 1, boxShadow: "0 20px 30px -10px rgb(0 0 0 / 0.25)" }}
