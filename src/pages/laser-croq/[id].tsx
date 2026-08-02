@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { toast } from "sonner";
@@ -236,8 +236,12 @@ const SubmissionCard = ({
         whileHover={{ scale: 1.015 }}
         whileTap={{ scale: 0.98 }}
       >
-        <div className={`overflow-hidden relative ${large ? "h-[28rem] sm:h-[34rem]" : "h-56"}`}>
-          <img src={submission.photoUrl} alt={submission.caption ?? ""} className="w-full h-full object-cover" />
+        <div className={`overflow-hidden relative ${large ? "h-[28rem] sm:h-[34rem] bg-muted" : "h-56"}`}>
+          <img
+            src={submission.photoUrl}
+            alt={submission.caption ?? ""}
+            className={`w-full h-full ${large ? "object-contain" : "object-cover"}`}
+          />
           {showConfetti && inView && <ConfettiBurst key={`confetti-${burstKey}`} />}
           <ReactionBurst key={`reactions-${burstKey}`} reactions={reactions} />
         </div>
@@ -334,7 +338,13 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
 
   return (
     <div className="max-w-md mx-auto">
-      <div className="relative" style={{ touchAction: "pan-y" }}>
+      {/* min-h reserves space for the tallest slide (a large photo card) —
+          each slide is positioned absolute so the outgoing and incoming
+          cards overlay exactly instead of both sitting in normal document
+          flow, which used to make the next card visibly appear low (below
+          the still-exiting one) before snapping up once the old one
+          unmounted. */}
+      <div className="relative min-h-[28rem] sm:min-h-[34rem]" style={{ touchAction: "pan-y" }}>
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={slides[clamped].key}
@@ -349,6 +359,7 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
             dragElastic={0.7}
             onDragEnd={handleDragEnd}
             whileDrag={{ cursor: "grabbing" }}
+            className="absolute inset-x-0 top-0"
           >
             {slides[clamped].node}
           </motion.div>
@@ -392,16 +403,26 @@ type RevealedSubmission = Extract<PlatingSubmission, { locked: false }>;
 // previous pick first, so tapping around always leaves exactly one crown
 // with your name on it instead of stacking votes across submissions.
 const VoteSlide = ({ submissions, onVoted }: { submissions: RevealedSubmission[]; onVoted: () => void }) => {
+  const navigate = useNavigate();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const myVoteId = submissions.find((s) => s.votedByMe)?.id ?? null;
 
   const handleSelect = async (submission: RevealedSubmission) => {
     if (submission.isMine || pendingId) return;
+    const isNewChoice = myVoteId !== submission.id;
     setPendingId(submission.id);
     try {
-      if (myVoteId && myVoteId !== submission.id) await toggleVote(myVoteId);
+      if (myVoteId && isNewChoice) await toggleVote(myVoteId);
       await toggleVote(submission.id);
       onVoted();
+      // Only treat this as "the final choice" when it's an actual new pick,
+      // not when tapping your current pick again to undo it — an undo
+      // should just update the grid in place, not bounce you back to the
+      // Laser Croq home.
+      if (isNewChoice) {
+        toast.success(`Tu as choisi le dressage de ${memberLabel(submission.email, false)} ! 🔫`);
+        navigate("/laser-croq");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Impossible d'enregistrer ton vote.");
     } finally {
