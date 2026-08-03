@@ -1,5 +1,6 @@
 import express, { Express } from 'express';
 import cors from 'cors';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -23,9 +24,17 @@ import { buildRecipeJsonLd, buildCreatorHubJsonLd } from './lib/schemaOrg.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-// server/app.ts compiles to dist/server/app.js — the Vite-built frontend
-// (index.html, assets/) lands one level up, directly in dist/.
-const distDir = path.join(__dirname, '..');
+// server/app.ts compiles to dist/server/app.js for `npm start` — the
+// Vite-built frontend (index.html, assets/) lands one level up, in dist/.
+// Vercel's own bundler for api/index.ts doesn't preserve that layout though,
+// so __dirname there never lands on the built frontend; it runs with cwd set
+// to the project root instead, and vercel.json's `includeFiles` ships dist/
+// alongside it. Try the compiled-server guess first, fall back to cwd.
+function resolveDistDir(): string {
+  const candidates = [path.join(__dirname, '..'), path.join(process.cwd(), 'dist')];
+  return candidates.find((dir) => fs.existsSync(path.join(dir, 'index.html'))) ?? candidates[0];
+}
+const distDir = resolveDistDir();
 
 // The Express app itself — shared between local dev (server/index.ts, which
 // calls .listen()) and the Vercel serverless entry (api/index.ts, which just
