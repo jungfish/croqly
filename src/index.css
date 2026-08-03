@@ -135,16 +135,21 @@
 }
 
 /* Winner reveal on a closed Laser Croq challenge — see ConfettiBurst.tsx.
-   Each piece falls from its own randomized start position/delay (set via
-   inline style vars) so a handful of divs read as a burst instead of a
-   uniform grid, without pulling in a canvas/animation dependency. */
+   Each piece pops outward from the trophy badge (mid-stop) then falls under
+   "gravity" (end stop), instead of just raining down from a random spot
+   along the top edge — reads as an actual burst rather than confetti rain,
+   without pulling in a canvas/animation dependency. */
 @keyframes confetti-fall {
   0% {
-    transform: translate3d(0, -10px, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0) scale(0.4) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    transform: translate3d(var(--confetti-x-mid, 0px), var(--confetti-y-peak, -40px), 0) scale(1.05) rotate(var(--confetti-rot-mid, 90deg));
     opacity: 1;
   }
   100% {
-    transform: translate3d(var(--confetti-drift, 0px), 220px, 0) rotate(var(--confetti-spin, 360deg));
+    transform: translate3d(var(--confetti-x-end, 0px), var(--confetti-y-end, 220px), 0) rotate(var(--confetti-rot-end, 360deg));
     opacity: 0;
   }
 }
@@ -152,7 +157,7 @@
   position: absolute;
   top: 0;
   left: var(--confetti-left, 50%);
-  animation: confetti-fall var(--confetti-duration, 1.6s) var(--confetti-delay, 0s) ease-in forwards;
+  animation: confetti-fall var(--confetti-duration, 1.6s) var(--confetti-delay, 0s) ease-out forwards;
 }
 
 /* Laser Croq's 7 fun reactions (ReactionBurst.tsx) — a reaction emoji pops
@@ -210,9 +215,12 @@
 
 /* "Laser Croq" winner ring — a spinning conic-gradient beam traced around
    the winning dressage's photo, on-brand with the app's name/Zap icon.
-   Built with the mask-composite border trick (a ::before slightly larger
-   than the card, masked down to just its edge) rather than an actual
-   border, so the beam can rotate independently of the card's content. */
+   Uses the same crunch/yolk/basil trio as ConfettiBurst's celebration
+   colors, so the ring and the confetti read as one coordinated moment
+   instead of two unrelated color schemes. Built with the mask-composite
+   border trick (a ::before slightly larger than the card, masked down to
+   just its edge) rather than an actual border, so the beam can rotate
+   independently of the card's content. */
 @keyframes laser-spin {
   to {
     transform: rotate(360deg);
@@ -232,9 +240,9 @@
   background: conic-gradient(
     from 0deg,
     transparent 0deg,
-    hsl(var(--primary)) 25deg,
-    #fff 40deg,
-    hsl(var(--primary)) 55deg,
+    #ff4b3e 25deg,
+    #ffc93c 40deg,
+    #1f9d55 55deg,
     transparent 90deg,
     transparent 360deg
   );
