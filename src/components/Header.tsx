@@ -269,7 +269,7 @@ const Header = () => {
                 </SheetClose>
                 <SheetClose asChild>
                   <Link to="/bande" className="text-lg text-foreground/80 hover:text-foreground">
-                    Bande
+                    Mes Bandes
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>

@@ -157,7 +157,7 @@ const AppSidebar = () => {
         ))}
         <Link to="/bande" className={navClass(isBandeTab)}>
           <Users className="w-4 h-4 shrink-0" />
-          Bande
+          Mes Bandes
         </Link>
         <Link to="/bande?tab=laser" className={`${navClass(isLaserCroqTab)} justify-between`}>
           <span className="flex items-center gap-3">
