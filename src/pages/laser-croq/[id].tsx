@@ -156,15 +156,24 @@ const SubmitForm = ({ challengeId, onSubmitted }: { challengeId: string; onSubmi
             Prendre ou choisir une photo
           </span>
         )}
-        {/* Camera-flash pop the instant a photo lands — pairs the picker
-            with the app's photo-taking framing (Camera icon, capture=
-            environment) instead of the preview just silently appearing. */}
-        {preview && <span key={`flash-${preview}`} className="photo-flash" aria-hidden="true" />}
+        {/* Camera-flash + a big bouncing 📷 the instant a photo lands —
+            pairs the picker with the app's photo-taking framing (Camera
+            icon, capture=environment) instead of the preview just silently
+            appearing. The emoji is the obvious, hard-to-miss part; the
+            flash just adds the "click" feel underneath it. */}
+        {preview && (
+          <>
+            <span key={`flash-${preview}`} className="photo-flash" aria-hidden="true" />
+            <span key={`snap-${preview}`} className="camera-snap" aria-hidden="true">
+              📷
+            </span>
+          </>
+        )}
       </button>
       <Input
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
-        placeholder="Une légende ? (optionnel)"
+        placeholder="Une légende légendaire ? (optionnel)"
         maxLength={200}
       />
       <Button onClick={handleSubmit} disabled={!file || submitting} className="w-full gap-2">
@@ -428,7 +437,7 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
           onClick={() => goTo(clamped - 1, -1)}
           disabled={clamped === 0}
           aria-label="Dressage précédent"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
+          className="absolute left-2 top-[14rem] sm:top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -437,7 +446,7 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
           onClick={() => goTo(clamped + 1, 1)}
           disabled={clamped === slides.length - 1}
           aria-label="Dressage suivant"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
+          className="absolute right-2 top-[14rem] sm:top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
