@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import RecipePreview from "@/components/RecipePreview";
 import GridCardSkeleton from "@/components/GridCardSkeleton";
+import PageHeader from "@/components/PageHeader";
 import { UtensilsCrossed, Search } from "lucide-react";
 import type { Recipe } from "@/types/recipe";
 import { Input } from "@/components/ui/input";
@@ -43,21 +44,12 @@ const DecouvrirPage = () => {
     }
   }, [isRecipesError]);
 
+  const subtitle = `${firstName ? `Salut ${firstName} ! Voici` : 'Voici'} toutes les recettes croquées par la communauté.`;
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-8 pt-28">
-        <div className="flex flex-col items-center text-center gap-3 mb-8">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <UtensilsCrossed className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl text-foreground mb-2">Découvrir</h1>
-            <p className="text-muted-foreground">
-              {firstName ? `Salut ${firstName} ! Voici` : 'Voici'} toutes les recettes croquées par la communauté.
-            </p>
-          </div>
-        </div>
-
+      <PageHeader icon={UtensilsCrossed} title="Découvrir" subtitle={subtitle} />
+      <div className="container mx-auto p-8">
         {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

@@ -6,6 +6,7 @@ import { ShoppingCart, Trash2, Share2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import PageHeader from '@/components/PageHeader';
 import {
   fetchShoppingList,
   addManualItemToShoppingList,
@@ -226,21 +227,12 @@ const ShoppingListPage = () => {
   const hasChecked = items.some((item) => item.checked);
   const groupedItems = sortByCategory(items);
 
+  const subtitle = `${firstName ? `${firstName}, voici` : 'Voici'} tout ce qu'il te faut pour tes prochaines recettes !`;
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-8 pt-28 max-w-2xl">
-        <div className="flex flex-col items-center text-center gap-3 mb-8">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <ShoppingCart className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl text-foreground mb-2">Liste de courses</h1>
-            <p className="text-muted-foreground">
-              {firstName ? `${firstName}, voici` : 'Voici'} tout ce qu'il te faut pour tes prochaines recettes !
-            </p>
-          </div>
-        </div>
-
+      <PageHeader icon={ShoppingCart} title="Liste de courses" subtitle={subtitle} />
+      <div className="container mx-auto p-8 max-w-2xl">
         {households.length > 0 && <ShareListPanel households={households} />}
 
         <form onSubmit={handleAddItem} className="mb-1 flex gap-2">

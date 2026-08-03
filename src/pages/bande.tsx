@@ -8,6 +8,7 @@ import HouseholdPanel from "@/components/bande/HouseholdPanel";
 import CreateOrJoinPanel from "@/components/bande/CreateOrJoinPanel";
 import BandeRecipesTab from "@/components/bande/BandeRecipesTab";
 import BandeLaserCroqTab from "@/components/bande/BandeLaserCroqTab";
+import PageHeader from "@/components/PageHeader";
 import { fetchMyHouseholds, joinHousehold, type Household } from "@/services/householdService";
 import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
@@ -108,23 +109,14 @@ const BandePage = () => {
   const showLoading = householdsLoading || joiningViaLink;
   const showEmptyState = !showLoading && (!households || households.length === 0);
 
+  const subtitle = activeTab === "laser"
+    ? "Des défis de dressage rigolos, à voter et commenter en bande."
+    : `${firstName ? `Salut ${firstName}, ` : ""}voici les recettes croquées par tes bandes.`;
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-8 pt-28">
-        <div className="flex flex-col items-center text-center gap-3 mb-8">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            {activeTab === "laser" ? <Zap className="w-6 h-6" /> : <Users className="w-6 h-6" />}
-          </div>
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl text-foreground mb-2">Mes Bandes</h1>
-            <p className="text-muted-foreground">
-              {activeTab === "laser"
-                ? "Des défis de dressage rigolos, à voter et commenter en bande."
-                : `${firstName ? `Salut ${firstName}, ` : ""}voici les recettes croquées par tes bandes.`}
-            </p>
-          </div>
-        </div>
-
+      <PageHeader icon={activeTab === "laser" ? Zap : Users} title="Mes Bandes" subtitle={subtitle} />
+      <div className="container mx-auto p-8">
         {showLoading && (
           <div className="text-center text-muted-foreground py-12">
             {householdsLoading ? "Chargement…" : "Connexion à ta bande…"}
