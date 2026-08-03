@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useHero } from '@/hooks/use-hero';
+import ScallopDivider from '@/components/ScallopDivider';
 
 interface ParallaxHeroProps {
   imageUrl: string;
@@ -61,6 +62,7 @@ const ParallaxHero = ({
       {overlay && (
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/10 to-black/70" />
       )}
+      <ScallopDivider className="absolute bottom-0 left-0 right-0 text-background" />
       <div className="relative z-10 h-full flex flex-col justify-end items-center pb-12">
         <div className="bg-white/10 backdrop-blur-md px-8 py-4 rounded-2xl border border-white/20">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white text-center w-full max-w-4xl">

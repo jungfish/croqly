@@ -5,6 +5,7 @@ import type { Recipe, Creator } from '@/types/recipe';
 import { UtensilsCrossed, ListOrdered, Clock, Instagram, Music2, Bookmark, BookmarkCheck, ImageIcon, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ParallaxHero from '@/components/ParallaxHero';
+import ScallopDivider from '@/components/ScallopDivider';
 import InstagramEmbed from '@/components/InstagramEmbed';
 import RecipePreview from '@/components/RecipePreview';
 import { Button } from '@/components/ui/button';
@@ -276,12 +277,13 @@ const RecipePage = () => {
           )}
         </ParallaxHero>
       ) : recipe.illustrationPending ? (
-        <div className="w-full h-[220px] sm:h-[280px] lg:h-[360px] mb-16 flex flex-col items-center justify-center gap-3 bg-muted text-muted-foreground">
+        <div className="relative w-full h-[220px] sm:h-[280px] lg:h-[360px] mb-16 flex flex-col items-center justify-center gap-3 bg-muted text-muted-foreground">
           <ImageIcon className="w-8 h-8 animate-pulse" />
           <span className="flex items-center gap-2 text-sm">
             <div className="w-3.5 h-3.5 border-2 border-muted-foreground/40 border-t-transparent rounded-full animate-spin" />
             Génération de l'illustration…
           </span>
+          <ScallopDivider className="absolute bottom-0 left-0 right-0 text-background" />
         </div>
       ) : null}
 
