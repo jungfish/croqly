@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import ConfettiBurst from "@/components/ConfettiBurst";
 import ReactionBurst from "@/components/ReactionBurst";
 import PlatingReactionBar from "@/components/PlatingReactionBar";
+import ShareButton from "@/components/ShareButton";
 import { useInViewOnce } from "@/hooks/use-in-view-once";
 import {
   fetchChallenge,
@@ -581,12 +582,22 @@ const ChallengeDetailPage = () => {
             <h1 className="font-display text-2xl sm:text-3xl text-foreground mb-1">{challenge.title}</h1>
             <p className="text-sm text-muted-foreground">{challenge.isOpen ? timeLeftLabel(challenge.endsAt) : "Défi terminé"}</p>
           </div>
-          {challenge.hasSubmittedByMe && (
-            <Button variant="ghost" size="sm" onClick={handleDeleteSubmission} className="gap-1.5 text-muted-foreground">
-              <Trash2 className="w-4 h-4" />
-              Retirer mon dressage
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            <ShareButton
+              title="Laser Croq"
+              text={
+                challenge.isOpen
+                  ? `🔫 Défi de dressage « ${challenge.title} » en cours — envoie ta photo avant la révélation !`
+                  : `🔫 Le défi « ${challenge.title} » est révélé — viens voir qui a gagné et voter !`
+              }
+            />
+            {challenge.hasSubmittedByMe && (
+              <Button variant="ghost" size="sm" onClick={handleDeleteSubmission} className="gap-1.5 text-muted-foreground">
+                <Trash2 className="w-4 h-4" />
+                Retirer mon dressage
+              </Button>
+            )}
+          </div>
         </div>
 
         <RevealExplainer />
