@@ -9,11 +9,12 @@ import { authFetch } from '@/lib/apiClient';
 export const PLATING_REACTIONS = [
   { type: 'trop_beau', emoji: '😍', label: 'Trop beau' },
   { type: 'miam', emoji: '😋', label: 'Miam miam' },
-  { type: 'licorne', emoji: '🦄', label: 'Licorne' },
   { type: 'degueu', emoji: '🤢', label: 'Dégueu' },
   { type: 'feu', emoji: '🔥', label: 'Ça envoie' },
   { type: 'mdr', emoji: '😂', label: 'MDR' },
-  { type: 'clown', emoji: '🤡', label: "N'importe quoi" },
+  { type: 'steak', emoji: '🥩', label: "C'est cru" },
+  { type: 'cochon', emoji: '🐷', label: 'Gourmand' },
+  { type: 'artiste', emoji: '🎨', label: "C'est de l'art" },
 ] as const;
 
 export type PlatingReactionType = (typeof PLATING_REACTIONS)[number]['type'];

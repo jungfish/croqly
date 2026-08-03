@@ -19,12 +19,13 @@ const MAX_DURATION_DAYS = 14;
 const MAX_CAPTION_LENGTH = 200;
 const MAX_COMMENT_LENGTH = 500;
 
-// The 7 curated, purely-expressive reactions a bande can drop on a dressage
+// The 8 curated, purely-expressive reactions a bande can drop on a dressage
 // photo (see PlatingReaction) — distinct from PlatingVote's single "best
 // dressage" crown. Validated server-side like ALLOWED_REACTION_EMOJIS in
 // recipes.ts, so a client can't store arbitrary reaction types. Order here
-// is the stable display order everywhere (picker, summary pills).
-const ALLOWED_PLATING_REACTIONS = ['trop_beau', 'miam', 'licorne', 'degueu', 'feu', 'mdr', 'clown'] as const;
+// is the stable display order everywhere (picker, summary pills). Kept in
+// sync with PLATING_REACTIONS in platingChallengeService.ts.
+const ALLOWED_PLATING_REACTIONS = ['trop_beau', 'miam', 'degueu', 'feu', 'mdr', 'steak', 'cochon', 'artiste'] as const;
 type PlatingReactionType = (typeof ALLOWED_PLATING_REACTIONS)[number];
 
 type PlatingReactionSummary = { type: PlatingReactionType; count: number; reactedByMe: boolean };
