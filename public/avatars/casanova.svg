@@ -1,17 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+    <pattern id="dots-casanova" width="9" height="9" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="#FFFFFF"/>
       <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
     </pattern>
   </defs>
-  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <circle cx="100" cy="100" r="99" fill="#1F9D55"/>
   <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
+    
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots-casanova)"/>
     <path d="M40,100 Q46,40 100,38 Q154,40 160,100 Q146,64 100,60 Q54,64 40,100 Z" fill="#171310" stroke="none"/>
     <path d="M92,52 L100,66" stroke="#FFFFFF" stroke-width="2.5"/>
+    <path d="M68,90 Q78,84 88,89" stroke-width="3"/>
+    <path d="M112,86 Q122,78 132,84" stroke-width="3"/>
     <circle cx="78" cy="104" r="5" fill="#171310" stroke="none"/>
     <path d="M114,104 Q122,99 130,104" stroke-width="4"/>
-    <path d="M70,132 Q78,127 87,131 M113,131 Q122,127 130,132" stroke-width="2.5"/>
+    <path d="M66,120 Q100,134 134,120 Q100,130 66,120 Z" fill="#171310" stroke="none"/>
+    <path d="M66,120 Q57,113 64,105" stroke-width="4"/>
+    <path d="M134,120 Q143,113 136,105" stroke-width="4"/>
     <path d="M84,146 Q100,153 114,144" />
     <path d="M84,88 L100,100 L116,88" fill="#FFFFFF"/>
     <path d="M92,98 L100,106 L108,98 Z" fill="#171310" stroke="none"/>

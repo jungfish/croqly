@@ -1,23 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+    <pattern id="dots-patissiere" width="9" height="9" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="#FFFFFF"/>
       <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
     </pattern>
   </defs>
-  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <circle cx="100" cy="100" r="99" fill="#FF4B3E"/>
   <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
+    
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots-patissiere)"/>
     <circle cx="68" cy="56" r="26" fill="#FFFFFF"/>
     <circle cx="100" cy="42" r="30" fill="#FFFFFF"/>
     <circle cx="132" cy="56" r="26" fill="#FFFFFF"/>
     <circle cx="100" cy="14" r="6" fill="#171310" stroke="none"/>
     <line x1="100" y1="14" x2="100" y2="24" stroke-width="3"/>
-    <circle cx="70" cy="112" r="1.4" fill="#171310" stroke="none"/>
-    <circle cx="76" cy="116" r="1.4" fill="#171310" stroke="none"/>
-    <circle cx="66" cy="118" r="1.4" fill="#171310" stroke="none"/>
-    <circle cx="130" cy="112" r="1.4" fill="#171310" stroke="none"/>
-    <circle cx="124" cy="116" r="1.4" fill="#171310" stroke="none"/>
-    <circle cx="134" cy="118" r="1.4" fill="#171310" stroke="none"/>
+    <circle cx="69" cy="112" r="1.9" fill="#171310" stroke="none"/>
+    <circle cx="76" cy="117" r="1.9" fill="#171310" stroke="none"/>
+    <circle cx="64" cy="119" r="1.9" fill="#171310" stroke="none"/>
+    <circle cx="131" cy="112" r="1.9" fill="#171310" stroke="none"/>
+    <circle cx="124" cy="117" r="1.9" fill="#171310" stroke="none"/>
+    <circle cx="136" cy="119" r="1.9" fill="#171310" stroke="none"/>
     <circle cx="78" cy="102" r="4" fill="#171310" stroke="none"/>
     <circle cx="122" cy="102" r="4" fill="#171310" stroke="none"/>
     <path d="M84,134 Q100,144 116,134" />

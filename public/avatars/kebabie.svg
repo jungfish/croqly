@@ -1,15 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+    <pattern id="dots-kebabie" width="9" height="9" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="#FFFFFF"/>
       <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
     </pattern>
   </defs>
-  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <circle cx="100" cy="100" r="99" fill="#1F9D55"/>
   <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
-    <path d="M70,72 L130,72 L120,22 L80,22 Z" fill="#FFFFFF"/>
-    <line x1="100" y1="22" x2="100" y2="6" stroke-width="3"/>
-    <circle cx="100" cy="3" r="3.5" fill="#171310" stroke="none"/>
+    
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots-kebabie)"/>
+    <path d="M78,72 L122,72 L116,16 L84,16 Z" fill="#FFFFFF"/>
+    <line x1="100" y1="16" x2="100" y2="4" stroke-width="3"/>
+    <circle cx="100" cy="1" r="3.5" fill="#171310" stroke="none"/>
     <circle cx="78" cy="102" r="4" fill="#171310" stroke="none"/>
     <circle cx="122" cy="102" r="4" fill="#171310" stroke="none"/>
     <path d="M60,130 Q100,152 140,130" fill="#171310" stroke="none"/>

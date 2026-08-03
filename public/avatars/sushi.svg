@@ -1,20 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+    <pattern id="dots-sushi" width="9" height="9" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="#FFFFFF"/>
       <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
     </pattern>
   </defs>
-  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <circle cx="100" cy="100" r="99" fill="#FFC93C"/>
   <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
-    <rect x="48" y="82" width="104" height="18" rx="7" fill="#FFFFFF"/>
-    <circle cx="100" cy="91" r="8" fill="#171310" stroke="none"/>
-    <path d="M152,86 L172,80 M152,96 L172,100" stroke-width="3"/>
-    <path d="M70,94 Q74,88 78,94" stroke-width="3"/>
-    <path d="M122,94 Q126,88 130,94" stroke-width="3"/>
-    <circle cx="78" cy="106" r="4" fill="#171310" stroke="none"/>
-    <circle cx="122" cy="106" r="4" fill="#171310" stroke="none"/>
-    <path d="M88,140 L112,140 L102,154 L98,154 Z" fill="#171310" stroke="none"/>
+    
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots-sushi)"/>
+    <path d="M46,74 Q100,54 154,74 L150,92 Q100,76 50,92 Z" fill="#FFFFFF"/>
+    <circle cx="100" cy="76" r="9" fill="#171310" stroke="none"/>
+    <circle cx="152" cy="82" r="7" fill="#FFFFFF"/>
+    <path d="M156,86 Q174,92 168,110 Q163,95 150,90 Z" fill="#FFFFFF"/>
+    <path d="M148,90 Q158,102 149,116 Q150,101 142,94 Z" fill="#FFFFFF"/>
+    <path d="M70,102 Q74,96 78,102" stroke-width="3"/>
+    <path d="M122,102 Q126,96 130,102" stroke-width="3"/>
+    <circle cx="78" cy="112" r="4" fill="#171310" stroke="none"/>
+    <circle cx="122" cy="112" r="4" fill="#171310" stroke="none"/>
+    <path d="M88,144 L112,144 L102,158 L98,158 Z" fill="#171310" stroke="none"/>
   
   </g>
 </svg>

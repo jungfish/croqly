@@ -28,7 +28,7 @@ const UserAvatar = ({
     <img
       src={avatarSrc(avatarKey)}
       alt={pseudo ? `Avatar de ${pseudo}` : 'Avatar'}
-      className={`${className} rounded-full object-cover shrink-0 bg-muted`}
+      className={`${className} rounded-full object-cover shrink-0 bg-muted shadow-sm`}
     />
   );
 };

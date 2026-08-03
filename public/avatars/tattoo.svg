@@ -1,19 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+    <pattern id="dots-tattoo" width="9" height="9" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="#FFFFFF"/>
       <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
     </pattern>
   </defs>
-  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <circle cx="100" cy="100" r="99" fill="#FF4B3E"/>
   <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
-    <path d="M46,80 Q100,58 154,80 L150,100 Q100,82 50,100 Z" fill="#FFFFFF"/>
-    <path d="M154,80 L172,90 L154,100 Z" fill="#FFFFFF"/>
-    <rect x="62" y="96" width="34" height="24" rx="8" fill="#171310" stroke="none"/>
-    <rect x="104" y="96" width="34" height="24" rx="8" fill="#171310" stroke="none"/>
-    <rect x="96" y="104" width="8" height="6" fill="#171310" stroke="none"/>
-    <path d="M56,148 Q66,156 56,168 M60,148 Q70,156 60,168" stroke-width="3"/>
-    <rect x="88" y="140" width="24" height="9" rx="4" fill="#171310" stroke="none"/>
+    
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots-tattoo)"/>
+    <path d="M50,78 Q54,28 100,24 Q146,28 150,78 Q100,64 50,78 Z" fill="#FFFFFF"/>
+    <path d="M46,78 Q100,96 154,78 L150,86 Q100,104 50,86 Z" fill="#FFFFFF"/>
+    <circle cx="100" cy="26" r="4" fill="none" stroke-width="3"/>
+    <rect x="62" y="100" width="34" height="24" rx="8" fill="#171310" stroke="none"/>
+    <rect x="104" y="100" width="34" height="24" rx="8" fill="#171310" stroke="none"/>
+    <rect x="96" y="108" width="8" height="6" fill="#171310" stroke="none"/>
+    <path d="M56,150 Q66,158 56,170 M60,150 Q70,158 60,170" stroke-width="3"/>
+    <rect x="88" y="144" width="24" height="9" rx="4" fill="#171310" stroke="none"/>
   
   </g>
 </svg>

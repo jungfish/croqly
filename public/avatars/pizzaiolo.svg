@@ -1,13 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+    <pattern id="dots-pizzaiolo" width="9" height="9" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="#FFFFFF"/>
       <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
     </pattern>
   </defs>
-  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <circle cx="100" cy="100" r="99" fill="#FF4B3E"/>
   <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
-    <path d="M48,82 Q100,60 152,82 L148,102 Q100,84 52,102 Z" fill="#FFFFFF"/>
+    
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots-pizzaiolo)"/>
+    <path d="M48,62 Q100,40 152,62 L148,82 Q100,64 52,82 Z" fill="#FFFFFF"/>
     <circle cx="70" cy="118" r="2.6" fill="#171310" stroke="none"/>
     <circle cx="134" cy="124" r="2.6" fill="#171310" stroke="none"/>
     <circle cx="100" cy="130" r="2.6" fill="#171310" stroke="none"/>

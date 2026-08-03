@@ -1,18 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+    <pattern id="dots-bocuse" width="9" height="9" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="#FFFFFF"/>
       <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
     </pattern>
   </defs>
-  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <circle cx="100" cy="100" r="99" fill="#FFC93C"/>
   <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
-    <path d="M60,58 Q60,16 100,14 Q140,16 140,58 L145,74 L55,74 Z" fill="#FFFFFF"/>
-    <path d="M54,74 Q100,86 146,74 L146,87 Q100,99 54,87 Z" fill="#FFFFFF"/>
-    <circle cx="78" cy="104" r="5" fill="#171310" stroke="none"/>
-    <circle cx="122" cy="104" r="5" fill="#171310" stroke="none"/>
-    <path d="M60,126 Q100,158 140,126 Q120,140 100,135 Q80,140 60,126 Z" fill="#171310" stroke="none"/>
-    <path d="M84,148 Q100,153 116,148" stroke="#FFFFFF" stroke-width="3"/>
+    
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots-bocuse)"/>
+    <path d="M58,68 L58,90 Q100,98 142,90 L142,68 Z" fill="#FFFFFF"/>
+    <path d="M48,70 Q40,18 100,14 Q160,18 152,70 Q100,58 48,70 Z" fill="#FFFFFF"/>
+    <path d="M75,58 Q73,34 78,20" stroke-width="3"/>
+    <path d="M100,60 L100,16" stroke-width="3"/>
+    <path d="M125,58 Q127,34 122,20" stroke-width="3"/>
+    <circle cx="78" cy="106" r="5" fill="#171310" stroke="none"/>
+    <circle cx="122" cy="106" r="5" fill="#171310" stroke="none"/>
+    <path d="M60,128 Q100,160 140,128 Q120,142 100,137 Q80,142 60,128 Z" fill="#171310" stroke="none"/>
+    <path d="M84,150 Q100,155 116,150" stroke="#FFFFFF" stroke-width="3"/>
   
   </g>
 </svg>

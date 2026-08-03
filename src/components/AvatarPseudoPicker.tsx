@@ -49,7 +49,7 @@ const AvatarPseudoPicker = ({
                 className="relative flex flex-col items-center gap-1 group"
               >
                 <span
-                  className={`relative w-full aspect-square rounded-full overflow-hidden border-2 transition-colors ${
+                  className={`relative w-full aspect-square rounded-full overflow-hidden border-2 shadow-sm transition-colors ${
                     selected ? 'border-primary ring-2 ring-primary/30' : 'border-border group-hover:border-primary/50'
                   }`}
                 >
