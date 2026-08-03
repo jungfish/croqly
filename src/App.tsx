@@ -1,32 +1,34 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import Index from "@/pages/Index";
-import DecouvrirPage from "@/pages/decouvrir";
-import ChatPage from "@/pages/chat";
-import RecipesList from "@/pages/recipes";
-import RecipeView from "@/pages/recipe/[id]";
-import ShoppingListPage from "@/pages/shopping-list";
-import BandePage from "@/pages/bande";
-import LaserCroqPage from "@/pages/laser-croq";
-import LaserCroqChallengePage from "@/pages/laser-croq/[id]";
-import CreatorHub from "@/pages/createur/[handle]";
-import Login from "@/pages/auth/Login";
-import Signup from "@/pages/auth/Signup";
-import NotFound from "./pages/NotFound";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AppSidebar from '@/components/AppSidebar';
 import InstallPwaBanner from '@/components/InstallPwaBanner';
 import RequireAuth from '@/components/RequireAuth';
 import RequireAdmin from '@/components/RequireAdmin';
-import AdminDashboard from '@/pages/admin';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { HeroProvider } from '@/hooks/use-hero';
 import { PwaInstallProvider } from '@/hooks/use-pwa-install';
 import { PushNotificationsProvider } from '@/hooks/use-push-notifications';
+
+const Index = lazy(() => import("@/pages/Index"));
+const DecouvrirPage = lazy(() => import("@/pages/decouvrir"));
+const ChatPage = lazy(() => import("@/pages/chat"));
+const RecipesList = lazy(() => import("@/pages/recipes"));
+const RecipeView = lazy(() => import("@/pages/recipe/[id]"));
+const ShoppingListPage = lazy(() => import("@/pages/shopping-list"));
+const BandePage = lazy(() => import("@/pages/bande"));
+const LaserCroqPage = lazy(() => import("@/pages/laser-croq"));
+const LaserCroqChallengePage = lazy(() => import("@/pages/laser-croq/[id]"));
+const CreatorHub = lazy(() => import("@/pages/createur/[handle]"));
+const Login = lazy(() => import("@/pages/auth/Login"));
+const Signup = lazy(() => import("@/pages/auth/Signup"));
+const AdminDashboard = lazy(() => import("@/pages/admin"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -45,28 +47,30 @@ const AppShell = () => {
       {user && <AppSidebar />}
       <Header />
       <main className="flex-1">
-        <Routes>
-          {/* Public: anyone can try the product and view/share a recipe without an account */}
-          <Route path="/" element={<Index />} />
-          <Route path="/decouvrir" element={<DecouvrirPage />} />
-          <Route path="/assistant" element={<ChatPage />} />
-          <Route path="/recipe/:id" element={<RecipeView />} />
-          <Route path="/createurs/:platform/:handle" element={<CreatorHub />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          {/* Protected: only "my recipes" needs an identity */}
-          <Route element={<RequireAuth />}>
-            <Route path="/recipes" element={<RecipesList />} />
-            <Route path="/bande" element={<BandePage />} />
-            <Route path="/laser-croq" element={<LaserCroqPage />} />
-            <Route path="/laser-croq/:id" element={<LaserCroqChallengePage />} />
-            <Route path="/shopping-list" element={<ShoppingListPage />} />
-          </Route>
-          <Route element={<RequireAdmin />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={null}>
+          <Routes>
+            {/* Public: anyone can try the product and view/share a recipe without an account */}
+            <Route path="/" element={<Index />} />
+            <Route path="/decouvrir" element={<DecouvrirPage />} />
+            <Route path="/assistant" element={<ChatPage />} />
+            <Route path="/recipe/:id" element={<RecipeView />} />
+            <Route path="/createurs/:platform/:handle" element={<CreatorHub />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            {/* Protected: only "my recipes" needs an identity */}
+            <Route element={<RequireAuth />}>
+              <Route path="/recipes" element={<RecipesList />} />
+              <Route path="/bande" element={<BandePage />} />
+              <Route path="/laser-croq" element={<LaserCroqPage />} />
+              <Route path="/laser-croq/:id" element={<LaserCroqChallengePage />} />
+              <Route path="/shopping-list" element={<ShoppingListPage />} />
+            </Route>
+            <Route element={<RequireAdmin />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </main>
       {/* Signed-in shell reads as a desktop app (sidebar + no footer);
           the marketing footer stays for logged-out visitors. */}

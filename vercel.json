@@ -5,8 +5,9 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/recipe/:id", "destination": "/api" },
-    { "source": "/createurs/:handle", "destination": "/api" },
-    { "source": "/sitemap.xml", "destination": "/api" }
+    { "source": "/createurs/:platform/:handle", "destination": "/api" },
+    { "source": "/sitemap.xml", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "functions": {
     "api/index.ts": {
