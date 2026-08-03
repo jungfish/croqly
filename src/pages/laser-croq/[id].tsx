@@ -404,12 +404,11 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
   if (slides.length === 0) return null;
 
   return (
-    <div className="max-w-md lg:max-w-3xl mx-auto">
-      {/* The prev/next arrows live pinned to the sides of the card itself
-          (not in a row below it) so they're always visible regardless of
-          how tall the current slide is — they used to sit below the card
-          in normal flow, which could end up out of view depending on the
-          slide's height. */}
+    <div className="max-w-xl lg:max-w-4xl mx-auto">
+      {/* The card itself is inset from this wrapper (inset-x-11/12/16) so the
+          prev/next arrows — pinned to the wrapper's own edges — land in that
+          reserved gutter instead of overlapping the card's own content, no
+          matter how tall the current slide is. */}
       <div className="relative transition-[height] duration-200" style={{ height, touchAction: "pan-y" }}>
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
@@ -426,7 +425,7 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
             dragElastic={0.7}
             onDragEnd={handleDragEnd}
             whileDrag={{ cursor: "grabbing" }}
-            className="absolute inset-x-0 top-0"
+            className="absolute inset-x-11 sm:inset-x-12 lg:inset-x-16 top-0"
           >
             {slides[clamped].node}
           </motion.div>
@@ -437,7 +436,7 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
           onClick={() => goTo(clamped - 1, -1)}
           disabled={clamped === 0}
           aria-label="Dressage précédent"
-          className="absolute left-2 top-[14rem] sm:top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
+          className="absolute left-0 top-[14rem] sm:top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -446,7 +445,7 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
           onClick={() => goTo(clamped + 1, 1)}
           disabled={clamped === slides.length - 1}
           aria-label="Dressage suivant"
-          className="absolute right-2 top-[14rem] sm:top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
+          className="absolute right-0 top-[14rem] sm:top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
