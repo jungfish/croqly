@@ -1,19 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <style>.toon *{stroke:#241A14;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;}</style>
-  <g class="toon">
-    <rect x="76" y="152" width="48" height="30" rx="8" fill="#EFE2C8"/>
-    <circle cx="45" cy="120" r="13" fill="#C88F63"/>
-    <circle cx="155" cy="120" r="13" fill="#C88F63"/>
-    <circle cx="100" cy="116" r="56" fill="#C88F63"/>
-    <path d="M50,80 Q100,60 150,80 L144,100 Q100,84 56,100 Z" fill="#5A2A20"/>
-    <path d="M150,80 L168,92 L150,100 Z" fill="#5A2A20"/>
-    <line x1="62" y1="107" x2="48" y2="100" style="stroke:#B9790A" stroke-width="5"/>
-    <line x1="138" y1="107" x2="152" y2="100" style="stroke:#B9790A" stroke-width="5"/>
-    <line x1="98" y1="106" x2="102" y2="106" style="stroke:#B9790A" stroke-width="5"/>
-    <ellipse cx="81" cy="109" rx="20" ry="17" fill="#241A14" style="stroke:#B9790A;stroke-width:5"/>
-    <ellipse cx="119" cy="109" rx="20" ry="17" fill="#241A14" style="stroke:#B9790A;stroke-width:5"/>
-    <ellipse cx="75" cy="102" rx="4" ry="6" fill="#F7EEDD" opacity="0.4" stroke="none"/>
-    <ellipse cx="113" cy="102" rx="4" ry="6" fill="#F7EEDD" opacity="0.4" stroke="none"/>
-    <path d="M90,142 L110,142 L104,154 L96,154 Z" fill="#241A14"/>
+  <defs>
+    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
+    </pattern>
+  </defs>
+  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
+    <path d="M44,84 Q100,58 156,84 L150,106 Q100,86 50,106 Z" fill="#FFFFFF"/>
+    <path d="M44,84 L26,98 L46,104 Z" fill="#FFFFFF"/>
+    <line x1="98" y1="103" x2="102" y2="103" stroke-width="4"/>
+    <ellipse cx="78" cy="104" rx="15" ry="12" fill="#171310" stroke="none"/>
+    <ellipse cx="122" cy="104" rx="15" ry="12" fill="#171310" stroke="none"/>
+    <circle cx="73" cy="99" r="2.2" fill="#FFFFFF" stroke="none"/>
+    <circle cx="117" cy="99" r="2.2" fill="#FFFFFF" stroke="none"/>
+    <path d="M90,140 L110,140 L104,152 L96,152 Z" fill="#171310" stroke="none"/>
+  
   </g>
 </svg>

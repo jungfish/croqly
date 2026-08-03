@@ -1,21 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <style>.toon *{stroke:#241A14;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;}</style>
-  <g class="toon">
-    <rect x="76" y="152" width="48" height="30" rx="8" fill="#EFE2C8"/>
-    <path d="M60,150 Q70,158 60,168 M64,150 Q74,158 64,168" fill="none" stroke="#3F6B45" stroke-width="4"/>
-    <circle cx="45" cy="120" r="13" fill="#C88F63"/>
-    <circle cx="155" cy="120" r="13" fill="#C88F63"/>
-    <circle cx="100" cy="116" r="56" fill="#C88F63"/>
-    <path d="M50,78 Q100,60 150,78 L146,96 Q100,80 54,96 Z" fill="#C93F27"/>
-    <circle cx="132" cy="86" r="3" fill="#FBF8F2" stroke="none"/>
-    <circle cx="118" cy="90" r="3" fill="#FBF8F2" stroke="none"/>
-    <line x1="64" y1="105" x2="50" y2="99" stroke-width="4"/>
-    <line x1="136" y1="105" x2="150" y2="99" stroke-width="4"/>
-    <rect x="64" y="97" width="32" height="22" rx="7" fill="#241A14"/>
-    <rect x="104" y="97" width="32" height="22" rx="7" fill="#241A14"/>
-    <rect x="96" y="104" width="8" height="6" fill="#241A14"/>
-    <line x1="72" y1="103" x2="80" y2="110" style="stroke:#F7EEDD" stroke-width="3" opacity="0.55"/>
-    <line x1="112" y1="103" x2="120" y2="110" style="stroke:#F7EEDD" stroke-width="3" opacity="0.55"/>
-    <rect x="88" y="140" width="24" height="10" rx="4" fill="#241A14"/>
+  <defs>
+    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
+    </pattern>
+  </defs>
+  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
+    <path d="M46,80 Q100,58 154,80 L150,100 Q100,82 50,100 Z" fill="#FFFFFF"/>
+    <path d="M154,80 L172,90 L154,100 Z" fill="#FFFFFF"/>
+    <rect x="62" y="96" width="34" height="24" rx="8" fill="#171310" stroke="none"/>
+    <rect x="104" y="96" width="34" height="24" rx="8" fill="#171310" stroke="none"/>
+    <rect x="96" y="104" width="8" height="6" fill="#171310" stroke="none"/>
+    <path d="M56,148 Q66,156 56,168 M60,148 Q70,156 60,168" stroke-width="3"/>
+    <rect x="88" y="140" width="24" height="9" rx="4" fill="#171310" stroke="none"/>
+  
   </g>
 </svg>

@@ -1,16 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <style>.toon *{stroke:#241A14;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;}</style>
-  <g class="toon">
-    <rect x="72" y="150" width="56" height="34" rx="8" fill="#EFE2C8"/>
-    <path d="M92,150 L108,150 L100,172 Z" fill="#C93F27"/>
-    <circle cx="45" cy="118" r="13" fill="#E8B98A"/>
-    <circle cx="155" cy="118" r="13" fill="#E8B98A"/>
-    <circle cx="100" cy="115" r="58" fill="#E8B98A"/>
-    <rect x="56" y="58" width="88" height="18" rx="9" fill="#FBF8F2"/>
-    <rect x="62" y="22" width="76" height="42" rx="16" fill="#FBF8F2"/>
-    <circle cx="80" cy="103" r="5.5" fill="#241A14" stroke="none"/>
-    <circle cx="120" cy="103" r="5.5" fill="#241A14" stroke="none"/>
-    <path d="M66,124 Q100,146 134,124 Q100,138 66,124 Z" fill="#FBF8F2"/>
-    <path d="M84,138 Q100,144 116,138" fill="none" stroke-width="5"/>
+  <defs>
+    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
+    </pattern>
+  </defs>
+  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
+    <path d="M60,58 Q60,16 100,14 Q140,16 140,58 L145,74 L55,74 Z" fill="#FFFFFF"/>
+    <path d="M54,74 Q100,86 146,74 L146,87 Q100,99 54,87 Z" fill="#FFFFFF"/>
+    <circle cx="78" cy="104" r="5" fill="#171310" stroke="none"/>
+    <circle cx="122" cy="104" r="5" fill="#171310" stroke="none"/>
+    <path d="M60,126 Q100,158 140,126 Q120,140 100,135 Q80,140 60,126 Z" fill="#171310" stroke="none"/>
+    <path d="M84,148 Q100,153 116,148" stroke="#FFFFFF" stroke-width="3"/>
+  
   </g>
 </svg>

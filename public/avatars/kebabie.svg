@@ -1,17 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <style>.toon *{stroke:#241A14;stroke-width:6;stroke-linejoin:round;stroke-linecap:round;}</style>
-  <g class="toon">
-    <rect x="76" y="152" width="48" height="30" rx="8" fill="#EFE2C8"/>
-    <circle cx="45" cy="120" r="13" fill="#D2A679"/>
-    <circle cx="155" cy="120" r="13" fill="#D2A679"/>
-    <circle cx="100" cy="116" r="56" fill="#D2A679"/>
-    <path d="M74,70 L126,70 L118,26 L82,26 Z" fill="#C93F27"/>
-    <line x1="100" y1="26" x2="100" y2="12" stroke="#241A14" stroke-width="4"/>
-    <circle cx="100" cy="9" r="4" fill="#241A14" stroke="none"/>
-    <circle cx="80" cy="106" r="5.5" fill="#241A14" stroke="none"/>
-    <circle cx="120" cy="106" r="5.5" fill="#241A14" stroke="none"/>
-    <path d="M66,130 Q100,148 134,130" fill="none" stroke-width="7"/>
-    <circle cx="66" cy="132" r="4" fill="#241A14" stroke="none"/>
-    <circle cx="134" cy="132" r="4" fill="#241A14" stroke="none"/>
+  <defs>
+    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="2.2" cy="2.2" r="1.5" fill="#171310"/>
+    </pattern>
+  </defs>
+  <circle cx="100" cy="100" r="99" fill="#FFFFFF"/>
+  <g fill="none" stroke="#171310" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M100,48 C132,46 158,64 160,97 C162,132 144,160 106,164 C70,168 42,146 40,108 C38,74 64,50 100,48 Z" fill="url(#dots)"/>
+    <path d="M70,72 L130,72 L120,22 L80,22 Z" fill="#FFFFFF"/>
+    <line x1="100" y1="22" x2="100" y2="6" stroke-width="3"/>
+    <circle cx="100" cy="3" r="3.5" fill="#171310" stroke="none"/>
+    <circle cx="78" cy="102" r="4" fill="#171310" stroke="none"/>
+    <circle cx="122" cy="102" r="4" fill="#171310" stroke="none"/>
+    <path d="M60,130 Q100,152 140,130" fill="#171310" stroke="none"/>
+    <circle cx="60" cy="132" r="4" fill="#171310" stroke="none"/>
+    <circle cx="140" cy="132" r="4" fill="#171310" stroke="none"/>
+  
   </g>
 </svg>
