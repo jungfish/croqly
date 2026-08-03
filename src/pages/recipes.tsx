@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import RecipeImage from "@/components/RecipeImage";
 import GridCardSkeleton from "@/components/GridCardSkeleton";
-import { UtensilsCrossed, Search, Check, Trash2 } from "lucide-react";
+import { UtensilsCrossed, Search, Check } from "lucide-react";
 import type { Recipe } from "@/types/recipe";
 import { authFetch } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { addRecipesToShoppingList } from "@/services/shoppingListService";
-import { deleteSavedRecipe } from "@/services/recipeService";
 import { useAuth } from "@/hooks/use-auth";
 import { getFirstName } from "@/lib/getFirstName";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -20,7 +19,6 @@ const categories = ["Toutes", "Dessert", "Soupe", "Plat principal", "Entrée", "
 const RecipesPage = () => {
   const { user } = useAuth();
   const firstName = getFirstName(user);
-  const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string>("Toutes");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
@@ -28,7 +26,6 @@ const RecipesPage = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [addingToList, setAddingToList] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: recipes = [], isPending: recipesLoading, isError: isRecipesError } = useQuery<Recipe[]>({
     queryKey: ['recipes', 'mine', debouncedSearch, selectedCategory],
@@ -73,23 +70,6 @@ const RecipesPage = () => {
       toast.error("Impossible d'ajouter ces ingrédients. Réessaie dans un instant.");
     } finally {
       setAddingToList(false);
-    }
-  };
-
-  const handleDelete = async (recipeId: string, title: string) => {
-    if (!window.confirm(`Supprimer "${title}" de tes recettes ?`)) return;
-    setDeletingId(recipeId);
-    try {
-      await deleteSavedRecipe(recipeId);
-      queryClient.setQueryData<Recipe[]>(
-        ['recipes', 'mine', debouncedSearch, selectedCategory],
-        (current) => current?.filter((r) => r.id !== recipeId)
-      );
-      toast.success('Recette supprimée.');
-    } catch {
-      toast.error("Impossible de supprimer cette recette. Réessaie dans un instant.");
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -174,20 +154,6 @@ const RecipesPage = () => {
                 >
                   {recipe.id && selectedIds.has(recipe.id) && <Check className="w-4 h-4" />}
                 </div>
-              )}
-              {!selectMode && recipe.id && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleDelete(recipe.id!, recipe.title);
-                  }}
-                  disabled={deletingId === recipe.id}
-                  aria-label="Supprimer cette recette"
-                  className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:bg-black/60 disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               )}
               <div className="h-48 overflow-hidden">
                 <RecipeImage
