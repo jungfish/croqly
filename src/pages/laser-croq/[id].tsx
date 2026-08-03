@@ -293,9 +293,6 @@ const SubmissionCard = ({
           <ReactionBurst key={`reactions-${burstKey}`} reactions={reactions} />
         </div>
         <div className="p-4 lg:w-1/2 lg:order-1 lg:flex lg:flex-col lg:justify-center">
-          <p className="text-sm text-muted-foreground mb-3">
-            👉 Swipe ou utilise les flèches pour découvrir les autres dressages de la bande !
-          </p>
           <div className="flex items-center justify-between gap-2 mb-1">
             <span className="flex items-center gap-1.5 font-medium text-foreground text-base">
               <UserAvatar avatarKey={submission.avatarKey} pseudo={submission.pseudo} className="w-10 h-10" />
@@ -451,7 +448,9 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
         </button>
       </div>
 
-      <div className="flex items-center justify-center gap-1.5 mt-4">
+      <p className="text-center text-xs text-muted-foreground mt-2">👉 Swipe ou flèches</p>
+
+      <div className="flex items-center justify-center gap-1.5 mt-2">
         {slides.map((slide, i) => (
           <span key={slide.key} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === clamped ? "bg-primary" : "bg-border"}`} />
         ))}
