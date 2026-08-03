@@ -19,7 +19,6 @@ const NAV_ITEMS = [
   { to: '/decouvrir', label: 'Découvrir', icon: Compass },
   { to: '/assistant', label: 'Croq', icon: MessageCircle, badge: 'IA' },
   { to: '/recipes', label: 'Mes Recettes', icon: BookOpen },
-  { to: '/bande', label: 'Bande', icon: Users },
 ];
 
 // Desktop-only app shell nav (Notion/Linear style) shown once a session
@@ -80,10 +79,18 @@ const AppSidebar = () => {
 
   const isActive = (to: string) => (to === '/' ? location.pathname === '/' : location.pathname.startsWith(to));
 
-  const linkClass = (to: string) =>
+  const navClass = (active: boolean) =>
     `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-      isActive(to) ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:bg-accent hover:text-foreground'
+      active ? 'bg-primary/10 text-primary' : 'text-foreground/70 hover:bg-accent hover:text-foreground'
     }`;
+
+  const linkClass = (to: string) => navClass(isActive(to));
+
+  // Bande and Laser Croq now live on the same route (see bande.tsx's tabs),
+  // so the plain pathname check above can't tell them apart — both would
+  // otherwise light up together whichever tab is open.
+  const isLaserCroqTab = location.pathname === '/bande' && new URLSearchParams(location.search).get('tab') === 'laser';
+  const isBandeTab = location.pathname === '/bande' && !isLaserCroqTab;
 
   const handleInstallClick = async () => {
     if (isIOS) {
@@ -148,7 +155,11 @@ const AppSidebar = () => {
             )}
           </Link>
         ))}
-        <Link to="/laser-croq" className={`${linkClass('/laser-croq')} justify-between`}>
+        <Link to="/bande" className={navClass(isBandeTab)}>
+          <Users className="w-4 h-4 shrink-0" />
+          Bande
+        </Link>
+        <Link to="/bande?tab=laser" className={`${navClass(isLaserCroqTab)} justify-between`}>
           <span className="flex items-center gap-3">
             <Zap className="w-4 h-4 shrink-0" />
             Laser Croq

@@ -273,7 +273,7 @@ const Header = () => {
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link to="/laser-croq" className="text-lg text-foreground/80 hover:text-foreground inline-flex items-center gap-2">
+                  <Link to="/bande?tab=laser" className="text-lg text-foreground/80 hover:text-foreground inline-flex items-center gap-2">
                     Laser Croq
                     {pendingChallengeCount > 0 && (
                       <span
