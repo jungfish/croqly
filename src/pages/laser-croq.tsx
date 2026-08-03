@@ -478,7 +478,7 @@ const LaserCroqPage = () => {
 
         {activeId && (
           <>
-            <div className="flex items-center justify-between mb-4 max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-xl font-semibold text-foreground">Défis en cours</h2>
               <NewChallengeSheet householdId={activeId} onCreated={() => queryClient.invalidateQueries({ queryKey: ["laser-croq", "challenges", activeId] })} />
             </div>
