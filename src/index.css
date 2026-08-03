@@ -253,3 +253,23 @@
   pointer-events: none;
 }
 
+/* Camera-flash pop over the photo picker in SubmitForm ([id].tsx) the
+   instant a dressage photo is picked/taken — a quick white flash that fades
+   out, echoing an actual camera flash rather than the preview just
+   silently appearing. */
+@keyframes photo-flash {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.photo-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  animation: photo-flash 0.4s ease-out forwards;
+  pointer-events: none;
+}
+

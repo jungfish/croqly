@@ -138,16 +138,28 @@ const SubmitForm = ({ challengeId, onSubmitted }: { challengeId: string; onSubmi
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="rounded-lg overflow-hidden bg-card/70 border border-border flex items-center justify-center hover:bg-muted transition-colors h-[24rem] sm:h-[30rem]"
+        className="relative rounded-lg overflow-hidden bg-card/70 border border-border flex items-center justify-center hover:bg-muted transition-colors h-[24rem] sm:h-[30rem]"
       >
         {preview ? (
-          <img src={preview} alt="Aperçu" className="w-full h-full object-cover" />
+          <motion.img
+            key={preview}
+            src={preview}
+            alt="Aperçu"
+            className="w-full h-full object-cover"
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 22 }}
+          />
         ) : (
           <span className="flex flex-col items-center gap-2 text-muted-foreground text-sm">
             <Camera className="w-12 h-12" />
             Prendre ou choisir une photo
           </span>
         )}
+        {/* Camera-flash pop the instant a photo lands — pairs the picker
+            with the app's photo-taking framing (Camera icon, capture=
+            environment) instead of the preview just silently appearing. */}
+        {preview && <span key={`flash-${preview}`} className="photo-flash" aria-hidden="true" />}
       </button>
       <Input
         value={caption}
@@ -221,9 +233,15 @@ const Comments = ({ submissionId }: { submissionId: string }) => {
   );
 };
 
-const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmission; showConfetti: boolean }) => {
-  const queryClient = useQueryClient();
-  const [voting, setVoting] = useState(false);
+const SubmissionCard = ({
+  submission,
+  showConfetti,
+  onDeleteSubmission,
+}: {
+  submission: PlatingSubmission;
+  showConfetti: boolean;
+  onDeleteSubmission: () => void;
+}) => {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [reactions, setReactions] = useState<PlatingReactionSummary[]>(submission.reactions);
   const [burstKey, setBurstKey] = useState(0);
@@ -245,34 +263,20 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
     );
   }
 
-  const handleVote = async () => {
-    if (submission.isMine || voting) return;
-    setVoting(true);
-    try {
-      await toggleVote(submission.id);
-      queryClient.invalidateQueries({ queryKey: ["laser-croq", "challenge"] });
-      queryClient.invalidateQueries({ queryKey: ["laser-croq", "feed"] });
-      queryClient.invalidateQueries({ queryKey: ["laser-croq", "challenges"] });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible d'enregistrer ton vote.");
-    } finally {
-      setVoting(false);
-    }
-  };
-
   return (
     <div className={showConfetti && inView ? "laser-ring rounded-xl" : ""}>
       {/* lg:flex splits the card into 2 columns on desktop — info/reactions
           on the left, photo on the right (lg:order-2) — so the photo gets
           its own dedicated column instead of competing with the text below
           it for vertical space, which used to force a lot of scrolling to
-          see the whole photo plus the reactions/vote row under it. Below
-          lg, it's back to a single stacked column (photo on top). */}
-      <motion.div
+          see the whole photo plus the reactions row under it. Below lg,
+          it's back to a single stacked column (photo on top). No hover
+          zoom on the card itself anymore — that lives on the reaction
+          pills now (see PlatingReactionBar), so hovering doesn't make the
+          whole thing jump. */}
+      <div
         ref={ref}
         className="relative rounded-xl overflow-hidden border border-border bg-card/70 backdrop-blur-sm shadow-xl lg:flex lg:items-stretch"
-        whileHover={{ scale: 1.015 }}
-        whileTap={{ scale: 0.98 }}
       >
         <div className="overflow-hidden relative h-[28rem] sm:h-[34rem] lg:h-auto lg:min-h-[28rem] lg:w-1/2 lg:order-2 lg:shrink-0">
           <img src={submission.photoUrl} alt={submission.caption ?? ""} className="w-full h-full object-cover" />
@@ -280,6 +284,9 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
           <ReactionBurst key={`reactions-${burstKey}`} reactions={reactions} />
         </div>
         <div className="p-4 lg:w-1/2 lg:order-1 lg:flex lg:flex-col lg:justify-center">
+          <p className="text-sm text-muted-foreground mb-3">
+            👉 Swipe ou utilise les flèches pour découvrir les autres dressages de la bande !
+          </p>
           <div className="flex items-center justify-between gap-2 mb-1">
             <span className="flex items-center gap-1.5 font-medium text-foreground text-base">
               <UserAvatar avatarKey={submission.avatarKey} pseudo={submission.pseudo} className="w-10 h-10" />
@@ -294,28 +301,16 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
             )}
           </div>
           {submission.caption && <p className="text-muted-foreground mb-2 text-base">{submission.caption}</p>}
-          <div className="flex items-center gap-3 mb-2">
-            <button
-              onClick={handleVote}
-              disabled={submission.isMine || voting}
-              title={submission.isMine ? "Tu ne peux pas voter pour ton propre dressage" : "Couronner ce dressage"}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors ${
-                submission.votedByMe
-                  ? "bg-yolk/20 border-yolk text-yolk-deep"
-                  : "bg-card border-border text-foreground hover:bg-muted disabled:opacity-50"
-              }`}
-            >
-              <Crown className="w-3.5 h-3.5" />
-              {submission.votesCount}
-            </button>
-            <button
-              onClick={() => setCommentsOpen((prev) => !prev)}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              {submission.commentsCount}
-            </button>
-          </div>
+          <button
+            onClick={() => setCommentsOpen((prev) => !prev)}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2 w-fit"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            {submission.commentsCount}
+          </button>
+          <p className="text-xs text-muted-foreground mb-1.5">
+            Spam les réactions pour montrer ton soutien à ce dressage 🎉
+          </p>
           <PlatingReactionBar
             submissionId={submission.id}
             reactions={reactions}
@@ -325,8 +320,17 @@ const SubmissionCard = ({ submission, showConfetti }: { submission: PlatingSubmi
             }}
           />
           {commentsOpen && <Comments submissionId={submission.id} />}
+          {submission.isMine && (
+            <button
+              onClick={onDeleteSubmission}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors mt-3 w-fit"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Retirer mon dressage
+            </button>
+          )}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };
@@ -392,6 +396,11 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
 
   return (
     <div className="max-w-md lg:max-w-3xl mx-auto">
+      {/* The prev/next arrows live pinned to the sides of the card itself
+          (not in a row below it) so they're always visible regardless of
+          how tall the current slide is — they used to sit below the card
+          in normal flow, which could end up out of view depending on the
+          slide's height. */}
       <div className="relative transition-[height] duration-200" style={{ height, touchAction: "pan-y" }}>
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
@@ -413,32 +422,31 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
             {slides[clamped].node}
           </motion.div>
         </AnimatePresence>
-      </div>
 
-      <div className="flex items-center justify-center gap-4 mt-5">
         <button
           type="button"
           onClick={() => goTo(clamped - 1, -1)}
           disabled={clamped === 0}
           aria-label="Dressage précédent"
-          className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-1.5">
-          {slides.map((slide, i) => (
-            <span key={slide.key} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === clamped ? "bg-primary" : "bg-border"}`} />
-          ))}
-        </div>
         <button
           type="button"
           onClick={() => goTo(clamped + 1, 1)}
           disabled={clamped === slides.length - 1}
           aria-label="Dressage suivant"
-          className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
+      </div>
+
+      <div className="flex items-center justify-center gap-1.5 mt-4">
+        {slides.map((slide, i) => (
+          <span key={slide.key} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === clamped ? "bg-primary" : "bg-border"}`} />
+        ))}
       </div>
     </div>
   );
@@ -591,12 +599,6 @@ const ChallengeDetailPage = () => {
                   : `🔫 Le défi « ${challenge.title} » est révélé — viens voir qui a gagné et voter !`
               }
             />
-            {challenge.hasSubmittedByMe && (
-              <Button variant="ghost" size="sm" onClick={handleDeleteSubmission} className="gap-1.5 text-muted-foreground">
-                <Trash2 className="w-4 h-4" />
-                Retirer mon dressage
-              </Button>
-            )}
           </div>
         </div>
 
@@ -628,6 +630,7 @@ const ChallengeDetailPage = () => {
                 <SubmissionCard
                   submission={submission}
                   showConfetti={!challenge.isOpen && submission.id === topVotedId && !submission.locked}
+                  onDeleteSubmission={handleDeleteSubmission}
                 />
               ),
             })),

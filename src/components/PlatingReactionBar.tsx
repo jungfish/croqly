@@ -94,7 +94,7 @@ const PlatingReactionBar = ({
             onClick={() => handlePick(type, emoji)}
             title={label}
             aria-label={label}
-            className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-transform active:scale-90 ${
+            className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-transform hover:scale-125 active:scale-90 ${
               entry?.reactedByMe ? "bg-primary/10 border-primary/50" : "bg-card border-border hover:bg-muted"
             }`}
           >
