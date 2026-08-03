@@ -1,10 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, LogOut, Download, UserPlus, Zap, Bell, BellOff, Sparkles } from 'lucide-react';
+import { Plus, Compass, MessageCircle, BookOpen, Users, ShoppingCart, ShieldCheck, Download, UserPlus, Zap, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
-import { usePushNotifications } from '@/hooks/use-push-notifications';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { fetchShoppingList, type ShoppingListItem } from '@/services/shoppingListService';
@@ -25,10 +24,9 @@ const NAV_ITEMS = [
 // exists — Header still handles the mobile drawer, so this never renders
 // below md and doesn't duplicate its own trigger.
 const AppSidebar = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const { canInstall, isIOS, isStandalone, promptInstall } = usePwaInstall();
-  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } = usePushNotifications();
 
   const { data: shoppingListItems = [] } = useQuery<ShoppingListItem[]>({
     queryKey: ['shopping-list'],
@@ -102,29 +100,6 @@ const AppSidebar = () => {
     const outcome = await promptInstall();
     if (outcome === 'accepted') {
       toast.success('Croqly installée !');
-    }
-  };
-
-  const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast.error('Impossible de se déconnecter. Réessaie dans un instant.');
-      return;
-    }
-    toast.success('À bientôt !');
-  };
-
-  const handleTogglePush = async () => {
-    try {
-      if (pushSubscribed) {
-        await unsubscribeFromPush();
-        toast('Notifications désactivées');
-      } else {
-        await subscribeToPush();
-        toast.success('Notifications activées !');
-      }
-    } catch {
-      toast.error('Impossible de mettre à jour les notifications. Réessaie dans un instant.');
     }
   };
 
@@ -210,12 +185,6 @@ const AppSidebar = () => {
             Installer l'app
           </Button>
         )}
-        {pushSupported && (
-          <Button variant="outline" size="sm" onClick={handleTogglePush} disabled={pushLoading} className="w-full justify-start gap-3">
-            {pushSubscribed ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-            {pushSubscribed ? 'Désactiver les notifs' : 'Activer les notifs'}
-          </Button>
-        )}
         <ProfileSheet
           profile={profile}
           trigger={
@@ -229,13 +198,6 @@ const AppSidebar = () => {
             </button>
           }
         />
-        <button
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
-        >
-          <LogOut className="w-4 h-4 shrink-0" />
-          Déconnexion
-        </button>
       </div>
     </aside>
   );

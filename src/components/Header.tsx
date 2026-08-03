@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Menu, Download, UserPlus, Bell, BellOff, Sparkles } from 'lucide-react';
+import { Menu, Download, UserPlus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { useHero } from '@/hooks/use-hero';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
-import { usePushNotifications } from '@/hooks/use-push-notifications';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,10 +33,9 @@ const HERO_SCROLL_THRESHOLD = 180;
 const DEFAULT_SCROLL_THRESHOLD = 10;
 
 const Header = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { hasHero } = useHero();
   const { canInstall, isIOS, isStandalone, promptInstall } = usePwaInstall();
-  const { isSupported: pushSupported, isSubscribed: pushSubscribed, isLoading: pushLoading, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } = usePushNotifications();
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
 
   // Same query key as the shopping-list page, so this badge stays in sync
@@ -97,29 +95,6 @@ const Header = () => {
     const outcome = await promptInstall();
     if (outcome === 'accepted') {
       toast.success('Croqly installée !');
-    }
-  };
-
-  const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast.error('Impossible de se déconnecter. Réessaie dans un instant.');
-      return;
-    }
-    toast.success('À bientôt !');
-  };
-
-  const handleTogglePush = async () => {
-    try {
-      if (pushSubscribed) {
-        await unsubscribeFromPush();
-        toast('Notifications désactivées');
-      } else {
-        await subscribeToPush();
-        toast.success('Notifications activées !');
-      }
-    } catch {
-      toast.error('Impossible de mettre à jour les notifications. Réessaie dans un instant.');
     }
   };
 
@@ -305,23 +280,6 @@ const Header = () => {
                     </Link>
                   </SheetClose>
                 )}
-                {pushSupported && (
-                  <SheetClose asChild>
-                    <button
-                      onClick={handleTogglePush}
-                      disabled={pushLoading}
-                      className="text-lg text-left text-foreground/80 hover:text-foreground inline-flex items-center gap-2"
-                    >
-                      {pushSubscribed ? <BellOff className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
-                      {pushSubscribed ? 'Désactiver les notifs' : 'Activer les notifs'}
-                    </button>
-                  </SheetClose>
-                )}
-                <SheetClose asChild>
-                  <button onClick={handleSignOut} className="text-lg text-left text-foreground/80 hover:text-foreground">
-                    Déconnexion
-                  </button>
-                </SheetClose>
               </>
             ) : (
               <>
