@@ -256,7 +256,7 @@ const ChallengeCard = ({ challenge }: { challenge: PlatingChallengeCard }) => {
   const [ref, inView] = useInViewOnce<HTMLAnchorElement>();
 
   return (
-    <div className={`h-full ${challenge.winner && inView ? "laser-ring rounded-xl" : ""}`}>
+    <div className="h-full">
       <MotionLink
         ref={ref}
         to={`/laser-croq/${challenge.id}`}

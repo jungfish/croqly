@@ -80,9 +80,9 @@ const RevealExplainer = () => {
   };
 
   return (
-    <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+    <div className="mb-4 sm:mb-6 rounded-xl border border-primary/30 bg-primary/5 p-3 sm:p-4 flex items-start gap-3">
       <Zap className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-      <div className="flex-1 text-sm">
+      <div className="flex-1 text-xs sm:text-sm">
         <p className="font-medium text-foreground mb-1">Comment ça marche ?</p>
         <p className="text-muted-foreground">
           Les dressages des autres restent flous tant que tu n'as pas envoyé le tien (ou que le défi n'est pas
@@ -402,10 +402,10 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
 
   return (
     <div className="max-w-xl lg:max-w-4xl mx-auto">
-      {/* The card itself is inset from this wrapper (inset-x-11/12/16) so the
-          prev/next arrows — pinned to the wrapper's own edges — land in that
-          reserved gutter instead of overlapping the card's own content, no
-          matter how tall the current slide is. */}
+      {/* Full-width on mobile (inset-x-0) since touch is the primary way to
+          move through the deck there and the prev/next arrows only reappear
+          from sm: up, once there's a gutter (inset-x-12/16) to land them in
+          without overlapping the card's own content. */}
       <div className="relative transition-[height] duration-200" style={{ height, touchAction: "pan-y" }}>
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
@@ -422,7 +422,7 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
             dragElastic={0.7}
             onDragEnd={handleDragEnd}
             whileDrag={{ cursor: "grabbing" }}
-            className="absolute inset-x-11 sm:inset-x-12 lg:inset-x-16 top-0"
+            className="absolute inset-x-0 sm:inset-x-12 lg:inset-x-16 top-0"
           >
             {slides[clamped].node}
           </motion.div>
@@ -433,7 +433,7 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
           onClick={() => goTo(clamped - 1, -1)}
           disabled={clamped === 0}
           aria-label="Dressage précédent"
-          className="absolute left-0 top-[14rem] sm:top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
+          className="hidden sm:flex absolute left-0 top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -442,13 +442,30 @@ const FocusDeck = ({ slides }: { slides: { key: string; node: React.ReactNode }[
           onClick={() => goTo(clamped + 1, 1)}
           disabled={clamped === slides.length - 1}
           aria-label="Dressage suivant"
-          className="absolute right-0 top-[14rem] sm:top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
+          className="hidden sm:flex absolute right-0 top-[17rem] lg:top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-background/95 backdrop-blur-sm border border-border shadow-lg items-center justify-center text-foreground hover:bg-muted disabled:opacity-0 disabled:pointer-events-none transition-all"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground mt-2">👉 Swipe ou flèches</p>
+      {/* Below sm: an animated chevron nudging left spells out the swipe
+          gesture explicitly — arrows aren't on screen there to hint at
+          directionality some other way. From sm: up the arrows already show
+          the direction, so it's just the plain "swipe or arrows" reminder. */}
+      {clamped < slides.length - 1 && (
+        <div className="flex sm:hidden items-center justify-center gap-1.5 mt-2">
+          <motion.span
+            aria-hidden="true"
+            animate={{ x: [0, -6, 0] }}
+            transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
+            className="inline-flex text-primary"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </motion.span>
+          <p className="text-xs text-muted-foreground">Swipe à gauche pour voir la suite</p>
+        </div>
+      )}
+      <p className="hidden sm:block text-center text-xs text-muted-foreground mt-2">👉 Swipe ou flèches</p>
 
       <div className="flex items-center justify-center gap-1.5 mt-2">
         {slides.map((slide, i) => (
@@ -587,44 +604,27 @@ const ChallengeDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-8 pt-28 max-w-4xl">
-        <Link to="/laser-croq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-          ← Laser Croq
-        </Link>
+      <div className="container mx-auto px-4 sm:px-8 py-8 pt-28 max-w-4xl">
+        <div className="flex items-center justify-between gap-3">
+          <Link to="/laser-croq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            ← Laser Croq
+          </Link>
+          <ShareButton
+            title="Laser Croq"
+            text={
+              challenge.isOpen
+                ? `🔫 Défi de dressage « ${challenge.title} » en cours — envoie ta photo avant la révélation !`
+                : `🔫 Le défi « ${challenge.title} » est révélé — viens voir qui a gagné et voter !`
+            }
+          />
+        </div>
 
-        <div className="flex items-start justify-between gap-4 flex-wrap mt-3 mb-6">
-          <div>
-            <h1 className="font-display text-2xl sm:text-3xl text-foreground mb-1">{challenge.title}</h1>
-            <p className="text-sm text-muted-foreground">{challenge.isOpen ? timeLeftLabel(challenge.endsAt) : "Défi terminé"}</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <ShareButton
-              title="Laser Croq"
-              text={
-                challenge.isOpen
-                  ? `🔫 Défi de dressage « ${challenge.title} » en cours — envoie ta photo avant la révélation !`
-                  : `🔫 Le défi « ${challenge.title} » est révélé — viens voir qui a gagné et voter !`
-              }
-            />
-          </div>
+        <div className="mt-3 mb-4 sm:mb-6">
+          <h1 className="font-display text-2xl sm:text-3xl text-foreground mb-1">{challenge.title}</h1>
+          <p className="text-sm text-muted-foreground">{challenge.isOpen ? timeLeftLabel(challenge.endsAt) : "Défi terminé"}</p>
         </div>
 
         <RevealExplainer />
-
-        {challenge.recipe && (
-          <Link
-            to={`/recipe/${challenge.recipe.recipeId}`}
-            className="flex items-center gap-3 mb-6 p-3 rounded-xl border border-border bg-card/70 backdrop-blur-sm hover:bg-muted transition-colors"
-          >
-            {challenge.recipe.thumb && (
-              <img src={challenge.recipe.thumb} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
-            )}
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Recette réalisée</p>
-              <p className="font-medium text-foreground truncate">{challenge.recipe.title}</p>
-            </div>
-          </Link>
-        )}
 
         <FocusDeck
           slides={[
@@ -646,6 +646,22 @@ const ChallengeDetailPage = () => {
               : []),
           ]}
         />
+
+        {challenge.recipe && (
+          <Link
+            to={`/recipe/${challenge.recipe.recipeId}`}
+            className="flex items-center gap-3 mt-6 p-3 rounded-xl border border-border bg-card/70 backdrop-blur-sm shadow-sm hover:bg-muted hover:border-primary/40 active:scale-[0.99] transition-all"
+          >
+            {challenge.recipe.thumb && (
+              <img src={challenge.recipe.thumb} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">Recette réalisée</p>
+              <p className="font-medium text-foreground truncate">{challenge.recipe.title}</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </Link>
+        )}
 
         {challenge.submissions.length === 0 && challenge.hasSubmittedByMe === false && !challenge.isOpen && (
           <p className="text-center text-muted-foreground py-12">Ce défi s'est terminé sans aucun dressage envoyé.</p>
